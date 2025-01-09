@@ -36,6 +36,7 @@ import { UsersModule }          from '@modules/users/users.module';
 import { IntegrationsModule }   from '@modules/integrations/integrations.module';
 import { OrdersModule }         from '@modules/orders/orders.module';
 import { ScheduleModule }       from '@nestjs/schedule';
+import { ClientsModule }        from '@modules/clients/clients.module';
 
 @Module({
   imports: [
@@ -105,7 +106,8 @@ import { ScheduleModule }       from '@nestjs/schedule';
     MailerModule,
     SeederModule,
     IntegrationsModule,
-    OrdersModule
+    OrdersModule,
+    ClientsModule
   ],
 })
 export class AppModule {}
