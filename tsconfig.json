@@ -1,0 +1,38 @@
+{
+  "compilerOptions" : {
+    "module" : "commonjs",
+    "declaration" : true,
+    "removeComments" : true,
+    "emitDecoratorMetadata" : true,
+    "experimentalDecorators" : true,
+    "allowSyntheticDefaultImports" : true,
+    "target" : "ES2023",
+    "sourceMap" : true,
+    "outDir" : "./dist",
+    "baseUrl" : "./",
+    "incremental" : true,
+    "skipLibCheck" : true,
+    "strictNullChecks" : false,
+    "noImplicitAny" : false,
+    "noImplicitReturns" : false,
+    "strictBindCallApply" : false,
+    "forceConsistentCasingInFileNames" : false,
+    "noFallthroughCasesInSwitch" : false,
+    "esModuleInterop" : true,
+    "typeRoots" : [
+      "./src/shared/types",
+      "./node_modules/@types"
+    ],
+    "paths" : {
+      "@core/*" : [
+        "src/core/*"
+      ],
+      "@shared/*" : [
+        "src/shared/*"
+      ],
+      "@modules/*" : [
+        "src/modules/*"
+      ]
+    }
+  }
+}
