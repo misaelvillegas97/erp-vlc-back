@@ -1,9 +1,12 @@
 import { Injectable, Logger }   from '@nestjs/common';
-import { ComercioNetService }   from '../services/comercio-net.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { CencosudB2bService }   from '../services/cencosud-b2b.service';
-import { OrderRequestDto }      from '../domain/dto/order-request.dto';
-import { OrderService }         from '../../orders/services/order.service';
+
+import { ClientService } from '@modules/clients/client.service';
+
+import { OrderService }       from '../../orders/services/order.service';
+import { ComercioNetService } from '../services/comercio-net.service';
+import { CencosudB2bService } from '../services/cencosud-b2b.service';
+import { OrderRequestDto }    from '../domain/dto/order-request.dto';
 
 @Injectable()
 export class TasksScheduler {
@@ -12,6 +15,7 @@ export class TasksScheduler {
   constructor(
     private readonly comercioNetService: ComercioNetService,
     private readonly cencosudB2bService: CencosudB2bService,
+    private readonly clientService: ClientService,
     private readonly orderService: OrderService,
   ) {}
 
@@ -24,11 +28,19 @@ export class TasksScheduler {
   async checkCencoB2B() {
     this.logger.log(`Initializing CencosudB2B task at ${ new Date().toISOString() }`);
 
-    console.time('CencoB2B');
-    const orders = await this.cencosudB2bService.run();
-    console.timeEnd('CencoB2B');
-    const mappedOrders: OrderRequestDto[] = orders.map((order: any) => OrderRequestDto.mapFromCencoB2B(order));
+    const clientEntity = await this.clientService.findByCode('CencosudB2B');
 
-    await this.orderService.createAll(mappedOrders.map((order) => order.toEntity()));
+    const beginningTimestamp = new Date().getTime();
+    const orders = await this.cencosudB2bService.run();
+    const endingTimestamp = new Date().getTime();
+
+    this.logger.log(`CencosudB2B task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
+
+    const mappedOrders: OrderRequestDto[] = orders.map((order: any) => ({
+      ...OrderRequestDto.mapFromCencoB2B(order),
+      clientId: clientEntity.id
+    } as OrderRequestDto));
+
+    await this.orderService.createAll(mappedOrders);
   }
 }

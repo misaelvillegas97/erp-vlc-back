@@ -4,10 +4,12 @@ import { CencosudB2bService }    from '@modules/integrations/services/cencosud-b
 import { TasksScheduler }        from '@modules/integrations/scheduler/tasks.scheduler';
 import { OrdersModule }          from '@modules/orders/orders.module';
 import { IntegrationController } from '@modules/integrations/controllers/integration.controller';
+import { ClientsModule }         from '@modules/clients/clients.module';
 
 @Module({
   imports: [
-    OrdersModule
+    OrdersModule,
+    ClientsModule
   ],
   controllers: [ IntegrationController ],
   providers: [

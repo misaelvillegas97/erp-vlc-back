@@ -3,6 +3,7 @@ import { InjectRepository }     from '@nestjs/typeorm';
 import { OrderEntity }          from '../domain/entities/order.entity';
 import { ProductRequestEntity } from '../domain/entities/product-request.entity';
 import { Repository }           from 'typeorm';
+import { CreateOrderDto }       from '@modules/orders/domain/dtos/create-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -19,11 +20,11 @@ export class OrderService {
     return this.orderRepository.findOne({where: {id}});
   }
 
-  async create(order: OrderEntity): Promise<OrderEntity> {
-    return this.orderRepository.save(order);
+  async create(order: CreateOrderDto): Promise<OrderEntity> {
+    return this.orderRepository.save(this.orderRepository.create(order));
   }
 
-  async createAll(orders: OrderEntity[]): Promise<{ created: OrderEntity[]; updated: OrderEntity[] }> {
+  async createAll(orders: CreateOrderDto[]): Promise<{ created: OrderEntity[]; updated: OrderEntity[] }> {
     const createdOrders = [];
     const updatedOrders = [];
 
@@ -36,7 +37,11 @@ export class OrderService {
           updatedOrders.push(await this.orderRepository.save(existingOrder));
         }
       } else {
-        createdOrders.push(await this.orderRepository.save(order));
+        createdOrders.push(
+          await this.orderRepository.save(
+            this.orderRepository.create({...order})
+          )
+        );
       }
     }
 
@@ -44,8 +49,6 @@ export class OrderService {
       created: createdOrders,
       updated: updatedOrders,
     };
-
-    console.log(result);
 
     return result;
   }

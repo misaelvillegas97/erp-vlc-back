@@ -1,21 +1,18 @@
-export enum OrderStatusProviderEnum {
-  ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED',
-  PENDING = 'PENDING',
-  UNKNOWN = 'UNKNOWN',
-}
+import { OrderStatusEnum } from '@modules/orders/domain/enums/order-status.enum';
 
 export class OrderStatusProvider {
-  public static parseFromCencoB2B(status: string): string {
+  public static parseFromCencoB2B(status: string) {
     switch (status) {
       case 'Aceptada':
-        return OrderStatusProviderEnum.ACCEPTED;
+        return OrderStatusEnum.PENDING;
       case 'Rechazada':
-        return OrderStatusProviderEnum.REJECTED;
+        return OrderStatusEnum.CANCELED;
       case 'Pendiente':
-        return OrderStatusProviderEnum.PENDING;
+        return OrderStatusEnum.PENDING;
+      case 'Liberada':
+        return OrderStatusEnum.IN_PROGRESS;
       default:
-        return OrderStatusProviderEnum.UNKNOWN;
+        return OrderStatusEnum.PENDING;
     }
   }
 }

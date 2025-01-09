@@ -70,7 +70,7 @@ export class CencosudB2bService {
     this.logger.log('Path to extension: ' + pathToExtension);
 
     const browser: Browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }` ],
       executablePath: executablePath(),
     });
@@ -91,13 +91,6 @@ export class CencosudB2bService {
     } catch (error) {
       this.logger.error('Error loading main page, clearing cookies and retrying');
       this.logger.error(error.message);
-
-      const [ ...pages ] = await browser.pages();
-
-      for (const page of pages) {
-        await page.screenshot({path: `error-page-${ Date.now() }.png`});
-        await page.close();
-      }
 
       // await this.clearCookies();
       await browser.close();

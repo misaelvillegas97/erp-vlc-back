@@ -1,8 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import { v4 } from 'uuid';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { v4 }                            from 'uuid';
 
-@Entity('clients')
-export class Client {
+@Entity('client')
+export class ClientEntity {
   @PrimaryColumn({type: 'uuid'})
   id: string = v4();
 
@@ -11,6 +11,9 @@ export class Client {
 
   @Column()
   fantasyName: string;
+
+  @Column({nullable: true})
+  code: string;
 
   @Column()
   nationalId: string;

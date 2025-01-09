@@ -9,12 +9,14 @@ import { StatusSeedModule }              from './status/status-seed.module';
 import { UserSeedModule }                from './user/user-seed.module';
 import databaseConfig                    from '../../config/database.config';
 import appConfig                         from '@core/config/app.config';
+import { ClientSeedModule }              from '@core/database/seeds/relational/client/client-seed.module';
 
 @Module({
   imports: [
     RoleSeedModule,
     StatusSeedModule,
     UserSeedModule,
+    ClientSeedModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [ databaseConfig, appConfig ],

@@ -1,7 +1,4 @@
-export enum OrderTypeEnum {
-  PURCHASE_ORDER = 'PURCHASE_ORDER',
-  RETURN_ORDER = 'RETURN_ORDER',
-}
+import { OrderTypeEnum } from '@modules/orders/domain/enums/order-type.enum';
 
 export class OrderType {
   public static parseFromCencoB2B(type: string): string {

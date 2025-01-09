@@ -9,6 +9,8 @@ export class IntegrationController {
 
   @Get('cencosud')
   cencosud() {
-    return this.tasksScheduler.checkCencoB2B();
+    void this.tasksScheduler.checkCencoB2B();
+
+    return {message: 'CencoB2B tasks scheduled'};
   }
 }
