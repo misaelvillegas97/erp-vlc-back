@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { ClientService } from '@modules/clients/client.service';
 
-import { OrderService }       from '../../orders/services/order.service';
+import { OrderService }       from '../../orders/order.service';
 import { ComercioNetService } from '../services/comercio-net.service';
 import { CencosudB2bService } from '../services/cencosud-b2b.service';
 import { OrderRequestDto }    from '../domain/dto/order-request.dto';

@@ -16,7 +16,7 @@ export class User {
   @Expose({groups: [ 'me', 'admin' ]})
   email: string | null;
 
-  @Exclude({toPlainOnly: true})
+  @Exclude({toPlainOnly: true, toClassOnly: true})
   password?: string;
 
   @Exclude({toPlainOnly: true})

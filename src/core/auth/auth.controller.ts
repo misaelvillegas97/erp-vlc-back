@@ -1,9 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post, Req, Res, SerializeOptions, UseGuards, } from '@nestjs/common';
+import { ConfigService }                                                                                            from '@nestjs/config';
 import { AuthGuard }                                                                                                from '@nestjs/passport';
 import { ApiBearerAuth, ApiOkResponse, ApiTags }                                                                    from '@nestjs/swagger';
 
 import { Request, Response } from 'express';
 
+import { AllConfigType }         from '@core/config/config.type';
 import { User }                  from '@modules/users/domain/user';
 import { NullableType }          from '@shared/utils/types/nullable.type';
 import { AuthService }           from './auth.service';
@@ -15,9 +17,7 @@ import { AuthResetPasswordDto }  from './dto/auth-reset-password.dto';
 import { AuthUpdateDto }         from './dto/auth-update.dto';
 import { LoginResponseDto }      from './dto/login-response.dto';
 import { RefreshResponseDto }    from './dto/refresh-response.dto';
-import { ConfigService }         from '@nestjs/config';
-import { AllConfigType }         from '@core/config/config.type';
-import { AppConfig }             from '@core/config/app-config.type';
+import { AuthUserMapper }        from '@core/auth/mappers/auth-user.mapper';
 
 @ApiTags('Auth')
 @Controller({path: 'auth', version: '1'})
@@ -29,7 +29,7 @@ export class AuthController {
     private readonly service: AuthService,
     private readonly configService: ConfigService<AllConfigType>
   ) {
-    this.cookieName = this.configService.get<AppConfig>('auth.refreshToken', {infer: true}) || 'refreshToken';
+    this.cookieName = this.configService.get<AllConfigType>('auth.refreshToken', {infer: true}) || 'refreshToken';
   }
 
   @SerializeOptions({groups: [ 'me' ]})
@@ -37,16 +37,15 @@ export class AuthController {
   @ApiOkResponse({type: LoginResponseDto})
   @HttpCode(HttpStatus.OK)
   public async login(@Body() loginDto: AuthEmailLoginDto, @Res() res: Response): Promise<void> {
-    const login = await this.service.validateLogin(loginDto);
+    const login: LoginResponseDto = await this.service.validateLogin(loginDto);
 
-    // set cookie and return accessToken and user data
     res
       .status(HttpStatus.OK)
       .cookie(this.cookieName, login.refreshToken, {
         secure: true,
         httpOnly: true,
         signed: true,
-        // path: this.cookiePath,
+        path: this.cookiePath,
         expires: new Date(Date.now() + login.refreshTokenExpires * 1000),
         sameSite: 'none'
       })
@@ -54,7 +53,7 @@ export class AuthController {
       .send({
         token: login.token,
         tokenExpires: login.tokenExpires,
-        user: login.user,
+        user: AuthUserMapper.map(login.user),
       });
   }
 

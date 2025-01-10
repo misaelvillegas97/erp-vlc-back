@@ -36,6 +36,10 @@ export class OrderEntity {
   @Column({nullable: true, type: 'json'})
   additionalInfo?: Record<string, any>;
 
+  @Column({nullable: true})
+    // @Expose({groups: [roleNames[RoleEnum.admin], roleNames[RoleEnum.accountant]]})
+  invoiceNumber?: string;
+
   @OneToMany(() => ProductRequestEntity, (product) => product.orderRequest, {cascade: true})
   products: ProductRequestEntity[];
 

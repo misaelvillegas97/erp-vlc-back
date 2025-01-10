@@ -14,7 +14,6 @@ import validationOptions              from '@shared/utils/validation-options';
 import { ResolvePromisesInterceptor } from '@shared/utils/serializer.interceptor';
 import { AppModule }                  from './app.module';
 import cookieParser                   from 'cookie-parser';
-import { AppConfig }                  from '@core/config/app-config.type';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {cors: true, bufferLogs: true});
@@ -36,7 +35,7 @@ async function bootstrap() {
     new ClassSerializerInterceptor(app.get(Reflector)),
   );
 
-  app.use(cookieParser(configService.get<AppConfig>('auth.cookieSecret', {infer: true})));
+  app.use(cookieParser(configService.get<AllConfigType>('auth.cookieSecret', {infer: true})));
   app.use(compression());
   app.use(helmet({
     contentSecurityPolicy: isProduction ? undefined : false,
@@ -58,7 +57,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(configService.getOrThrow('app.port', {infer: true}), '::');
+  await app.listen(configService.getOrThrow<AllConfigType>('app.port', {infer: true}), '::');
 }
 
 void bootstrap();

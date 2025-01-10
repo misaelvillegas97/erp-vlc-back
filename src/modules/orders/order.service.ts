@@ -1,9 +1,10 @@
 import { Injectable }           from '@nestjs/common';
 import { InjectRepository }     from '@nestjs/typeorm';
-import { OrderEntity }          from '../domain/entities/order.entity';
-import { ProductRequestEntity } from '../domain/entities/product-request.entity';
+import { OrderEntity }          from './domain/entities/order.entity';
+import { ProductRequestEntity } from './domain/entities/product-request.entity';
 import { Repository }           from 'typeorm';
 import { CreateOrderDto }       from '@modules/orders/domain/dtos/create-order.dto';
+import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
 
 @Injectable()
 export class OrderService {
@@ -51,5 +52,19 @@ export class OrderService {
     };
 
     return result;
+  }
+
+  async createInvoice(id: string, invoice: string) {
+    const order = await this.orderRepository.findOne({where: {id}});
+    order.invoiceNumber = invoice;
+
+    return this.orderRepository.save(order);
+  }
+
+  async updateStatus(id: string, status: OrderStatusEnum) {
+    const order = await this.orderRepository.findOne({where: {id}});
+    order.status = status;
+
+    return this.orderRepository.save(order);
   }
 }

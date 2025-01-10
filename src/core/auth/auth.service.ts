@@ -26,7 +26,6 @@ import { SocialInterface }       from '@shared/social/interfaces/social.interfac
 import { NullableType }          from '@shared/utils/types/nullable.type';
 import { REQUEST }               from '@nestjs/core';
 import { Request }               from 'express';
-import { AppConfig }             from '@core/config/app-config.type';
 
 @Injectable()
 export class AuthService {
@@ -167,8 +166,8 @@ export class AuthService {
         confirmEmailUserId: user.id,
       },
       {
-        secret: this.configService.getOrThrow<AppConfig>('auth.confirmEmailSecret', {infer: true}),
-        expiresIn: this.configService.getOrThrow<AppConfig>('auth.confirmEmailExpires', {infer: true}),
+        secret: this.configService.getOrThrow<AllConfigType>('auth.confirmEmailSecret', {infer: true}),
+        expiresIn: this.configService.getOrThrow<AllConfigType>('auth.confirmEmailExpires', {infer: true}),
       },
     );
 
@@ -187,7 +186,7 @@ export class AuthService {
       const jwtData = await this.jwtService.verifyAsync<{
         confirmEmailUserId: User['id'];
       }>(hash, {
-        secret: this.configService.getOrThrow<AppConfig>('auth.confirmEmailSecret', {infer: true}),
+        secret: this.configService.getOrThrow<AllConfigType>('auth.confirmEmailSecret', {infer: true}),
       });
 
       userId = jwtData.confirmEmailUserId;
@@ -221,7 +220,7 @@ export class AuthService {
         confirmEmailUserId: User['id'];
         newEmail: User['email'];
       }>(hash, {
-        secret: this.configService.getOrThrow<AppConfig>('auth.confirmEmailSecret', {infer: true}),
+        secret: this.configService.getOrThrow<AllConfigType>('auth.confirmEmailSecret', {infer: true}),
       });
 
       userId = jwtData.confirmEmailUserId;
@@ -252,7 +251,7 @@ export class AuthService {
 
     if (!user) throw this.getUnprocessableEntityException({email: 'EMAIL_NOT_FOUND'});
 
-    const tokenExpiresIn = this.configService.getOrThrow<AppConfig>('auth.forgotExpires', {infer: true});
+    const tokenExpiresIn = this.configService.getOrThrow<AllConfigType>('auth.forgotExpires', {infer: true});
 
     const tokenExpires = Date.now() + ms(tokenExpiresIn);
 
@@ -261,7 +260,7 @@ export class AuthService {
         forgotUserId: user.id,
       },
       {
-        secret: this.configService.getOrThrow<AppConfig>('auth.forgotSecret', {infer: true}),
+        secret: this.configService.getOrThrow<AllConfigType>('auth.forgotSecret', {infer: true}),
         expiresIn: tokenExpiresIn,
       },
     );
@@ -282,7 +281,7 @@ export class AuthService {
       const jwtData = await this.jwtService.verifyAsync<{
         forgotUserId: User['id'];
       }>(hash, {
-        secret: this.configService.getOrThrow<AppConfig>('auth.forgotSecret', {infer: true}),
+        secret: this.configService.getOrThrow<AllConfigType>('auth.forgotSecret', {infer: true}),
       });
 
       userId = jwtData.forgotUserId;
@@ -344,8 +343,8 @@ export class AuthService {
           newEmail: userDto.email,
         },
         {
-          secret: this.configService.getOrThrow<AppConfig>('auth.confirmEmailSecret', {infer: true}),
-          expiresIn: this.configService.getOrThrow<AppConfig>('auth.confirmEmailExpires', {infer: true}),
+          secret: this.configService.getOrThrow<AllConfigType>('auth.confirmEmailSecret', {infer: true}),
+          expiresIn: this.configService.getOrThrow<AllConfigType>('auth.confirmEmailExpires', {infer: true}),
         },
       );
 
@@ -423,8 +422,8 @@ export class AuthService {
     sessionId: Session['id'];
     hash: Session['hash'];
   }) {
-    const tokenExpiresIn = +this.configService.getOrThrow<AppConfig>('auth.expires', {infer: true});
-    const refreshTokenExpiresIn = +this.configService.getOrThrow<AppConfig>('auth.refreshExpires', {infer: true});
+    const tokenExpiresIn = this.configService.getOrThrow<AllConfigType>('auth.expires', {infer: true});
+    const refreshTokenExpiresIn = this.configService.getOrThrow<AllConfigType>('auth.refreshExpires', {infer: true});
 
     const tokenExpires = Date.now() + ms(tokenExpiresIn);
     const refreshTokenExpires = Date.now() + ms(refreshTokenExpiresIn);
@@ -437,7 +436,7 @@ export class AuthService {
           sessionId: data.sessionId,
         },
         {
-          secret: this.configService.getOrThrow<AppConfig>('auth.secret', {infer: true}),
+          secret: this.configService.getOrThrow<AllConfigType>('auth.secret', {infer: true}),
           expiresIn: tokenExpiresIn,
         },
       ),
@@ -447,8 +446,8 @@ export class AuthService {
           hash: data.hash,
         },
         {
-          secret: this.configService.getOrThrow<AppConfig>('auth.refreshSecret', {infer: true}),
-          expiresIn: this.configService.getOrThrow<AppConfig>('auth.refreshExpires', {infer: true}),
+          secret: this.configService.getOrThrow<AllConfigType>('auth.refreshSecret', {infer: true}),
+          expiresIn: this.configService.getOrThrow<AllConfigType>('auth.refreshExpires', {infer: true}),
         },
       ),
     ]);
