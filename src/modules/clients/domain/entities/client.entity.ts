@@ -23,4 +23,8 @@ export class ClientEntity {
 
   @Column()
   phoneNumber: string;
+
+  constructor(values: Partial<ClientEntity>) {
+    Object.assign(this, values);
+  }
 }

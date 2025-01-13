@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { OrderService }                            from './order.service';
 import { CreateOrderDto }                          from '@modules/orders/domain/dtos/create-order.dto';
 import { OrderStatusEnum }                         from '@modules/orders/domain/enums/order-status.enum';
+import { IDashboardOverview }                      from '@modules/orders/domain/interfaces/dashboard-overview.interface';
 
 @Controller('orders')
 export class OrderController {
@@ -12,6 +13,11 @@ export class OrderController {
   @Get()
   async findAll() {
     return this.orderService.findAll();
+  }
+
+  @Get('dashboard')
+  async getDashboardInfo(): Promise<IDashboardOverview> {
+    return this.orderService.getDashboardInfo();
   }
 
   @Get(':id')

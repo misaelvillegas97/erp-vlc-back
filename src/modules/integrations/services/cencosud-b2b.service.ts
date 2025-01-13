@@ -209,8 +209,8 @@ export class CencosudB2bService {
     const tableData = [];
 
     for (const row of rows) {
-      this.logger.log(`Extracting row ${ rows.indexOf(row) + 1 } of ${ rows.length }`);
       const cells = await row.$$('.v-grid-cell');
+      this.logger.log(`Extracting orden ${ await cells[1].evaluate((node) => node.textContent.trim()) } row ${ rows.indexOf(row) + 1 } of ${ rows.length }`);
       const rowInfo = [];
 
       for (const cell of cells) {
