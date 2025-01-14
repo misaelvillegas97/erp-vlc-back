@@ -27,6 +27,8 @@ COPY --chown=node:node package*.json ./
 
 COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
 
+COPY --chown=node:node --from=development /usr/src/app/2captcha-solver ./2captcha-solver
+
 COPY --chown=node:node . .
 
 RUN npm run build
@@ -44,7 +46,7 @@ USER node
 FROM node:20-alpine As production
 
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
+COPY --chown=node:node --from=build /usr/src/app/2captcha-solver ./2captcha-solver
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
-COPY --chown=node:node keys ./keys
 
 CMD [ "node", "--max_old_space_size=250", "--gc_interval=100", "--optimize-for-size", "dist/main.js" ]

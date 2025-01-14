@@ -39,8 +39,6 @@ export class AuthController {
   public async login(@Body() loginDto: AuthEmailLoginDto, @Res() res: Response): Promise<void> {
     const login: LoginResponseDto = await this.service.validateLogin(loginDto);
 
-    console.log(login.refreshToken);
-
     res
       .status(HttpStatus.OK)
       .cookie(this.cookieName, login.refreshToken.trim(), {

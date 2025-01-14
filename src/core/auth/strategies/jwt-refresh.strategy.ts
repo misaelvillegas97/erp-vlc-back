@@ -10,7 +10,6 @@ import { Request }                           from 'express';
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(configService: ConfigService<AllConfigType>) {
-    console.log('JwtRefreshStrategy');
     const tokenKey = configService.get<AllConfigType>('auth.refreshToken', {infer: true}) || 'refreshToken';
 
     super({
