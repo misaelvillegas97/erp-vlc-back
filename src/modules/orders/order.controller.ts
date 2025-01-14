@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { OrderService }                            from './order.service';
-import { CreateOrderDto }                          from '@modules/orders/domain/dtos/create-order.dto';
-import { OrderStatusEnum }                         from '@modules/orders/domain/enums/order-status.enum';
-import { IDashboardOverview }                      from '@modules/orders/domain/interfaces/dashboard-overview.interface';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { OrderService }                                   from './order.service';
+import { CreateOrderDto }                                 from '@modules/orders/domain/dtos/create-order.dto';
+import { OrderStatusEnum }                                from '@modules/orders/domain/enums/order-status.enum';
+import { IDashboardOverview }                             from '@modules/orders/domain/interfaces/dashboard-overview.interface';
 
 @Controller('orders')
 export class OrderController {
@@ -16,8 +16,8 @@ export class OrderController {
   }
 
   @Get('dashboard')
-  async getDashboardInfo(): Promise<IDashboardOverview> {
-    return this.orderService.getDashboardInfo();
+  async getDashboardInfo(@Query('month') month: string, @Query('year') year: string): Promise<IDashboardOverview> {
+    return this.orderService.getDashboardInfo(year, month);
   }
 
   @Get(':id')

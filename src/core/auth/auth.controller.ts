@@ -22,7 +22,7 @@ import { AuthUserMapper }        from '@core/auth/mappers/auth-user.mapper';
 @ApiTags('Auth')
 @Controller({path: 'auth', version: '1'})
 export class AuthController {
-  private readonly cookiePath = '/api/auth';
+  private readonly cookiePath = '/api/v1/auth';
   private readonly cookieName: string;
 
   constructor(
@@ -39,9 +39,11 @@ export class AuthController {
   public async login(@Body() loginDto: AuthEmailLoginDto, @Res() res: Response): Promise<void> {
     const login: LoginResponseDto = await this.service.validateLogin(loginDto);
 
+    console.log(login.refreshToken);
+
     res
       .status(HttpStatus.OK)
-      .cookie(this.cookieName, login.refreshToken, {
+      .cookie(this.cookieName, login.refreshToken.trim(), {
         secure: true,
         httpOnly: true,
         signed: true,
@@ -121,7 +123,7 @@ export class AuthController {
         secure: true,
         httpOnly: true,
         signed: true,
-        // path: this.cookiePath,
+        path: this.cookiePath,
         expires: new Date(Date.now() + refreshData.refreshTokenExpires * 1000),
         sameSite: 'none'
       })
@@ -129,7 +131,7 @@ export class AuthController {
       .send({
         token: refreshData.token,
         tokenExpires: refreshData.tokenExpires,
-        user: refreshData.user
+        user: AuthUserMapper.map(refreshData.user)
       });
   }
 

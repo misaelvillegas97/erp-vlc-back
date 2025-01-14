@@ -1,7 +1,7 @@
 import { Injectable }       from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 
 import { CreateOrderDto }       from '@modules/orders/domain/dtos/create-order.dto';
 import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
@@ -81,7 +81,13 @@ export class OrderService {
    * @return {object.countsStatusByClient} Counts by status (pending, middle or completed) and client
    * @return {object.nextDeliveries} Next deliveries ordered by closer delivery date
    */
-  async getDashboardInfo(): Promise<IDashboardOverview> {
+  async getDashboardInfo(year, month): Promise<IDashboardOverview> {
+    if (!year || !month) {
+      const date = new Date();
+      year = date.getFullYear().toString();
+      month = (date.getMonth() + 1).toString();
+    }
+
     const countOverview = {
       completed: 0,
       middle: 0,
@@ -92,7 +98,15 @@ export class OrderService {
     const countsByStatus = {};
     const countsByClient = {};
 
-    const orders = await this.orderRepository.find({relations: [ 'client' ]});
+    const lastDayOfMonth = new Date(year, month, 0).getDate();
+
+    const orders = await this.orderRepository.find({
+      where: {
+        deliveryDate: Between(`${ year }-${ month }-01`, `${ year }-${ month }-${ lastDayOfMonth }`),
+      },
+      relations: [ 'client' ]
+    });
+
     orders.forEach((order) => {
       // Count orders by status
       if (order.status === OrderStatusEnum.DELIVERED)
@@ -155,6 +169,7 @@ export class OrderService {
       orderNumber: order.orderNumber,
       deliveryDate: order.deliveryDate,
       client: order.client.fantasyName,
+      deliveryLocation: order.deliveryLocation
     }));
 
     return {
