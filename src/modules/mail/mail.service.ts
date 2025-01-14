@@ -12,13 +12,16 @@ import { Environment }   from '@core/config/app.config';
 
 @Injectable()
 export class MailService {
+  nodeEnv: Environment;
+
   constructor(
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService<AllConfigType>,
-  ) {}
+  ) {
+    this.nodeEnv = this.configService.get('app.nodeEnv', {infer: true});
+  }
 
   async userSignUp(mailData: MailData<{ hash: string }>): Promise<void> {
-    const nodeEnv: string = this.configService.get('app.nodeEnv', {infer: true});
     const i18n = I18nContext.current();
     let emailConfirmTitle: MaybeType<string>;
     let text1: MaybeType<string>;
@@ -49,7 +52,7 @@ export class MailService {
         this.configService.getOrThrow('app.workingDirectory', {
           infer: true,
         }),
-        nodeEnv === Environment.Production ? 'dist' : 'src',
+        this.nodeEnv === Environment.Production ? 'dist' : 'src',
         'modules',
         'mail',
         'mail-templates',
@@ -103,7 +106,7 @@ export class MailService {
         this.configService.getOrThrow('app.workingDirectory', {
           infer: true,
         }),
-        'src',
+        this.nodeEnv === Environment.Production ? 'dist' : 'src',
         'modules',
         'mail',
         'mail-templates',
@@ -155,7 +158,7 @@ export class MailService {
         this.configService.getOrThrow('app.workingDirectory', {
           infer: true,
         }),
-        'src',
+        this.nodeEnv === Environment.Production ? 'dist' : 'src',
         'module',
         'mail',
         'mail-templates',

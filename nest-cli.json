@@ -7,6 +7,10 @@
       {
         "include" : "core/i18n/**/*",
         "watchAssets" : true
+      },
+      {
+        "include" : "modules/mail/mail-templates/*",
+        "watchAssets" : true
       }
     ]
   }
