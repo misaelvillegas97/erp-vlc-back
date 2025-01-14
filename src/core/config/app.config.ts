@@ -2,6 +2,7 @@ import { registerAs }                                            from '@nestjs/c
 import { AppConfig }                                             from './app-config.type';
 import { IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, Min, } from 'class-validator';
 import validateConfig                                            from '@shared/utils/validate-config';
+import fs                                                        from 'node:fs';
 
 enum Environment {
   Development = 'development',
@@ -44,6 +45,11 @@ class EnvironmentVariablesValidator {
 export default registerAs<AppConfig>('app', () => {
   validateConfig(process.env, EnvironmentVariablesValidator);
   console.log('App config validated', process.cwd());
+
+  // print folders in the current working directory
+  fs.readdirSync(process.cwd()).forEach(file => {
+    console.log(file);
+  });
 
   return {
     nodeEnv: process.env.NODE_ENV || 'development',
