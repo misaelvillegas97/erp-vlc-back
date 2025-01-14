@@ -8,6 +8,7 @@ import { AllConfigType } from '@core/config/config.type';
 import { MaybeType }     from '@shared/utils/types/maybe.type';
 import { MailerService } from '../mailer/mailer.service';
 import { MailData }      from './interfaces/mail-data.interface';
+import { Environment }   from '@core/config/app.config';
 
 @Injectable()
 export class MailService {
@@ -17,6 +18,7 @@ export class MailService {
   ) {}
 
   async userSignUp(mailData: MailData<{ hash: string }>): Promise<void> {
+    const nodeEnv: string = this.configService.get('app.nodeEnv', {infer: true});
     const i18n = I18nContext.current();
     let emailConfirmTitle: MaybeType<string>;
     let text1: MaybeType<string>;
@@ -47,7 +49,7 @@ export class MailService {
         this.configService.getOrThrow('app.workingDirectory', {
           infer: true,
         }),
-        'src',
+        nodeEnv === Environment.Production ? 'dist' : 'src',
         'modules',
         'mail',
         'mail-templates',

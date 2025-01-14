@@ -4,7 +4,7 @@ import { IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, Min, } from 'class-val
 import validateConfig                                            from '@shared/utils/validate-config';
 import fs                                                        from 'node:fs';
 
-enum Environment {
+export enum Environment {
   Development = 'development',
   Production = 'production',
   Test = 'test',
