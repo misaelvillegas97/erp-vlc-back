@@ -82,19 +82,6 @@ export class CencosudB2bService {
     // Set the viewport to 1920x1080
     await page.setViewport({width: 1920, height: 1080});
 
-    // Set the user agent to a desktop Chrome browser
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
-
-    // Set the language
-    await page.setExtraHTTPHeaders({'Accept-Language': 'es-ES,es;q=0.9'});
-
-    // Add more to properties to page for bypassing detection
-    await page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, 'webdriver', {
-        get: () => false,
-      });
-    });
-
     try {
       // try access to main page
       const orders = await this.loadMainPage(browser, page);
