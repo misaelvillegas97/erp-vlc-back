@@ -102,11 +102,12 @@ export class CencosudB2bService {
   private async updateConfigFile(pathToExtension: string) {
     // Modify the path to the extension + /common/config.js and add the API key from 2captcha
     const configPath = path.join(pathToExtension, 'common/config.js');
+
     this.configFileBackup = await fs.readFile(configPath, 'utf-8');
+
     const apiKey = this.configService.get<string>('ac.captchaSolver', {infer: true});
     const newConfigContent = this.configFileBackup.replace('YOUR_API_KEY', apiKey);
 
-    console.log('New config content: ', newConfigContent);
     return {configPath, newConfigContent};
   }
 
@@ -336,16 +337,14 @@ export class CencosudB2bService {
     this.logger.log('Screenshot saved as public/login.png');
 
     // Check if captcha is solved
-    await page.evaluate((logger) => {
+    await page.evaluate(() => {
       const captchaSolved = document.querySelector('.g-recaptcha-response');
 
       // If textarea is empty, wait for 10 seconds
       if (!captchaSolved || captchaSolved.textContent.trim() === '') {
-        logger.log('Captcha not solved, waiting for 20 seconds...');
-
         return new Promise((resolve) => setTimeout(resolve, 20_000));
       }
-    }, this.logger);
+    });
 
     await page.screenshot({path: 'public/login-captcha.png', fullPage: true});
     this.logger.log('Screenshot saved as public/login-captcha.png');
