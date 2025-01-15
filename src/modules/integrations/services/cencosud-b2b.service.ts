@@ -1,10 +1,10 @@
-import { Injectable, Logger }            from '@nestjs/common';
-import * as path                         from 'node:path';
-import * as fs                           from 'fs-extra';
-import { ConfigService }                 from '@nestjs/config';
-import puppeteer                         from 'puppeteer-extra';
-import StealthPlugin                     from 'puppeteer-extra-plugin-stealth';
-import { Browser, executablePath, Page } from 'puppeteer';
+import { Injectable, Logger } from '@nestjs/common';
+import * as path              from 'node:path';
+import * as fs                from 'fs-extra';
+import { ConfigService }      from '@nestjs/config';
+import puppeteer              from 'puppeteer-extra';
+import StealthPlugin          from 'puppeteer-extra-plugin-stealth';
+import { Browser, Page }      from 'puppeteer';
 
 export interface Order {
   rowNumber: number;
@@ -71,8 +71,8 @@ export class CencosudB2bService {
 
     const browser: Browser = await puppeteer.launch({
       headless: true,
-      args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }` ],
-      executablePath: executablePath(),
+      args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox' ],
+      executablePath: '/usr/bin/google-chrome',
     });
 
     // await this.loadCookies(browser);
