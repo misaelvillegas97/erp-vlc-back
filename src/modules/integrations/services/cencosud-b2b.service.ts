@@ -79,6 +79,22 @@ export class CencosudB2bService {
 
     const page: Page = await browser.newPage();
 
+    // Set the viewport to 1920x1080
+    await page.setViewport({width: 1920, height: 1080});
+
+    // Set the user agent to a desktop Chrome browser
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3');
+
+    // Set the language
+    await page.setExtraHTTPHeaders({'Accept-Language': 'es-ES,es;q=0.9'});
+
+    // Add more to properties to page for bypassing detection
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => false,
+      });
+    });
+
     try {
       // try access to main page
       const orders = await this.loadMainPage(browser, page);
@@ -330,11 +346,8 @@ export class CencosudB2bService {
     await page.type('#password', this.password);
 
     // Sleep for 1 minute
-    this.logger.log('Sleeping for 60 seconds...');
+    this.logger.log('Sleeping for 100 seconds...');
     await new Promise((resolve) => setTimeout(resolve, 100_000));
-
-    await page.screenshot({path: 'public/login.png', fullPage: true});
-    this.logger.log('Screenshot saved as public/login.png');
 
     // Check if captcha is solved
     await page.evaluate(() => {
@@ -346,14 +359,8 @@ export class CencosudB2bService {
       }
     });
 
-    await page.screenshot({path: 'public/login-captcha.png', fullPage: true});
-    this.logger.log('Screenshot saved as public/login-captcha.png');
-
     // Submit form
     await page.click('#kc-login', {delay: 1000});
-
-    await page.screenshot({path: 'public/login-submit.png', fullPage: true});
-    this.logger.log('Screenshot saved as public/login-submit.png');
 
     // Sleep for 30 seconds, and check if was redirected to main page
     this.logger.log('Sleeping for 10 seconds...');
