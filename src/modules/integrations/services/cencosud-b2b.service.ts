@@ -105,6 +105,8 @@ export class CencosudB2bService {
     this.configFileBackup = await fs.readFile(configPath, 'utf-8');
     const apiKey = this.configService.get<string>('ac.captchaSolver', {infer: true});
     const newConfigContent = this.configFileBackup.replace('YOUR_API_KEY', apiKey);
+
+    console.log('New config content: ', newConfigContent);
     return {configPath, newConfigContent};
   }
 
