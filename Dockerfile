@@ -45,6 +45,30 @@ USER node
 
 FROM node:20-alpine As production
 
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxi6 \
+    libxtst6 \
+    libnss3 \
+    libcups2 \
+    libxss1 \
+    libxrandr2 \
+    libasound2 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
+    libdrm2 \
+    libgbm1 \
+    libxshmfence1 \
+    libglu1-mesa \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/2captcha-solver ./2captcha-solver
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist

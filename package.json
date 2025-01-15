@@ -97,6 +97,7 @@
     "swagger-ui-express" : "5.0.1",
     "twitter" : "1.7.1",
     "typeorm" : "^0.3.20",
+    "utils-decorators" : "^2.10.0",
     "uuid" : "^10.0.0"
   },
   "devDependencies" : {
