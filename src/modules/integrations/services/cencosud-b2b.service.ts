@@ -329,8 +329,8 @@ export class CencosudB2bService {
     await page.type('#password', this.password);
 
     // Sleep for 1 minute
-    this.logger.log('Sleeping for 30 seconds...');
-    await new Promise((resolve) => setTimeout(resolve, 30_000));
+    this.logger.log('Sleeping for 60 seconds...');
+    await new Promise((resolve) => setTimeout(resolve, 60_000));
 
     // Check if captcha is solved
     await page.evaluate(() => {
@@ -351,6 +351,11 @@ export class CencosudB2bService {
     // Check if was redirected to main page
     if (page.url().includes('/auth')) {
       this.logger.error('Login failed');
+
+      const screenshotPath = `public/login-failed${ new Date().getTime() }.png`;
+      await page.screenshot({path: screenshotPath, fullPage: true});
+
+      this.logger.log(`Screenshot saved as ${ screenshotPath }`);
       return false;
     }
 

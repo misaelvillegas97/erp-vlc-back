@@ -57,6 +57,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('docs', app, document);
 
+  app.useStaticAssets('public', {prefix: '/public'});
+
   await app.listen(configService.getOrThrow<AllConfigType>('app.port', {infer: true}), '::');
 }
 
