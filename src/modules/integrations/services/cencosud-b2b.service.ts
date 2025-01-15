@@ -332,17 +332,29 @@ export class CencosudB2bService {
     this.logger.log('Sleeping for 60 seconds...');
     await new Promise((resolve) => setTimeout(resolve, 60_000));
 
+    await page.screenshot({path: 'public/login.png', fullPage: true});
+    this.logger.log('Screenshot saved as public/login.png');
+
     // Check if captcha is solved
     await page.evaluate(() => {
       const captchaSolved = document.querySelector('.g-recaptcha-response');
 
       // If textarea is empty, wait for 10 seconds
-      if (!captchaSolved || !captchaSolved.textContent)
-        return new Promise((resolve) => setTimeout(resolve, 10_000));
+      if (!captchaSolved || captchaSolved.textContent.trim() === '') {
+        this.logger.log('Captcha not solved, waiting for 20 seconds...');
+
+        return new Promise((resolve) => setTimeout(resolve, 20_000));
+      }
     });
+
+    await page.screenshot({path: 'public/login-captcha.png', fullPage: true});
+    this.logger.log('Screenshot saved as public/login-captcha.png');
 
     // Submit form
     await page.click('#kc-login', {delay: 1000});
+
+    await page.screenshot({path: 'public/login-submit.png', fullPage: true});
+    this.logger.log('Screenshot saved as public/login-submit.png');
 
     // Sleep for 30 seconds, and check if was redirected to main page
     this.logger.log('Sleeping for 10 seconds...');

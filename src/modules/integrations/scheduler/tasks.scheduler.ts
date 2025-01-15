@@ -36,7 +36,12 @@ export class TasksScheduler {
 
     this.logger.log(`CencosudB2B task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
 
-    const mappedOrders: OrderRequestDto[] = orders.map((order: any) => ({
+    if (!orders) {
+      this.logger.log('No orders found');
+      return;
+    }
+
+    const mappedOrders: OrderRequestDto[] = orders?.map((order: any) => ({
       ...OrderRequestDto.mapFromCencoB2B(order),
       clientId: clientEntity.id
     } as OrderRequestDto));
