@@ -336,16 +336,16 @@ export class CencosudB2bService {
     this.logger.log('Screenshot saved as public/login.png');
 
     // Check if captcha is solved
-    await page.evaluate(() => {
+    await page.evaluate((logger) => {
       const captchaSolved = document.querySelector('.g-recaptcha-response');
 
       // If textarea is empty, wait for 10 seconds
       if (!captchaSolved || captchaSolved.textContent.trim() === '') {
-        this.logger.log('Captcha not solved, waiting for 20 seconds...');
+        logger.log('Captcha not solved, waiting for 20 seconds...');
 
         return new Promise((resolve) => setTimeout(resolve, 20_000));
       }
-    });
+    }, this.logger);
 
     await page.screenshot({path: 'public/login-captcha.png', fullPage: true});
     this.logger.log('Screenshot saved as public/login-captcha.png');
