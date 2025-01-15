@@ -71,7 +71,7 @@ export class CencosudB2bService {
 
     const browser: Browser = await puppeteer.launch({
       headless: true,
-      args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox' ],
+      args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu' ],
       executablePath: '/usr/bin/google-chrome',
     });
 
@@ -124,11 +124,13 @@ export class CencosudB2bService {
     if (page.url().includes('/auth')) {
       this.logger.log('Redirected to login page. Logging in...');
 
-      await this.login(page);
+      const loggedIn = await this.login(page);
 
       // Save cookies
       // const cookies = await browser.cookies();
       // await this.saveCookies(cookies);
+
+      if (!loggedIn) return;
     }
 
     // Get purchase orders
@@ -349,10 +351,12 @@ export class CencosudB2bService {
     // Check if was redirected to main page
     if (page.url().includes('/auth')) {
       this.logger.error('Login failed');
-      return;
+      return false;
     }
 
     if (page.url().includes('/main')) this.logger.log('Logged in successfully');
+
+    return true;
   }
 
   private async saveCookies(cookies: any) {
