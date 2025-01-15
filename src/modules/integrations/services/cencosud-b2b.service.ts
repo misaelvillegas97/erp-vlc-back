@@ -331,7 +331,7 @@ export class CencosudB2bService {
 
     // Sleep for 1 minute
     this.logger.log('Sleeping for 60 seconds...');
-    await new Promise((resolve) => setTimeout(resolve, 60_000));
+    await new Promise((resolve) => setTimeout(resolve, 100_000));
 
     await page.screenshot({path: 'public/login.png', fullPage: true});
     this.logger.log('Screenshot saved as public/login.png');
