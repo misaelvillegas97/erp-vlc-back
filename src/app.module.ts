@@ -37,9 +37,13 @@ import { IntegrationsModule }   from '@modules/integrations/integrations.module'
 import { OrdersModule }         from '@modules/orders/orders.module';
 import { ScheduleModule }       from '@nestjs/schedule';
 import { ClientsModule }        from '@modules/clients/clients.module';
+import { ServeStaticModule }    from '@nestjs/serve-static';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, '..', 'public')
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [
