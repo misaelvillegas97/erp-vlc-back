@@ -352,6 +352,11 @@ export class CencosudB2bService {
     if (page.url().includes('/auth')) {
       this.logger.error('Login failed');
 
+      // If public folder does not exist, create it
+      if (!fs.existsSync('public')) {
+        await fs.mkdir('public');
+      }
+
       const screenshotPath = `public/login-failed${ new Date().getTime() }.png`;
       await page.screenshot({path: screenshotPath, fullPage: true});
 
