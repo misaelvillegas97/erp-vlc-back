@@ -14,6 +14,7 @@ import validationOptions              from '@shared/utils/validation-options';
 import { ResolvePromisesInterceptor } from '@shared/utils/serializer.interceptor';
 import { AppModule }                  from './app.module';
 import cookieParser                   from 'cookie-parser';
+import { HttpLoggingInterceptor }     from '@core/interceptors/http-logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {cors: true, bufferLogs: true});
@@ -33,7 +34,9 @@ async function bootstrap() {
     // https://github.com/typestack/class-transformer/issues/549
     new ResolvePromisesInterceptor(),
     new ClassSerializerInterceptor(app.get(Reflector)),
+    new HttpLoggingInterceptor(new Reflector())
   );
+
 
   app.use(cookieParser(configService.get<AllConfigType>('auth.cookieSecret', {infer: true})));
   app.use(compression());

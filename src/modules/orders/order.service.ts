@@ -3,12 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { Between, Repository } from 'typeorm';
 
-import { CreateOrderDto }       from '@modules/orders/domain/dtos/create-order.dto';
-import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
-import { OrderEntity }          from './domain/entities/order.entity';
-import { ProductRequestEntity } from './domain/entities/product-request.entity';
-import { ClientEntity }         from '@modules/clients/domain/entities/client.entity';
-import { IDashboardOverview }   from '@modules/orders/domain/interfaces/dashboard-overview.interface';
+import { CreateOrderDto }                                  from '@modules/orders/domain/dtos/create-order.dto';
+import { OrderStatusEnum }                                 from '@modules/orders/domain/enums/order-status.enum';
+import { OrderEntity }                                     from './domain/entities/order.entity';
+import { ProductRequestEntity }                            from './domain/entities/product-request.entity';
+import { ClientEntity }                                    from '@modules/clients/domain/entities/client.entity';
+import { IDashboardOverview, INextDelivery, IProductMini } from '@modules/orders/domain/interfaces/dashboard-overview.interface';
+import { OrderMapper }                                     from '@modules/orders/domain/mappers/order.mapper';
 
 @Injectable()
 export class OrderService {
@@ -42,6 +43,10 @@ export class OrderService {
           updatedOrders.push(await this.orderRepository.save(existingOrder));
         }
       } else {
+        // for (const product of order.products) {
+        //   const product
+        // }
+
         createdOrders.push(
           await this.orderRepository.save(
             this.orderRepository.create({...order, client: new ClientEntity({id: order.clientId})})
@@ -97,6 +102,7 @@ export class OrderService {
     const countsByType = {};
     const countsByStatus = {};
     const countsByClient = {};
+    let sumAmount = 0;
 
     const lastDayOfMonth = new Date(year, month, 0).getDate();
 
@@ -104,11 +110,17 @@ export class OrderService {
       where: {
         deliveryDate: Between(`${ year }-${ month }-01`, `${ year }-${ month }-${ lastDayOfMonth }`),
       },
-      relations: [ 'client' ]
+      relations: [ 'client', 'products' ],
+      order: {deliveryDate: 'ASC'},
     });
 
     orders.forEach((order) => {
-      // Count orders by status
+      let orderTotal = 0;
+      order.products.forEach((product) => {
+        const productTotal = product.unitaryPrice * product.quantity;
+        orderTotal += productTotal;
+      });
+
       if (order.status === OrderStatusEnum.DELIVERED)
         countOverview.completed++;
       else if (order.status === OrderStatusEnum.PENDING)
@@ -118,19 +130,16 @@ export class OrderService {
       else
         countOverview.middle++;
 
-      // Count orders by type
       if (countsByType[order.type])
         countsByType[order.type]++;
       else
         countsByType[order.type] = 1;
 
-      // Count orders by status
       if (countsByStatus[order.status])
         countsByStatus[order.status]++;
       else
         countsByStatus[order.status] = 1;
 
-      // Count orders by client with additional information
       const clientId = order.client?.id || 'unassigned';
       const clientFantasyName = order.client?.fantasyName || 'unassigned';
       const clientBusinessName = order.client?.businessName || 'unassigned';
@@ -144,11 +153,11 @@ export class OrderService {
           pending: 0,
           middle: 0,
           canceled: 0,
-          totalOrders: 0
+          totalOrders: 0,
+          totalAmount: 0,
         };
       }
 
-      // Increment the order count and status count for the client
       countsByClient[clientId].totalOrders++;
 
       if (order.status === OrderStatusEnum.DELIVERED)
@@ -159,21 +168,30 @@ export class OrderService {
         countsByClient[clientId].canceled++;
       else
         countsByClient[clientId].middle++;
+
+      countsByClient[clientId].totalAmount += orderTotal;
+
+      sumAmount += orderTotal;
     });
 
-    // Sort orders by delivery date
-    orders.sort((a, b) => new Date(a.deliveryDate).getTime() - new Date(b.deliveryDate).getTime());
-
     // Get next deliveries, limit to 10
-    const nextDeliveries = orders.slice(0, 10).map((order) => ({
+    const nextDeliveries: INextDelivery[] = orders.slice(0, 10).map((order) => ({
       orderNumber: order.orderNumber,
       deliveryDate: order.deliveryDate,
       client: order.client.fantasyName,
-      deliveryLocation: order.deliveryLocation
-    }));
+      type: order.type,
+      deliveryLocation: order.deliveryLocation,
+      products: order.products.map((product) => ({
+        upcCode: product.upcCode,
+        unitaryPrice: product.unitaryPrice,
+        quantity: product.quantity,
+        description: product.description,
+      } as IProductMini)),
+    } as INextDelivery));
 
     return {
-      orders,
+      orders: OrderMapper.mapAll(orders),
+      sumAmount,
       countOverview,
       countsByType,
       countsByStatus,

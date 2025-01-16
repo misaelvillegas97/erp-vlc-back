@@ -2,7 +2,7 @@ import { Column, Entity, ManyToOne, PrimaryColumn } from 'typeorm';
 import { OrderEntity }                              from './order.entity';
 import { v4 }                                       from 'uuid';
 
-@Entity('product_requests')
+@Entity('orders_products')
 export class ProductRequestEntity {
   @PrimaryColumn({type: 'uuid'})
   id: string = v4();
@@ -25,7 +25,7 @@ export class ProductRequestEntity {
   @Column('decimal') // Use 'decimal' for monetary values
   unitaryPrice: number;
 
-  @Column('decimal')
+  @Column()
   totalPrice: number;
 
   @Column({nullable: true, type: 'json'})

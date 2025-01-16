@@ -3,6 +3,7 @@ import { IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-
 import { OrderStatusEnum }                                          from '@modules/orders/domain/enums/order-status.enum';
 import { CreateOrderProductDto }                                    from '@modules/orders/domain/dtos/create-order-product.dto';
 import { Type }                                                     from 'class-transformer';
+import { OrderTypeEnum }                                            from '@modules/orders/domain/enums/order-type.enum';
 
 export class CreateOrderDto {
   @IsString()
@@ -13,9 +14,8 @@ export class CreateOrderDto {
   @IsNotEmpty()
   public businessName: string;
 
-  @IsString()
-  @IsNotEmpty()
-  public type: string;
+  @IsEnum(OrderTypeEnum)
+  public type: OrderTypeEnum;
 
   @IsEnum(OrderStatusEnum)
   public status: OrderStatusEnum;

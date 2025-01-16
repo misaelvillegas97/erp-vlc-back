@@ -1,5 +1,5 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
-import { v4 }                            from 'uuid';
+import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { v4 }                                                                from 'uuid';
 
 @Entity('client')
 export class ClientEntity {
@@ -18,11 +18,17 @@ export class ClientEntity {
   @Column()
   nationalId: string;
 
-  @Column()
+  @Column({nullable: true})
   email: string;
 
-  @Column()
+  @Column({nullable: true})
   phoneNumber: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   constructor(values: Partial<ClientEntity>) {
     Object.assign(this, values);

@@ -1,10 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import * as path              from 'node:path';
-import * as fs                from 'fs-extra';
-import { ConfigService }      from '@nestjs/config';
-import puppeteer              from 'puppeteer-extra';
-import StealthPlugin          from 'puppeteer-extra-plugin-stealth';
-import { Browser, Page }      from 'puppeteer';
+import { Injectable, Logger }            from '@nestjs/common';
+import * as path                         from 'node:path';
+import * as fs                           from 'fs-extra';
+import { ConfigService }                 from '@nestjs/config';
+import puppeteer                         from 'puppeteer-extra';
+import StealthPlugin                     from 'puppeteer-extra-plugin-stealth';
+import { Browser, executablePath, Page } from 'puppeteer';
+import { Environment }                   from '@core/config/app.config';
+import { AllConfigType }                 from '@core/config/config.type';
 
 export interface Order {
   rowNumber: number;
@@ -43,16 +45,19 @@ export class CencosudB2bService {
   private readonly username;
   private readonly password;
   private readonly url;
+  private readonly environment: Environment;
   private readonly cookiesPath = path.resolve(__dirname, '../../cencosud-b2b.json');
 
   private configFileBackup: any;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService: ConfigService<AllConfigType>) {
     this.logger.log('CencosudB2bService initialized');
 
     this.username = this.configService.get<string>('cencosud.username', {infer: true});
     this.password = this.configService.get<string>('cencosud.password', {infer: true});
     this.url = this.configService.get<string>('cencosud.url', {infer: true});
+
+    this.environment = this.configService.get('app.nodeEnv', {infer: true});
   }
 
   async run() {
@@ -72,7 +77,7 @@ export class CencosudB2bService {
     const browser: Browser = await puppeteer.launch({
       headless: true,
       args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu' ],
-      executablePath: '/usr/bin/google-chrome',
+      executablePath: this.environment === Environment.Development ? executablePath() : '/usr/bin/google-chrome',
     });
 
     // await this.loadCookies(browser);

@@ -96,11 +96,13 @@ export class ComercioNetService {
   }
 
   async extractOrders(browser: Browser, page: Page): Promise<Order[]> {
+    const yesterdayDate = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
+    const todayDate = new Date().toISOString().split('T')[0];
     const queryParams = {
       tido_id: '9',
       tipo: 'recibidos',
-      fecha_inicio: '2024-12-20',
-      fecha_termino: '2024-12-28',
+      fecha_inicio: yesterdayDate,
+      fecha_termino: todayDate,
       estado: '0',
       offset: '0',
     };

@@ -5,12 +5,8 @@ export class OrderStatusProvider {
     switch (status) {
       case 'Aceptada':
         return OrderStatusEnum.PENDING;
-      case 'Rechazada':
-        return OrderStatusEnum.CANCELED;
-      case 'Pendiente':
-        return OrderStatusEnum.PENDING;
       case 'Liberada':
-        return OrderStatusEnum.IN_PROGRESS;
+        return OrderStatusEnum.PENDING;
       default:
         return OrderStatusEnum.PENDING;
     }

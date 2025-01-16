@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, Pri
 import { ProductRequestEntity }                                                                                        from './product-request.entity';
 import { v4 }                                                                                                          from 'uuid';
 import { ClientEntity }                                                                                                from '@modules/clients/domain/entities/client.entity';
+import { OrderTypeEnum }                                                                                               from '@modules/orders/domain/enums/order-type.enum';
+import { OrderStatusEnum }                                                                                             from '@modules/orders/domain/enums/order-status.enum';
 
 @Entity({name: 'orders'})
 @Unique([ 'orderNumber' ])
@@ -16,10 +18,10 @@ export class OrderEntity {
   businessName: string;
 
   @Column()
-  type: string;
+  type: OrderTypeEnum;
 
   @Column()
-  status: string;
+  status: OrderStatusEnum;
 
   @Column()
   deliveryLocation: string;
@@ -31,7 +33,7 @@ export class OrderEntity {
   emissionDate: string = new Date().toISOString().split('T')[0];
 
   @Column({nullable: true})
-  observation?: string;
+  observations?: string;
 
   @Column({nullable: true, type: 'json'})
   additionalInfo?: Record<string, any>;

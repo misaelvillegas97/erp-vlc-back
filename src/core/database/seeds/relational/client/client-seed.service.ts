@@ -13,11 +13,15 @@ export class ClientSeedService {
 
   async run() {
     this.logger.log('Seeding clients...');
-    const countClient = await this.repository.count({
+    const countCencosudClient = await this.repository.count({
       where: [ {code: 'CencosudB2B'} ]
     });
 
-    if (!countClient) {
+    const countWallmartClient = await this.repository.count({
+      where: [ {code: 'WallmartB2B'} ]
+    });
+
+    if (!countCencosudClient) {
       await this.repository.save(
         this.repository.create({
           fantasyName: 'Cencosud S.A.',
@@ -28,6 +32,8 @@ export class ClientSeedService {
           phoneNumber: '+56912345678'
         })
       );
+    }
+    if (!countWallmartClient) {
       await this.repository.save(
         this.repository.create({
           fantasyName: 'Wallmart S.A.',

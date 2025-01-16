@@ -1,7 +1,7 @@
 import { OrderTypeEnum } from '@modules/orders/domain/enums/order-type.enum';
 
 export class OrderType {
-  public static parseFromCencoB2B(type: string): string {
+  public static parseFromCencoB2B(type: string): OrderTypeEnum {
     switch (type) {
       case 'OC Tienda':
         return OrderTypeEnum.PURCHASE_ORDER;
