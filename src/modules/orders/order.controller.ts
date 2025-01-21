@@ -3,6 +3,7 @@ import { OrderService }                                   from './order.service'
 import { CreateOrderDto }                                 from '@modules/orders/domain/dtos/create-order.dto';
 import { OrderStatusEnum }                                from '@modules/orders/domain/enums/order-status.enum';
 import { IDashboardOverview }                             from '@modules/orders/domain/interfaces/dashboard-overview.interface';
+import { OrderMapper }                                    from '@modules/orders/domain/mappers/order.mapper';
 
 @Controller('orders')
 export class OrderController {
@@ -12,7 +13,9 @@ export class OrderController {
 
   @Get()
   async findAll() {
-    return this.orderService.findAll();
+    const orders = await this.orderService.findAll();
+
+    return OrderMapper.mapAll(orders);
   }
 
   @Get('dashboard')

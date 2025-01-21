@@ -1,5 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import { v4 }                                                                from 'uuid';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { v4 }                                                                                  from 'uuid';
 
 @Entity('client')
 export class ClientEntity {
@@ -29,6 +29,9 @@ export class ClientEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 
   constructor(values: Partial<ClientEntity>) {
     Object.assign(this, values);

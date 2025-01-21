@@ -19,7 +19,9 @@ export class OrderService {
   ) {}
 
   async findAll(): Promise<OrderEntity[]> {
-    return this.orderRepository.find({join: {alias: 'order', leftJoinAndSelect: {products: 'order.products'}}});
+    return this.orderRepository.find({
+      relations: [ 'client', 'products' ],
+    });
   }
 
   async findOne(id: string): Promise<OrderEntity> {

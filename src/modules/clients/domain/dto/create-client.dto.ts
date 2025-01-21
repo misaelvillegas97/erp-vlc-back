@@ -16,6 +16,10 @@ export class CreateClientDto implements Partial<ClientEntity> {
   @IsNotEmpty()
   public readonly fantasyName: string;
 
+  @ApiProperty({example: 'CODE123', type: String})
+  @IsOptional()
+  public readonly code: string;
+
   @ApiProperty({example: 'email@example.com', type: String})
   @IsNotEmpty()
   @IsEmail()
