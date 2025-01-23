@@ -14,12 +14,15 @@ export class CreateInvoiceDto {
   @IsString()
   emissionDate: string;
 
+  @IsOptional()
   @IsNumber()
   netAmount: number;
 
+  @IsOptional()
   @IsNumber()
   taxAmount: number;
 
+  @IsOptional()
   @IsNumber()
   totalAmount: number;
 }

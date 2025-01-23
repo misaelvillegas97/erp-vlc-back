@@ -63,7 +63,7 @@ export class OrderService {
   }
 
   async createInvoice(id: string, createInvoiceDto: CreateInvoiceDto) {
-    const order = await this.orderRepository.findOne({where: {id}});
+    const order = await this.orderRepository.findOne({where: {id}, relations: [ 'products' ]});
 
     const existingInvoice = await this.invoiceRepository.findOne({where: {order: {id: id}}});
 
@@ -75,7 +75,10 @@ export class OrderService {
       createInvoiceDto.totalAmount = createInvoiceDto.netAmount + createInvoiceDto.taxAmount;
     }
 
-    order.invoice = this.invoiceRepository.create(createInvoiceDto);
+    order.invoice = this.invoiceRepository.create({
+      ...createInvoiceDto,
+      client: order.client
+    });
 
     return this.orderRepository.save(order);
   }

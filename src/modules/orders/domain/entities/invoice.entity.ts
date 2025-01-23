@@ -1,7 +1,8 @@
-import { Column, Entity, OneToOne, Unique } from 'typeorm';
-import { InvoiceStatusEnum }                from '@modules/orders/domain/enums/invoice-status.enum';
-import { AbstractEntity }                   from '@shared/domain/entities/abstract.entity';
-import { OrderEntity }                      from '@modules/orders/domain/entities/order.entity';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, Unique } from 'typeorm';
+import { InvoiceStatusEnum }                                       from '@modules/orders/domain/enums/invoice-status.enum';
+import { AbstractEntity }                                          from '@shared/domain/entities/abstract.entity';
+import { OrderEntity }                                             from '@modules/orders/domain/entities/order.entity';
+import { ClientEntity }                                            from '@modules/clients/domain/entities/client.entity';
 
 @Entity({name: 'orders_invoice'})
 @Unique([ 'invoiceNumber' ])
@@ -18,9 +19,6 @@ export class InvoiceEntity extends AbstractEntity {
   @Column()
   emissionDate: string;
 
-  @OneToOne(() => OrderEntity, order => order.invoice)
-  order: OrderEntity;
-
   @Column()
   netAmount: number;
 
@@ -29,4 +27,11 @@ export class InvoiceEntity extends AbstractEntity {
 
   @Column()
   totalAmount: number;
+
+  @OneToOne(() => OrderEntity, order => order.invoice)
+  order: OrderEntity;
+
+  @OneToMany(() => ClientEntity, client => client.id)
+  @JoinColumn({name: 'client_id'})
+  client: ClientEntity;
 }
