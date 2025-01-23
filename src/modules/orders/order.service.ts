@@ -12,6 +12,7 @@ import { IDashboardOverview, INextDelivery, IProductMini } from '@modules/orders
 import { OrderMapper }                                     from '@modules/orders/domain/mappers/order.mapper';
 import { CreateInvoiceDto }                                from '@modules/orders/domain/dtos/create-invoice.dto';
 import { InvoiceEntity }                                   from '@modules/orders/domain/entities/invoice.entity';
+import { OrderQueryDto }                                   from '@modules/orders/domain/dtos/order-query.dto';
 
 @Injectable()
 export class OrderService {
@@ -21,10 +22,47 @@ export class OrderService {
     @InjectRepository(InvoiceEntity) private invoiceRepository: Repository<InvoiceEntity>,
   ) {}
 
-  async findAll(): Promise<OrderEntity[]> {
-    return this.orderRepository.find({
-      relations: [ 'client', 'products', 'invoice' ],
-    });
+  async findAll(query: OrderQueryDto): Promise<OrderEntity[]> {
+    const qb = this.orderRepository.createQueryBuilder('order');
+    qb.leftJoinAndSelect('order.client', 'client');
+    qb.leftJoinAndSelect('order.products', 'products');
+    qb.leftJoinAndSelect('order.invoice', 'invoice');
+
+    if (query.orderNumber)
+      qb.where('order.orderNumber = :orderNumber', {orderNumber: query.orderNumber});
+
+    if (query.businessName)
+      qb.andWhere('client.businessName = :businessName', {businessName: query.businessName});
+
+    if (query.type)
+      if (Array.isArray(query.type))
+        qb.andWhere('order.type in (:...type)', {type: query.type});
+      else
+        qb.andWhere('order.type = :type', {type: query.type});
+
+    if (query.status) {
+      if (Array.isArray(query.status))
+        qb.andWhere('order.status in (:...status)', {status: query.status});
+      else
+        qb.andWhere('order.status = :status', {status: query.status});
+    }
+
+    if (query.deliveryLocation)
+      qb.andWhere('order.deliveryLocation = :deliveryLocation', {deliveryLocation: query.deliveryLocation});
+
+    if (query.deliveryDate)
+      qb.andWhere('order.deliveryDate = :deliveryDate', {deliveryDate: query.deliveryDate});
+
+    if (query.emissionDate)
+      qb.andWhere('order.emissionDate = :emissionDate', {emissionDate: query.emissionDate});
+
+    if (query.amount)
+      qb.andWhere('order.amount = :amount', {amount: query.amount});
+
+    if (query.invoice)
+      qb.andWhere('invoice.invoiceNumber = :invoice', {invoice: query.invoice});
+
+    return qb.getMany();
   }
 
   async findOne(id: string): Promise<OrderEntity> {

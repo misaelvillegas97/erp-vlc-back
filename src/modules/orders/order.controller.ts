@@ -5,6 +5,7 @@ import { OrderStatusEnum }                                from '@modules/orders/
 import { IDashboardOverview }                             from '@modules/orders/domain/interfaces/dashboard-overview.interface';
 import { OrderMapper }                                    from '@modules/orders/domain/mappers/order.mapper';
 import { CreateInvoiceDto }                               from '@modules/orders/domain/dtos/create-invoice.dto';
+import { OrderQueryDto }                                  from '@modules/orders/domain/dtos/order-query.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -13,8 +14,8 @@ export class OrderController {
   ) {}
 
   @Get()
-  async findAll() {
-    const orders = await this.orderService.findAll();
+  async findAll(@Query() query: OrderQueryDto) {
+    const orders = await this.orderService.findAll(query);
 
     return OrderMapper.mapAll(orders);
   }
