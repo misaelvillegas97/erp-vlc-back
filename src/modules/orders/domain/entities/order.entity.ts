@@ -1,9 +1,21 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, Unique, UpdateDateColumn } from 'typeorm';
-import { ProductRequestEntity }                                                                                        from './product-request.entity';
-import { v4 }                                                                                                          from 'uuid';
-import { ClientEntity }                                                                                                from '@modules/clients/domain/entities/client.entity';
-import { OrderTypeEnum }                                                                                               from '@modules/orders/domain/enums/order-type.enum';
-import { OrderStatusEnum }                                                                                             from '@modules/orders/domain/enums/order-status.enum';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  PrimaryColumn,
+  Unique,
+  UpdateDateColumn
+}                               from 'typeorm';
+import { ProductRequestEntity } from './product-request.entity';
+import { v4 }                   from 'uuid';
+import { ClientEntity }         from '@modules/clients/domain/entities/client.entity';
+import { OrderTypeEnum }        from '@modules/orders/domain/enums/order-type.enum';
+import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
+import { InvoiceEntity }        from '@modules/orders/domain/entities/invoice.entity';
 
 @Entity({name: 'orders'})
 @Unique([ 'orderNumber' ])
@@ -38,12 +50,12 @@ export class OrderEntity {
   @Column({nullable: true, type: 'json'})
   additionalInfo?: Record<string, any>;
 
-  @Column({nullable: true})
-    // @Expose({groups: [roleNames[RoleEnum.admin], roleNames[RoleEnum.accountant]]})
-  invoiceNumber?: string;
-
   @OneToMany(() => ProductRequestEntity, (product) => product.orderRequest, {cascade: true})
   products: ProductRequestEntity[];
+
+  @OneToOne(() => InvoiceEntity, (invoice) => invoice.order, {cascade: true})
+  @JoinColumn({name: 'invoice_id'})
+  invoice: InvoiceEntity;
 
   @ManyToOne(() => ClientEntity, (client) => client.id, {eager: true})
   @JoinColumn({name: 'client_id'})

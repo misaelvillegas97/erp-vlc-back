@@ -1,5 +1,5 @@
-import { Injectable }       from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { InjectRepository }                         from '@nestjs/typeorm';
 
 import { Between, Repository } from 'typeorm';
 
@@ -10,17 +10,20 @@ import { ProductRequestEntity }                            from './domain/entiti
 import { ClientEntity }                                    from '@modules/clients/domain/entities/client.entity';
 import { IDashboardOverview, INextDelivery, IProductMini } from '@modules/orders/domain/interfaces/dashboard-overview.interface';
 import { OrderMapper }                                     from '@modules/orders/domain/mappers/order.mapper';
+import { CreateInvoiceDto }                                from '@modules/orders/domain/dtos/create-invoice.dto';
+import { InvoiceEntity }                                   from '@modules/orders/domain/entities/invoice.entity';
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
     @InjectRepository(ProductRequestEntity) private productRepository: Repository<ProductRequestEntity>,
+    @InjectRepository(InvoiceEntity) private invoiceRepository: Repository<InvoiceEntity>,
   ) {}
 
   async findAll(): Promise<OrderEntity[]> {
     return this.orderRepository.find({
-      relations: [ 'client', 'products' ],
+      relations: [ 'client', 'products', 'invoice' ],
     });
   }
 
@@ -45,10 +48,6 @@ export class OrderService {
           updatedOrders.push(await this.orderRepository.save(existingOrder));
         }
       } else {
-        // for (const product of order.products) {
-        //   const product
-        // }
-
         createdOrders.push(
           await this.orderRepository.save(
             this.orderRepository.create({...order, client: new ClientEntity({id: order.clientId})})
@@ -63,9 +62,20 @@ export class OrderService {
     };
   }
 
-  async createInvoice(id: string, invoice: string) {
+  async createInvoice(id: string, createInvoiceDto: CreateInvoiceDto) {
     const order = await this.orderRepository.findOne({where: {id}});
-    order.invoiceNumber = invoice;
+
+    const existingInvoice = await this.invoiceRepository.findOne({where: {order: {id: id}}});
+
+    if (existingInvoice) throw new UnprocessableEntityException('Invoice already exists for this order');
+
+    if (!createInvoiceDto.netAmount || !createInvoiceDto.taxAmount || !createInvoiceDto.totalAmount) {
+      createInvoiceDto.netAmount = order.products.reduce((acc, product) => acc + (product.unitaryPrice * product.quantity), 0);
+      createInvoiceDto.taxAmount = createInvoiceDto.netAmount * 0.19;
+      createInvoiceDto.totalAmount = createInvoiceDto.netAmount + createInvoiceDto.taxAmount;
+    }
+
+    order.invoice = this.invoiceRepository.create(createInvoiceDto);
 
     return this.orderRepository.save(order);
   }

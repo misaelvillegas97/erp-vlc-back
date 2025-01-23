@@ -3,6 +3,7 @@ import { OrderStatusEnum }    from '@modules/orders/domain/enums/order-status.en
 import { OrderProductMapper } from '@modules/orders/domain/mappers/order-product.mapper';
 import { OrderEntity }        from '@modules/orders/domain/entities/order.entity';
 import { ClientLightMapper }  from '@modules/clients/domain/mappers/client-light.mapper';
+import { InvoiceMapper }      from '@modules/orders/domain/mappers/invoice.mapper';
 
 export class OrderMapper {
   readonly id: string;
@@ -16,6 +17,7 @@ export class OrderMapper {
   readonly observations: string;
   readonly totalAmount: number;
   readonly client: ClientLightMapper;
+  readonly invoice: InvoiceMapper;
   readonly products: OrderProductMapper[];
 
   constructor(partial: Partial<OrderMapper>) {
@@ -36,6 +38,7 @@ export class OrderMapper {
       emissionDate: entity.emissionDate,
       observations: entity.observations,
       products: OrderProductMapper.mapAll(entity.products),
+      invoice: entity.invoice && InvoiceMapper.map(entity.invoice),
       client: ClientLightMapper.map(entity.client),
       totalAmount,
     });

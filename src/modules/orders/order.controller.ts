@@ -4,6 +4,7 @@ import { CreateOrderDto }                                 from '@modules/orders/
 import { OrderStatusEnum }                                from '@modules/orders/domain/enums/order-status.enum';
 import { IDashboardOverview }                             from '@modules/orders/domain/interfaces/dashboard-overview.interface';
 import { OrderMapper }                                    from '@modules/orders/domain/mappers/order.mapper';
+import { CreateInvoiceDto }                               from '@modules/orders/domain/dtos/create-invoice.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -33,9 +34,9 @@ export class OrderController {
     return this.orderService.create(createOrderDto);
   }
 
-  @Put(':id/invoice')
-  async createInvoice(@Param('id') id: string, @Body('invoice') invoice: string) {
-    return this.orderService.createInvoice(id, invoice);
+  @Post(':id/invoice')
+  async createInvoice(@Param('id') id: string, @Body() createInvoiceDto: CreateInvoiceDto) {
+    return this.orderService.createInvoice(id, createInvoiceDto);
   }
 
   @Put(':id/status')
