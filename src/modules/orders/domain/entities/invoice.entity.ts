@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, Unique } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, Unique } from 'typeorm';
 import { InvoiceStatusEnum }                                       from '@modules/orders/domain/enums/invoice-status.enum';
 import { AbstractEntity }                                          from '@shared/domain/entities/abstract.entity';
 import { OrderEntity }                                             from '@modules/orders/domain/entities/order.entity';
@@ -31,7 +31,7 @@ export class InvoiceEntity extends AbstractEntity {
   @OneToOne(() => OrderEntity, order => order.invoice)
   order: OrderEntity;
 
-  @OneToMany(() => ClientEntity, client => client.id)
+  @ManyToOne(() => ClientEntity, client => client.id)
   @JoinColumn({name: 'client_id'})
   client: ClientEntity;
 }
