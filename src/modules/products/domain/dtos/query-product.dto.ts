@@ -1,18 +1,17 @@
-import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { ProductEntity }                  from '@modules/products/domain/entities/product.entity';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type }                           from 'class-transformer';
 
-export class CreateProductDto implements Partial<ProductEntity> {
+export class QueryProductDto implements Partial<ProductEntity> {
+  @IsOptional()
   @IsString()
   public readonly upcCode: string;
 
+  @IsOptional()
   @IsString()
   public readonly name: string;
 
-  @IsString()
   @IsOptional()
-  public readonly description?: string;
-
   @IsNumber()
   @Type(() => Number)
   public readonly unitaryPrice: number;

@@ -6,6 +6,7 @@ import { AssignProductToClientDto } from '@modules/products/domain/dtos/assign-p
 import { ClientProductEntity }      from '@modules/products/domain/entities/client-product.entity';
 import { CreateProductDto }         from '@modules/products/domain/dtos/create-product.dto';
 import { UpdateProductDto }         from '@modules/products/domain/dtos/update-product.dto';
+import { QueryProductDto }          from '@modules/products/domain/dtos/query-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -14,8 +15,15 @@ export class ProductsService {
     @InjectRepository(ClientProductEntity) private readonly clientProductRepository: Repository<ClientProductEntity>,
   ) {}
 
-  async findAll(): Promise<ProductEntity[]> {
-    return this.productRepository.find();
+  async findAll(queryProductDto: QueryProductDto): Promise<ProductEntity[]> {
+    const {upcCode, name, unitaryPrice} = queryProductDto;
+    const qb = this.productRepository.createQueryBuilder('product');
+
+    if (upcCode) qb.andWhere('product.upcCode ilike :upcCode', {upcCode: `%${ upcCode }%`});
+    if (name) qb.andWhere('product.name ilike :name', {name: `%${ name }%`});
+    if (unitaryPrice) qb.andWhere('product.unitaryPrice = :unitaryPrice', {unitaryPrice});
+
+    return qb.getMany();
   }
 
   async findOne(id: string): Promise<ProductEntity> {
@@ -23,7 +31,7 @@ export class ProductsService {
   }
 
   async create(product: CreateProductDto): Promise<ProductEntity> {
-    return this.productRepository.save(product);
+    return this.productRepository.save(this.productRepository.create(product));
   }
 
   async update(productId: string, product: UpdateProductDto): Promise<ProductEntity> {
