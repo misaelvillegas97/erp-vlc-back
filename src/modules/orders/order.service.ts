@@ -113,6 +113,9 @@ export class OrderService {
       createInvoiceDto.totalAmount = createInvoiceDto.netAmount + createInvoiceDto.taxAmount;
     }
 
+    if (order.status !== OrderStatusEnum.DELIVERED)
+      order.status = OrderStatusEnum.INVOICED;
+
     order.invoice = this.invoiceRepository.create({
       ...createInvoiceDto,
       client: order.client

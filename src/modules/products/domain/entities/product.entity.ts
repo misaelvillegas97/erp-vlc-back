@@ -1,6 +1,6 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
-import { v4 }                            from 'uuid';
-import { Unique }                        from 'typeorm/browser';
+import { Column, Entity, OneToMany, PrimaryColumn, Unique } from 'typeorm';
+import { v4 }                                               from 'uuid';
+import { ClientProductEntity }                              from '@modules/products/domain/entities/client-product.entity';
 
 @Entity({name: 'products'})
 @Unique([ 'upcCode' ])
@@ -8,15 +8,18 @@ export class ProductEntity {
   @PrimaryColumn({type: 'uuid'})
   id: string = v4();
 
-  @Column({type: 'varchar'})
+  @Column()
   upcCode: string;
 
-  @Column({type: 'varchar'})
+  @Column()
   name: string;
 
-  @Column({type: 'text', nullable: true})
+  @Column({nullable: true})
   description?: string;
 
   @Column()
-  price: number;
+  unitaryPrice: number;
+
+  @OneToMany(() => ClientProductEntity, (productClient) => productClient.product)
+  clients: ClientProductEntity[];
 }

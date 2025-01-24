@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import { v4 }                                                                                  from 'uuid';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { v4 }                                                                                             from 'uuid';
+import { ClientProductEntity }                                                                            from '@modules/products/domain/entities/client-product.entity';
 
 @Entity('client')
 export class ClientEntity {
@@ -32,6 +33,9 @@ export class ClientEntity {
 
   @DeleteDateColumn()
   deletedAt: Date;
+
+  @OneToMany(() => ClientProductEntity, clientProduct => clientProduct.client)
+  products: ClientProductEntity[];
 
   constructor(values: Partial<ClientEntity>) {
     Object.assign(this, values);

@@ -11,7 +11,6 @@ export abstract class AbstractEntity extends BaseEntity {
   @UpdateDateColumn({name: 'updated_at', type: 'timestamp with time zone'})
   updatedAt: Date;
 
-
   @DeleteDateColumn({name: 'deleted_at', type: 'timestamp with time zone'})
   deletedAt: Date;
 }

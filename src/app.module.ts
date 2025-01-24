@@ -38,6 +38,7 @@ import { OrdersModule }         from '@modules/orders/orders.module';
 import { ScheduleModule }       from '@nestjs/schedule';
 import { ClientsModule }        from '@modules/clients/clients.module';
 import { ServeStaticModule }    from '@nestjs/serve-static';
+import { ProductsModule }       from '@modules/products/products.module';
 
 @Module({
   imports: [
@@ -111,7 +112,8 @@ import { ServeStaticModule }    from '@nestjs/serve-static';
     SeederModule,
     IntegrationsModule,
     OrdersModule,
-    ClientsModule
+    ProductsModule,
+    ClientsModule,
   ],
 })
 export class AppModule {}
