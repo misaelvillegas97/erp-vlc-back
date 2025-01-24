@@ -29,10 +29,10 @@ export class OrderService {
     qb.leftJoinAndSelect('order.invoice', 'invoice');
 
     if (query.orderNumber)
-      qb.where('order.orderNumber = :orderNumber', {orderNumber: query.orderNumber});
+      qb.where('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
 
     if (query.businessName)
-      qb.andWhere('client.businessName = :businessName', {businessName: query.businessName});
+      qb.andWhere('client.businessName ilike :businessName', {businessName: `%${ query.businessName }%`});
 
     if (query.type)
       if (Array.isArray(query.type))
@@ -48,7 +48,7 @@ export class OrderService {
     }
 
     if (query.deliveryLocation)
-      qb.andWhere('order.deliveryLocation = :deliveryLocation', {deliveryLocation: query.deliveryLocation});
+      qb.andWhere('order.deliveryLocation ilike :deliveryLocation', {deliveryLocation: `%${ query.deliveryLocation }%`});
 
     if (query.deliveryDate)
       qb.andWhere('order.deliveryDate = :deliveryDate', {deliveryDate: query.deliveryDate});
@@ -60,7 +60,7 @@ export class OrderService {
       qb.andWhere('order.amount = :amount', {amount: query.amount});
 
     if (query.invoice)
-      qb.andWhere('invoice.invoiceNumber = :invoice', {invoice: query.invoice});
+      qb.andWhere('invoice.invoiceNumber ilike :invoice', {invoice: `%${ query.invoice }%`});
 
     return qb.getMany();
   }
