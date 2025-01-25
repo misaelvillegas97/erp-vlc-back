@@ -3,9 +3,9 @@ import { AbstractEntity }                    from '@shared/domain/entities/abstr
 import { ClientEntity }                      from '@modules/clients/domain/entities/client.entity';
 import { ProductEntity }                     from '@modules/products/domain/entities/product.entity';
 
-@Entity('client-product')
+@Entity('products_provider_code_client')
 @Unique([ 'product', 'client' ])
-export class ClientProductEntity extends AbstractEntity {
+export class ProductProviderCodeClientEntity extends AbstractEntity {
   @ManyToOne(() => ProductEntity, product => product.id)
   product: ProductEntity;
 

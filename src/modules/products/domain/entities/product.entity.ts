@@ -1,6 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryColumn, Unique } from 'typeorm';
 import { v4 }                                               from 'uuid';
-import { ClientProductEntity }                              from '@modules/products/domain/entities/client-product.entity';
+import { ProductProviderCodeClientEntity }                  from '@modules/products/domain/entities/product-provider-code-client.entity';
 
 @Entity({name: 'products'})
 @Unique([ 'upcCode' ])
@@ -20,6 +20,6 @@ export class ProductEntity {
   @Column()
   unitaryPrice: number;
 
-  @OneToMany(() => ClientProductEntity, (productClient) => productClient.product)
-  clients: ClientProductEntity[];
+  @OneToMany(() => ProductProviderCodeClientEntity, (productClient) => productClient.product)
+  providerCodes: ProductProviderCodeClientEntity[];
 }
