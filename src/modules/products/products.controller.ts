@@ -3,14 +3,17 @@ import { ProductsService }                                from '@modules/product
 import { AssignProductToClientDto }                       from '@modules/products/domain/dtos/assign-product-to-client.dto';
 import { CreateProductDto }                               from '@modules/products/domain/dtos/create-product.dto';
 import { QueryProductDto }                                from '@modules/products/domain/dtos/query-product.dto';
+import { ProductMapper }                                  from '@modules/products/domain/mappers/product.mapper';
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  findAll(@Query() query: QueryProductDto) {
-    return this.productsService.findAll(query);
+  async findAll(@Query() query: QueryProductDto) {
+    const products = await this.productsService.findAll(query);
+
+    return ProductMapper.mapAll(products);
   }
 
   @Post()
