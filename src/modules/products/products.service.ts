@@ -1,18 +1,18 @@
-import { Injectable }                      from '@nestjs/common';
-import { InjectRepository }                from '@nestjs/typeorm';
-import { ProductEntity }                   from '@modules/products/domain/entities/product.entity';
-import { Repository }                      from 'typeorm';
-import { AssignProductToClientDto }        from '@modules/products/domain/dtos/assign-product-to-client.dto';
-import { ProductProviderCodeClientEntity } from '@modules/products/domain/entities/product-provider-code-client.entity';
-import { CreateProductDto }                from '@modules/products/domain/dtos/create-product.dto';
-import { UpdateProductDto }                from '@modules/products/domain/dtos/update-product.dto';
-import { QueryProductDto }                 from '@modules/products/domain/dtos/query-product.dto';
+import { Injectable }               from '@nestjs/common';
+import { InjectRepository }         from '@nestjs/typeorm';
+import { ProductEntity }            from '@modules/products/domain/entities/product.entity';
+import { Repository }               from 'typeorm';
+import { AssignProductToClientDto } from '@modules/products/domain/dtos/assign-product-to-client.dto';
+import { ProductsClientEntity }     from '@modules/products/domain/entities/products-client.entity';
+import { CreateProductDto }         from '@modules/products/domain/dtos/create-product.dto';
+import { UpdateProductDto }         from '@modules/products/domain/dtos/update-product.dto';
+import { QueryProductDto }          from '@modules/products/domain/dtos/query-product.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(ProductEntity) private readonly productRepository: Repository<ProductEntity>,
-    @InjectRepository(ProductProviderCodeClientEntity) private readonly clientProductRepository: Repository<ProductProviderCodeClientEntity>,
+    @InjectRepository(ProductsClientEntity) private readonly clientProductRepository: Repository<ProductsClientEntity>,
   ) {}
 
   async findAll(queryProductDto: QueryProductDto): Promise<ProductEntity[]> {
@@ -50,12 +50,9 @@ export class ProductsService {
   async assignToClient(productId: string, assignProductToClientDto: AssignProductToClientDto) {
     const {clientId, providerCode} = assignProductToClientDto;
 
-    const clientProduct = new ProductProviderCodeClientEntity();
-    clientProduct.id = clientId;
-
-    clientProduct.product = await this.productRepository.findOne({where: {id: productId}});
-
-    if (providerCode) clientProduct.providerCode = providerCode;
+    const clientProduct = this.clientProductRepository.create(
+      {client: {id: clientId}, product: {id: productId}, providerCode}
+    );
 
     return this.clientProductRepository.save(clientProduct);
   }
