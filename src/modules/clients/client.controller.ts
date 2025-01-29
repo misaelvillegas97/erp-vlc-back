@@ -1,10 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 
 import { CreateClientDto } from '@modules/clients/domain/dto/create-client.dto';
 import { UpdateClientDto } from '@modules/clients/domain/dto/update-client.dto';
 
-import { ClientService } from './client.service';
-import { ClientEntity }  from './domain/entities/client.entity';
+import { ClientService }     from './client.service';
+import { ClientEntity }      from './domain/entities/client.entity';
+import { QueryClientDto }    from '@modules/clients/domain/dto/query-client.dto';
+import { ClientLightMapper } from '@modules/clients/domain/mappers/client-light.mapper';
+import { ClientMapper }      from '@modules/clients/domain/mappers/client.mapper';
 
 @Controller('clients')
 export class ClientController {
@@ -16,8 +19,11 @@ export class ClientController {
   }
 
   @Get()
-  findAll(): Promise<ClientEntity[]> {
-    return this.clientService.findAll();
+  async findAll(@Query('layout') layout: 'FULL' | 'COMPACT' = 'FULL', @Query() queryDto: QueryClientDto): Promise<ClientLightMapper[]> {
+    const clients = await this.clientService.findAll(queryDto);
+
+    if (layout === 'COMPACT') return ClientLightMapper.mapAll(clients);
+    return ClientMapper.mapAll(clients);
   }
 
   @Get(':id')

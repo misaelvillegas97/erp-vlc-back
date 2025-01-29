@@ -16,7 +16,7 @@ export class ProductsClientMapper {
     return new ProductsClientMapper({
       id: entity.id,
       providerCode: entity.providerCode,
-      client: ClientLightMapper.map(entity.client),
+      client: entity.client && ClientLightMapper.map(entity.client),
       product: ProductLightMapper.map(entity.product)
     });
   }

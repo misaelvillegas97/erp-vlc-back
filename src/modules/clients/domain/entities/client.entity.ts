@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinTable, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { v4 }                                                                                                        from 'uuid';
 import { ProductsClientEntity }                                                                                      from '@modules/products/domain/entities/products-client.entity';
+import { ClientAddress }                                                                                             from '@modules/clients/domain/models/client-address';
 
 @Entity('client')
 export class ClientEntity {
@@ -24,6 +25,9 @@ export class ClientEntity {
 
   @Column({nullable: true})
   phoneNumber: string;
+
+  @Column({nullable: true, type: 'json'})
+  address: ClientAddress[];
 
   @CreateDateColumn()
   createdAt: Date;

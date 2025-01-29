@@ -24,12 +24,14 @@ import { AuthUserMapper }        from '@core/auth/mappers/auth-user.mapper';
 export class AuthController {
   private readonly cookiePath = '/api/v1/auth';
   private readonly cookieName: string;
+  private readonly environment: 'development' | 'production';
 
   constructor(
     private readonly service: AuthService,
     private readonly configService: ConfigService<AllConfigType>
   ) {
     this.cookieName = this.configService.get<AllConfigType>('auth.refreshToken', {infer: true}) || 'refreshToken';
+    this.environment = this.configService.get('app.nodeEnv', {infer: true}) || 'development';
   }
 
   @SerializeOptions({groups: [ 'me' ]})
@@ -42,7 +44,7 @@ export class AuthController {
     res
       .status(HttpStatus.OK)
       .cookie(this.cookieName, login.refreshToken.trim(), {
-        secure: true,
+        secure: this.environment === 'production',
         httpOnly: true,
         signed: true,
         path: this.cookiePath,
