@@ -15,7 +15,7 @@ import { v4 }                   from 'uuid';
 import { ClientEntity }         from '@modules/clients/domain/entities/client.entity';
 import { OrderTypeEnum }        from '@modules/orders/domain/enums/order-type.enum';
 import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
-import { InvoiceEntity }        from '@modules/orders/domain/entities/invoice.entity';
+import { InvoiceEntity }        from '@modules/invoices/domain/entities/invoice.entity';
 
 @Entity({name: 'orders'})
 @Unique([ 'orderNumber' ])

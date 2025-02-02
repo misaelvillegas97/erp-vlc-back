@@ -39,6 +39,7 @@ import { ScheduleModule }       from '@nestjs/schedule';
 import { ClientsModule }        from '@modules/clients/clients.module';
 import { ServeStaticModule }    from '@nestjs/serve-static';
 import { ProductsModule }       from '@modules/products/products.module';
+import { InvoicesModule }       from '@modules/invoices/invoices.module';
 
 @Module({
   imports: [
@@ -111,6 +112,7 @@ import { ProductsModule }       from '@modules/products/products.module';
     MailerModule,
     SeederModule,
     IntegrationsModule,
+    InvoicesModule,
     OrdersModule,
     ProductsModule,
     ClientsModule,

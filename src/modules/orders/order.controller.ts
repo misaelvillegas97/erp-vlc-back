@@ -25,6 +25,11 @@ export class OrderController {
     return this.orderService.getDashboardInfo(year, month);
   }
 
+  @Get('dashboard/overview')
+  async getDashboardOverview(): Promise<any> {
+    return this.orderService.ordersOverview();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.orderService.findOne(id);

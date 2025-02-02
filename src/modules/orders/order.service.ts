@@ -11,15 +11,15 @@ import { ClientEntity }                                    from '@modules/client
 import { IDashboardOverview, INextDelivery, IProductMini } from '@modules/orders/domain/interfaces/dashboard-overview.interface';
 import { OrderMapper }                                     from '@modules/orders/domain/mappers/order.mapper';
 import { CreateInvoiceDto }                                from '@modules/orders/domain/dtos/create-invoice.dto';
-import { InvoiceEntity }                                   from '@modules/orders/domain/entities/invoice.entity';
 import { OrderQueryDto }                                   from '@modules/orders/domain/dtos/order-query.dto';
+import { InvoicesService }                                 from '@modules/invoices/invoices.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
     @InjectRepository(ProductRequestEntity) private productRepository: Repository<ProductRequestEntity>,
-    @InjectRepository(InvoiceEntity) private invoiceRepository: Repository<InvoiceEntity>,
+    private readonly invoicesService: InvoicesService
   ) {}
 
   async findAll(query: OrderQueryDto): Promise<OrderEntity[]> {
@@ -101,11 +101,9 @@ export class OrderService {
   }
 
   async createInvoice(id: string, createInvoiceDto: CreateInvoiceDto) {
-    const order = await this.orderRepository.findOne({where: {id}, relations: [ 'products' ]});
+    const order = await this.orderRepository.findOne({where: {id}, relations: [ 'products', 'invoice' ]});
 
-    const existingInvoice = await this.invoiceRepository.findOne({where: {order: {id: id}}});
-
-    if (existingInvoice) throw new UnprocessableEntityException('Invoice already exists for this order');
+    if (order.invoice) throw new UnprocessableEntityException({code: 'ORDER_ALREADY_INVOICED'});
 
     if (!createInvoiceDto.netAmount || !createInvoiceDto.taxAmount || !createInvoiceDto.totalAmount) {
       createInvoiceDto.netAmount = order.products.reduce((acc, product) => acc + (product.unitaryPrice * product.quantity), 0);
@@ -116,10 +114,7 @@ export class OrderService {
     if (order.status !== OrderStatusEnum.DELIVERED)
       order.status = OrderStatusEnum.INVOICED;
 
-    order.invoice = this.invoiceRepository.create({
-      ...createInvoiceDto,
-      client: order.client
-    });
+    await this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
 
     return this.orderRepository.save(order);
   }
@@ -129,6 +124,68 @@ export class OrderService {
     order.status = status;
 
     return this.orderRepository.save(order);
+  }
+
+  async ordersOverview() {
+    // 1. Número de órdenes por período (ejemplo: por día)
+    const ordersCountByDate = await this.orderRepository
+      .createQueryBuilder('o')
+      // to_char() es una forma rápida de agrupar por fecha en Postgres
+      .select('to_char(o.created_at, \'YYYY-MM-DD\')', 'date')
+      .addSelect('COUNT(o.id)', 'total')
+      .groupBy('to_char(o.created_at, \'YYYY-MM-DD\')')
+      .orderBy('to_char(o.created_at, \'YYYY-MM-DD\')', 'ASC')
+      .getRawMany();
+
+    // 2. Órdenes por estado
+    const ordersByStatus = await this.orderRepository
+      .createQueryBuilder('o')
+      .select('o.status', 'status')
+      .addSelect('COUNT(o.id)', 'total')
+      .groupBy('o.status')
+      .getRawMany();
+
+    // 3. Órdenes por cliente (TOP 5, por ejemplo)
+    const ordersByClient = await this.orderRepository
+      .createQueryBuilder('o')
+      .select('o.client_id', 'clientId')
+      .addSelect('COUNT(o.id)', 'total')
+      .groupBy('o.client_id')
+      .orderBy('total', 'DESC')
+      .limit(5)
+      .getRawMany();
+
+    // 4. Ingreso total (suma) asociado a las órdenes por período
+    //    Suponiendo que la tabla orders_products tiene un campo "totalPrice".
+    const totalRevenueByDate = await this.productRepository
+      .createQueryBuilder('op')
+      .leftJoin('op.orderRequest', 'o') // Ajustar nombre de relación si difiere
+      .select('to_char(o.created_at, \'YYYY-MM-DD\')', 'date')
+      .addSelect('SUM(op."totalPrice")', 'revenue')
+      .groupBy('to_char(o.created_at, \'YYYY-MM-DD\')')
+      .orderBy('to_char(o.created_at, \'YYYY-MM-DD\')', 'ASC')
+      .getRawMany();
+
+    // 5. Tiempo promedio de entrega/cierre (ejemplo: deliveryDate - created_at)
+    //    Esto depende mucho de tu modelo (puede ser en días u horas).
+    const averageDeliveryTime = await this.orderRepository
+      .createQueryBuilder('o')
+      .select('AVG(o."deliveryDate" - o.created_at)', 'avg_time')
+      .where('o."deliveryDate" IS NOT NULL') // Para evitar los que no tienen entrega
+      .getRawOne();
+
+    // 6. Puedes agregar otra métrica adicional que consideres relevante,
+    //    por ejemplo, cuántas órdenes están pendientes de facturar,
+    //    cuántas están canceladas, etc.
+
+    // Retorna un objeto con todos los resultados
+    return {
+      ordersCountByDate,
+      ordersByStatus,
+      ordersByClient,
+      totalRevenueByDate,
+      averageDeliveryTime: averageDeliveryTime?.avg_time || 0,
+    };
   }
 
   /**
