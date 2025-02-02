@@ -16,8 +16,11 @@ export class InvoicesService {
   async findAll(query?: InvoiceQueryDto): Promise<InvoiceEntity[]> {
     const qb = this.invoiceRepository.createQueryBuilder('inv');
 
+    qb.leftJoinAndSelect('inv.order', 'order');
+    qb.leftJoinAndSelect('inv.client', 'client');
+
     if (query?.invoiceNumber) qb.andWhere('inv.invoiceNumber ilike :invoiceNumber', {invoiceNumber: `%${ query.invoiceNumber }%`});
-    if (query?.clientId) qb.andWhere('inv.client.id = :clientId', {clientId: query.clientId});
+    if (query?.clientId) qb.andWhere('client.id = :clientId', {clientId: query.clientId});
     if (query?.status) qb.andWhere('inv.status = :status', {status: query.status});
     if (query?.emissionDate?.from) qb.andWhere('inv.emissionDate >= :from', {from: query.emissionDate.from});
     if (query?.emissionDate?.to) qb.andWhere('inv.emissionDate <= :to', {to: query.emissionDate.to});
