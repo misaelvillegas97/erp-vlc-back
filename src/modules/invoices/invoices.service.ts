@@ -20,8 +20,10 @@ export class InvoicesService {
     qb.leftJoinAndSelect('inv.client', 'client');
 
     if (query?.invoiceNumber) qb.andWhere('inv.invoiceNumber ilike :invoiceNumber', {invoiceNumber: `%${ query.invoiceNumber }%`});
-    if (query?.clientId) qb.andWhere('client.id = :clientId', {clientId: query.clientId});
-    if (query?.status) qb.andWhere('inv.status = :status', {status: query.status});
+    if (query?.clientId && Array.isArray(query.clientId)) qb.andWhere('inv.client.id IN (:...clientId)', {clientId: query.clientId});
+    if (query?.clientId && !Array.isArray(query.clientId)) qb.andWhere('inv.client.id = :clientId', {clientId: query.clientId});
+    if (query?.status && Array.isArray(query.status)) qb.andWhere('inv.status IN (:...status)', {status: query.status});
+    if (query?.status && !Array.isArray(query.status)) qb.andWhere('inv.status = :status', {status: query.status});
     if (query?.emissionDate?.from) qb.andWhere('inv.emissionDate >= :from', {from: query.emissionDate.from});
     if (query?.emissionDate?.to) qb.andWhere('inv.emissionDate <= :to', {to: query.emissionDate.to});
     if (query?.dueDate?.from) qb.andWhere('inv.dueDate >= :from', {from: query.dueDate.from});

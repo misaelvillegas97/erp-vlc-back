@@ -114,7 +114,7 @@ export class OrderService {
     if (order.status !== OrderStatusEnum.DELIVERED)
       order.status = OrderStatusEnum.INVOICED;
 
-    await this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
+    order.invoice = await this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
 
     return this.orderRepository.save(order);
   }

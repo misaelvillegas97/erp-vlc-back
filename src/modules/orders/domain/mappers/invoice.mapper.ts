@@ -34,8 +34,8 @@ export class InvoiceMapper {
       totalAmount: entity.totalAmount,
       deliveryAssignment: entity.deliveryAssignment && UserLightMapper.map(entity.deliveryAssignment),
       observations: entity.observations,
-      client: ClientLightMapper.map(entity.client),
-      order: {id: entity.order.id, orderNumber: entity.order.orderNumber},
+      client: entity.client && ClientLightMapper.map(entity.client),
+      order: entity.order && {id: entity.order.id, orderNumber: entity.order.orderNumber},
       createdAt: entity.createdAt,
     });
   }
