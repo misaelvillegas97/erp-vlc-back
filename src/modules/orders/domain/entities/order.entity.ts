@@ -44,6 +44,9 @@ export class OrderEntity {
   @Column({type: 'date'})
   emissionDate: string = new Date().toISOString().split('T')[0];
 
+  @Column({type: 'date', nullable: true})
+  deliveredDate?: string;
+
   @Column({nullable: true})
   observations?: string;
 

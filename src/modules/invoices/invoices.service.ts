@@ -8,6 +8,7 @@ import { ClientEntity }                             from '@modules/clients/domai
 import { InvoiceQueryDto }                          from '@modules/invoices/domain/dtos/query.dto';
 import { InvoiceStatusEnum }                        from '@modules/orders/domain/enums/invoice-status.enum';
 import { OrderStatusEnum }                          from '@modules/orders/domain/enums/order-status.enum';
+import { StatusUpdateDto }                          from '@modules/invoices/domain/status-update.dto';
 
 @Injectable()
 export class InvoicesService {
@@ -45,17 +46,19 @@ export class InvoicesService {
     return this.invoiceRepository.findOne({where: {invoiceNumber}, relations: [ 'order' ]});
   }
 
-  async updateStatus(invoiceId: string, status: InvoiceStatusEnum) {
+  async updateStatus(invoiceId: string, statusUpdateDto: StatusUpdateDto) {
     const invoice = await this.invoiceRepository.findOne({where: {id: invoiceId}, relations: [ 'order' ]});
     if (!invoice) throw new UnprocessableEntityException({code: 'INVOICE_NOT_FOUND'});
 
-    invoice.status = status;
+    invoice.status = statusUpdateDto.status;
 
-    if (status === InvoiceStatusEnum.PAID) invoice.paymentDate = new Date().toISOString();
+    if (statusUpdateDto.status === InvoiceStatusEnum.PAID) {
+      invoice.paymentDate = statusUpdateDto.paymentDate ? statusUpdateDto.paymentDate : new Date().toISOString();
+    }
 
-    if (status === InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS || status === InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS) {
+    if (statusUpdateDto.status === InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS || status === InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS) {
       invoice.order.status = OrderStatusEnum.DELIVERED;
-      invoice.order.deliveryDate = new Date().toISOString();
+      invoice.order.deliveredDate = new Date().toISOString();
     }
 
     return this.invoiceRepository.save(invoice);

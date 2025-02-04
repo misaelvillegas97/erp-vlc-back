@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Put, Query } from '@nestjs/common';
 import { InvoicesService }                          from '@modules/invoices/invoices.service';
 import { InvoiceMapper }                            from '@modules/orders/domain/mappers/invoice.mapper';
 import { InvoiceQueryDto }                          from '@modules/invoices/domain/dtos/query.dto';
-import { InvoiceStatusEnum }                        from '@modules/orders/domain/enums/invoice-status.enum';
+import { StatusUpdateDto }                          from '@modules/invoices/domain/status-update.dto';
 
 @Controller('invoices')
 export class InvoicesController {
@@ -21,7 +21,7 @@ export class InvoicesController {
   }
 
   @Put(':invoiceId/status')
-  async updateStatus(@Param('invoiceId') invoiceId: string, @Body() body: { status: InvoiceStatusEnum }) {
-    return this.invoicesService.updateStatus(invoiceId, body.status);
+  async updateStatus(@Param('invoiceId') invoiceId: string, @Body() body: StatusUpdateDto) {
+    return this.invoicesService.updateStatus(invoiceId, body);
   }
 }
