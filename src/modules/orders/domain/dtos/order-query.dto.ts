@@ -8,8 +8,8 @@ export class OrderQueryDto {
   orderNumber?: string;
 
   @IsOptional()
-  @IsString()
-  businessName?: string;
+  @IsString({each: true})
+  clientId?: string[];
 
   @IsOptional()
   @IsEnum(OrderTypeEnum, {each: true})

@@ -6,6 +6,8 @@ import { CreateInvoiceDto }                         from '@modules/orders/domain
 import { OrderEntity }                              from '@modules/orders/domain/entities/order.entity';
 import { ClientEntity }                             from '@modules/clients/domain/entities/client.entity';
 import { InvoiceQueryDto }                          from '@modules/invoices/domain/dtos/query.dto';
+import { InvoiceStatusEnum }                        from '@modules/orders/domain/enums/invoice-status.enum';
+import { OrderStatusEnum }                          from '@modules/orders/domain/enums/order-status.enum';
 
 @Injectable()
 export class InvoicesService {
@@ -41,6 +43,22 @@ export class InvoicesService {
 
   async findByInvoiceNumber(invoiceNumber: number): Promise<InvoiceEntity> {
     return this.invoiceRepository.findOne({where: {invoiceNumber}, relations: [ 'order' ]});
+  }
+
+  async updateStatus(invoiceId: string, status: InvoiceStatusEnum) {
+    const invoice = await this.invoiceRepository.findOne({where: {id: invoiceId}, relations: [ 'order' ]});
+    if (!invoice) throw new UnprocessableEntityException({code: 'INVOICE_NOT_FOUND'});
+
+    invoice.status = status;
+
+    if (status === InvoiceStatusEnum.PAID) invoice.paymentDate = new Date().toISOString();
+
+    if (status === InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS || status === InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS) {
+      invoice.order.status = OrderStatusEnum.DELIVERED;
+      invoice.order.deliveryDate = new Date().toISOString();
+    }
+
+    return this.invoiceRepository.save(invoice);
   }
 
   async create(orderId: string, clientId: string, createInvoiceDto: CreateInvoiceDto) {

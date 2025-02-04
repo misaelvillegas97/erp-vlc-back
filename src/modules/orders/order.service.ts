@@ -31,21 +31,14 @@ export class OrderService {
     if (query.orderNumber)
       qb.where('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
 
-    if (query.businessName)
-      qb.andWhere('client.businessName ilike :businessName', {businessName: `%${ query.businessName }%`});
+    if (query.clientId)
+      qb.andWhere('client.id IN (:...clientId)', {clientId: Array.isArray(query.clientId) ? query.clientId : [ query.clientId ]});
 
     if (query.type)
-      if (Array.isArray(query.type))
-        qb.andWhere('order.type in (:...type)', {type: query.type});
-      else
-        qb.andWhere('order.type = :type', {type: query.type});
+      qb.andWhere('order.type in (:...type)', {type: Array.isArray(query.type) ? query.type : [ query.type ]});
 
-    if (query.status) {
-      if (Array.isArray(query.status))
-        qb.andWhere('order.status in (:...status)', {status: query.status});
-      else
-        qb.andWhere('order.status = :status', {status: query.status});
-    }
+    if (query.status)
+      qb.andWhere('order.status in (:...status)', {status: Array.isArray(query.status) ? query.status : [ query.status ]});
 
     if (query.deliveryLocation)
       qb.andWhere('order.deliveryLocation ilike :deliveryLocation', {deliveryLocation: `%${ query.deliveryLocation }%`});
