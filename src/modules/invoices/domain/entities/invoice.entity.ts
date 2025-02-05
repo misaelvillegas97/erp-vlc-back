@@ -1,9 +1,9 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, Unique } from 'typeorm';
-import { InvoiceStatusEnum }                                                  from '@modules/orders/domain/enums/invoice-status.enum';
-import { AbstractEntity }                                                     from '@shared/domain/entities/abstract.entity';
-import { OrderEntity }                                                        from '@modules/orders/domain/entities/order.entity';
-import { ClientEntity }                                                       from '@modules/clients/domain/entities/client.entity';
-import { UserEntity }                                                         from '@modules/users/domain/entities/user.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, Unique } from 'typeorm';
+import { InvoiceStatusEnum }                                       from '@modules/orders/domain/enums/invoice-status.enum';
+import { AbstractEntity }                                          from '@shared/domain/entities/abstract.entity';
+import { OrderEntity }                                             from '@modules/orders/domain/entities/order.entity';
+import { ClientEntity }                                            from '@modules/clients/domain/entities/client.entity';
+import { UserEntity }                                              from '@modules/users/domain/entities/user.entity';
 
 @Entity({name: 'orders_invoice'})
 @Unique([ 'invoiceNumber' ])
@@ -35,15 +35,15 @@ export class InvoiceEntity extends AbstractEntity {
   @Column()
   totalAmount: number;
 
-  // Delivery assignment
-  @OneToMany(() => UserEntity, user => user.id)
-  @JoinColumn({name: 'delivery_assignment_id'})
-  deliveryAssignment?: UserEntity;
-
   @OneToOne(() => OrderEntity, order => order.invoice)
   order: OrderEntity;
 
   @ManyToOne(() => ClientEntity, client => client.id)
   @JoinColumn({name: 'client_id'})
   client: ClientEntity;
+
+  // Delivery assignment
+  @ManyToOne(() => UserEntity, user => user.id)
+  @JoinColumn({name: 'delivery_assignment_id'})
+  deliveryAssignment?: UserEntity;
 }

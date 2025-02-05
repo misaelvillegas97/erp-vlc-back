@@ -52,14 +52,16 @@ export class InvoicesService {
 
     invoice.status = statusUpdateDto.status;
 
-    if (statusUpdateDto.status === InvoiceStatusEnum.PAID) {
+    if (statusUpdateDto.status === InvoiceStatusEnum.PAID)
       invoice.paymentDate = statusUpdateDto.paymentDate ? statusUpdateDto.paymentDate : new Date().toISOString();
-    }
 
-    if (statusUpdateDto.status === InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS || status === InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS) {
+    if (statusUpdateDto.status === InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS || statusUpdateDto.status === InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS) {
       invoice.order.status = OrderStatusEnum.DELIVERED;
       invoice.order.deliveredDate = new Date().toISOString();
     }
+
+    if (statusUpdateDto.observations)
+      invoice.observations = statusUpdateDto.observations;
 
     return this.invoiceRepository.save(invoice);
   }
@@ -83,7 +85,7 @@ export class InvoicesService {
   }
 
   async invoicesOverview() {
-    // 1. Facturas emitidas vs pagadas vs pendientes (o según tus estados)
+    // 1. Facturas emitidas vs pagadas vs pendientes
     const invoicesByStatus = await this.invoiceRepository
       .createQueryBuilder('inv')
       .select('inv.status', 'status')
@@ -91,8 +93,7 @@ export class InvoicesService {
       .groupBy('inv.status')
       .getRawMany();
 
-    // 2. Monto total facturado por período
-    //    Suponiendo que hay un campo "emissionDate" (date) y "totalAmount".
+    // 2. Monto total facturado por período (por día)
     const totalInvoicedByDate = await this.invoiceRepository
       .createQueryBuilder('inv')
       .select('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'date')
@@ -101,7 +102,7 @@ export class InvoicesService {
       .orderBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'ASC')
       .getRawMany();
 
-    // 3. Facturas por cliente (TOP 5 en monto facturado, por ejemplo)
+    // 3. Facturas por cliente (TOP 5 en monto facturado)
     const invoicesByClient = await this.invoiceRepository
       .createQueryBuilder('inv')
       .select('inv.client_id', 'clientId')
@@ -111,8 +112,7 @@ export class InvoicesService {
       .limit(5)
       .getRawMany();
 
-    // 4. % de facturas vencidas o pendientes (si manejas fecha de vencimiento)
-    //    Ejemplo: filtrar facturas donde la fecha de vencimiento sea < hoy y no estén pagadas.
+    // 4. % de facturas vencidas o pendientes (donde dueDate < hoy y status distinto de PAID)
     const now = new Date();
     const overdueInvoicesCount = await this.invoiceRepository
       .createQueryBuilder('inv')
@@ -121,28 +121,72 @@ export class InvoicesService {
       .getCount();
 
     const totalInvoicesCount = await this.invoiceRepository.count();
-
     const overduePercentage = totalInvoicesCount
       ? (overdueInvoicesCount / totalInvoicesCount) * 100
       : 0;
 
     // 5. Edad de las facturas (Aging)
-    //    Este punto puede requerir una tabla pivote para 30, 60, 90 días...
-    //    Aquí un ejemplo muy simplificado:
     const agingQuery = `
       SELECT CASE
                WHEN "dueDate" < NOW() THEN 'Overdue'
-               WHEN "dueDate"
-                 BETWEEN NOW() AND NOW() + INTERVAL '30 days' THEN '0-30'
+               WHEN "dueDate" BETWEEN NOW() AND NOW() + INTERVAL '30 days' THEN '0-30'
                WHEN "dueDate" BETWEEN NOW() + INTERVAL '30 days' AND NOW() + INTERVAL '60 days' THEN '30-60'
                ELSE '60+'
-               END
-               AS        bucket,
+               END AS bucket,
              COUNT(*) as total
       FROM orders_invoice
-      GROUP BY 1
+      GROUP BY bucket
     `;
     const agingResults = await this.invoiceRepository.query(agingQuery);
+
+    // -----------------------------
+    // Consultas adicionales
+    // -----------------------------
+
+    // 6. Tiempo promedio de pago (en días) para facturas pagadas
+    const averagePaymentTimeResult = await this.invoiceRepository
+      .createQueryBuilder('inv')
+      .select(
+        `AVG(DATE_PART('day', inv."paymentDate"::timestamp - inv."emissionDate"::timestamp))`,
+        'avgPaymentDays',
+      )
+      .where('inv.status = :paidStatus', {paidStatus: InvoiceStatusEnum.PAID})
+      .getRawOne();
+    const averagePaymentTime = averagePaymentTimeResult
+      ? Number(averagePaymentTimeResult.avgPaymentDays)
+      : 0;
+
+    // 7. Porcentaje de facturas pagadas por período (por día)
+    const paidInvoicesByDate = await this.invoiceRepository
+      .createQueryBuilder('inv')
+      .select('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'date')
+      .addSelect(
+        `SUM(CASE WHEN inv.status = '${ InvoiceStatusEnum.PAID }' THEN 1 ELSE 0 END)`,
+        'paidCount',
+      )
+      .addSelect('COUNT(inv.id)', 'totalCount')
+      .groupBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')')
+      .orderBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'ASC')
+      .getRawMany();
+
+    // 8. Distribución de facturas por asignación de entrega
+    //    Se agrupa por el ID del repartidor asignado (delivery_assignment_id)
+    const invoicesByDeliveryAssignment = await this.invoiceRepository
+      .createQueryBuilder('inv')
+      .select('inv.delivery_assignment_id', 'deliveryAssignmentId')
+      .addSelect('COUNT(inv.id)', 'total')
+      .groupBy('inv.delivery_assignment_id')
+      .getRawMany();
+
+    // 9. Monto total pendiente (facturas no pagadas) por período (por día)
+    const outstandingAmountByDate = await this.invoiceRepository
+      .createQueryBuilder('inv')
+      .select('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'date')
+      .addSelect('SUM(inv."totalAmount")', 'outstandingTotal')
+      .where('inv.status != :paidStatus', {paidStatus: 'PAID'})
+      .groupBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')')
+      .orderBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'ASC')
+      .getRawMany();
 
     return {
       invoicesByStatus,
@@ -150,6 +194,10 @@ export class InvoicesService {
       invoicesByClient,
       overduePercentage,
       agingResults,
+      averagePaymentTime,
+      paidInvoicesByDate,
+      invoicesByDeliveryAssignment,
+      outstandingAmountByDate,
     };
   }
 }

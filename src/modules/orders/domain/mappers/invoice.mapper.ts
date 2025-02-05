@@ -4,6 +4,7 @@ import { UserLightMapper }   from '@modules/users/domain/mappers/user-light.mapp
 import { ClientLightMapper } from '@modules/clients/domain/mappers/client-light.mapper';
 
 export class InvoiceMapper {
+  readonly id: string;
   readonly invoiceNumber: number;
   readonly status: InvoiceStatusEnum;
   readonly emissionDate: string;
@@ -24,6 +25,7 @@ export class InvoiceMapper {
 
   static map(entity: InvoiceEntity): InvoiceMapper {
     return new InvoiceMapper({
+      id: entity.id,
       invoiceNumber: entity.invoiceNumber,
       status: entity.status,
       emissionDate: entity.emissionDate,
@@ -34,9 +36,9 @@ export class InvoiceMapper {
       totalAmount: entity.totalAmount,
       deliveryAssignment: entity.deliveryAssignment && UserLightMapper.map(entity.deliveryAssignment),
       observations: entity.observations,
+      createdAt: entity.createdAt,
       client: entity.client && ClientLightMapper.map(entity.client),
       order: entity.order && {id: entity.order.id, orderNumber: entity.order.orderNumber},
-      createdAt: entity.createdAt,
     });
   }
 
