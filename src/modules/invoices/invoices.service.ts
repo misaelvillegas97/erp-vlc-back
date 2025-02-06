@@ -86,12 +86,17 @@ export class InvoicesService {
 
   async invoicesOverview() {
     // 1. Facturas emitidas vs pagadas vs pendientes
-    const invoicesByStatus = await this.invoiceRepository
+    let invoicesByStatus = await this.invoiceRepository
       .createQueryBuilder('inv')
       .select('inv.status', 'status')
       .addSelect('COUNT(inv.id)', 'total')
       .groupBy('inv.status')
       .getRawMany();
+
+    invoicesByStatus = Object.values(InvoiceStatusEnum).map((status) => {
+      const statusItem = invoicesByStatus.find((item) => item.status === status);
+      return {status, total: statusItem ? statusItem.total : 0};
+    });
 
     // 2. Monto total facturado por período (por día)
     const totalInvoicedByDate = await this.invoiceRepository
@@ -105,9 +110,12 @@ export class InvoicesService {
     // 3. Facturas por cliente (TOP 5 en monto facturado)
     const invoicesByClient = await this.invoiceRepository
       .createQueryBuilder('inv')
+      .leftJoinAndSelect('inv.client', 'client')
       .select('inv.client_id', 'clientId')
+      .addSelect('client.fantasyName', 'clientFantasyName')
       .addSelect('SUM(inv."totalAmount")', 'totalAmount')
       .groupBy('inv.client_id')
+      .addGroupBy('client.fantasyName')
       .orderBy('SUM(inv."totalAmount")', 'DESC')
       .limit(5)
       .getRawMany();
@@ -117,6 +125,7 @@ export class InvoicesService {
     const overdueInvoicesCount = await this.invoiceRepository
       .createQueryBuilder('inv')
       .where('inv."dueDate" < :now', {now})
+      .andWhere('inv."dueDate" IS NOT NULL')
       .andWhere('inv.status != :paidStatus', {paidStatus: 'PAID'})
       .getCount();
 
@@ -135,6 +144,7 @@ export class InvoicesService {
                END AS bucket,
              COUNT(*) as total
       FROM orders_invoice
+      WHERE "dueDate" IS NOT NULL
       GROUP BY bucket
     `;
     const agingResults = await this.invoiceRepository.query(agingQuery);

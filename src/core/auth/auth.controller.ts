@@ -44,7 +44,7 @@ export class AuthController {
     res
       .status(HttpStatus.OK)
       .cookie(this.cookieName, login.refreshToken.trim(), {
-        secure: this.environment === 'production',
+        secure: true,
         httpOnly: true,
         signed: true,
         path: this.cookiePath,
