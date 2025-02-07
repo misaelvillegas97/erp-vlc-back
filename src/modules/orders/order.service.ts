@@ -3,22 +3,27 @@ import { InjectRepository }                         from '@nestjs/typeorm';
 
 import { Between, Repository } from 'typeorm';
 
-import { CreateOrderDto }                                  from '@modules/orders/domain/dtos/create-order.dto';
-import { OrderStatusEnum }                                 from '@modules/orders/domain/enums/order-status.enum';
-import { OrderEntity }                                     from './domain/entities/order.entity';
-import { ProductRequestEntity }                            from './domain/entities/product-request.entity';
-import { ClientEntity }                                    from '@modules/clients/domain/entities/client.entity';
-import { IDashboardOverview, INextDelivery, IProductMini } from '@modules/orders/domain/interfaces/dashboard-overview.interface';
-import { OrderMapper }                                     from '@modules/orders/domain/mappers/order.mapper';
-import { CreateInvoiceDto }                                from '@modules/orders/domain/dtos/create-invoice.dto';
-import { OrderQueryDto }                                   from '@modules/orders/domain/dtos/order-query.dto';
-import { InvoicesService }                                 from '@modules/invoices/invoices.service';
+import { CreateOrderDto }       from '@modules/orders/domain/dtos/create-order.dto';
+import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
+import { OrderEntity }          from './domain/entities/order.entity';
+import { ProductRequestEntity } from './domain/entities/product-request.entity';
+import { ClientEntity }         from '@modules/clients/domain/entities/client.entity';
+import {
+  IDashboardOverview,
+  INextDelivery,
+  IProductMini,
+  OrdersOverview
+}                               from '@modules/orders/domain/interfaces/dashboard-overview.interface';
+import { OrderMapper }          from '@modules/orders/domain/mappers/order.mapper';
+import { CreateInvoiceDto }     from '@modules/orders/domain/dtos/create-invoice.dto';
+import { OrderQueryDto }        from '@modules/orders/domain/dtos/order-query.dto';
+import { InvoicesService }      from '@modules/invoices/invoices.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
-    @InjectRepository(ProductRequestEntity) private productRepository: Repository<ProductRequestEntity>,
+    @InjectRepository(ProductRequestEntity) private orderProductRepository: Repository<ProductRequestEntity>,
     private readonly invoicesService: InvoicesService
   ) {}
 
@@ -119,66 +124,86 @@ export class OrderService {
     return this.orderRepository.save(order);
   }
 
-  async ordersOverview() {
-    // 1. Número de órdenes por período (ejemplo: por día)
+  async ordersOverview(): Promise<OrdersOverview> {
+    // 1. Órdenes por fecha (usando la fecha de emisión)
     const ordersCountByDate = await this.orderRepository
       .createQueryBuilder('o')
-      // to_char() es una forma rápida de agrupar por fecha en Postgres
-      .select('to_char(o.created_at, \'YYYY-MM-DD\')', 'date')
+      .select('to_char(o.emissionDate, \'YYYY-MM-DD\')', 'date')
       .addSelect('COUNT(o.id)', 'total')
-      .groupBy('to_char(o.created_at, \'YYYY-MM-DD\')')
-      .orderBy('to_char(o.created_at, \'YYYY-MM-DD\')', 'ASC')
+      .groupBy('to_char(o.emissionDate, \'YYYY-MM-DD\')')
+      .orderBy('to_char(o.emissionDate, \'YYYY-MM-DD\')', 'ASC')
       .getRawMany();
 
     // 2. Órdenes por estado
-    const ordersByStatus = await this.orderRepository
+    let ordersByStatus = await this.orderRepository
       .createQueryBuilder('o')
       .select('o.status', 'status')
       .addSelect('COUNT(o.id)', 'total')
       .groupBy('o.status')
       .getRawMany();
 
-    // 3. Órdenes por cliente (TOP 5, por ejemplo)
+    ordersByStatus = Object.values(OrderStatusEnum).map((status) => {
+      const found = ordersByStatus.find((item) => item.status === status);
+      return {
+        status,
+        total: found ? +found.total : 0,
+      };
+    });
+
+    // 3. Órdenes sin factura asociada (invoice_id es null)
+    const ordersWithoutInvoiceCount = await this.orderRepository
+      .createQueryBuilder('o')
+      .where('o.invoice_id IS NULL')
+      .getCount();
+
+    // 4. Órdenes vencidas: donde la fecha de entrega ya pasó y el estado NO es DELIVERED ni CANCELED.
+    // Usamos la fecha de entrega (deliveryDate) y comparamos con la fecha actual.
+    const now = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    const overdueOrdersCount = await this.orderRepository
+      .createQueryBuilder('o')
+      .where('o.deliveryDate < :now', {now})
+      .andWhere('o.status NOT IN (:...statuses)', {statuses: [ OrderStatusEnum.DELIVERED, OrderStatusEnum.CANCELED ]})
+      .getCount();
+
+    // 5. Tiempo promedio de entrega (en días) para órdenes que ya fueron entregadas
+    // Calculamos la diferencia entre deliveredDate y deliveryDate
+    const averageDeliveryTimeResult = await this.orderRepository
+      .createQueryBuilder('o')
+      .select('AVG(DATE_PART(\'day\', o."deliveredDate"::timestamp - o."deliveryDate"::timestamp))', 'avgDeliveryDays')
+      .where('o.deliveredDate IS NOT NULL')
+      .getRawOne();
+    const averageDeliveryTime = averageDeliveryTimeResult ? +averageDeliveryTimeResult.avgDeliveryDays : 0;
+
+    // 6. Órdenes por cliente (Top 5 según cantidad de órdenes)
     const ordersByClient = await this.orderRepository
       .createQueryBuilder('o')
       .select('o.client_id', 'clientId')
-      .addSelect('COUNT(o.id)', 'total')
+      .addSelect('COUNT(o.id)', 'totalOrders')
       .groupBy('o.client_id')
-      .orderBy('total', 'DESC')
+      .orderBy('COUNT(o.id)', 'DESC')
       .limit(5)
       .getRawMany();
 
-    // 4. Ingreso total (suma) asociado a las órdenes por período
-    //    Suponiendo que la tabla orders_products tiene un campo "totalPrice".
-    const totalRevenueByDate = await this.productRepository
-      .createQueryBuilder('op')
-      .leftJoin('op.orderRequest', 'o') // Ajustar nombre de relación si difiere
-      .select('to_char(o.created_at, \'YYYY-MM-DD\')', 'date')
-      .addSelect('SUM(op."totalPrice")', 'revenue')
-      .groupBy('to_char(o.created_at, \'YYYY-MM-DD\')')
-      .orderBy('to_char(o.created_at, \'YYYY-MM-DD\')', 'ASC')
+    // 7. Recaudación por órdenes: Sumatoria de totalPrice de cada producto (tabla orders_products)
+    //    agrupado por la fecha de emisión de la orden.
+    const ordersRevenueByDate = await this.orderProductRepository
+      .createQueryBuilder('p')
+      .leftJoin('p.orderRequest', 'o')
+      .select('to_char(o.emissionDate, \'YYYY-MM-DD\')', 'date')
+      .addSelect('SUM(p."totalPrice")', 'revenue')
+      .groupBy('to_char(o.emissionDate, \'YYYY-MM-DD\')')
+      .orderBy('to_char(o.emissionDate, \'YYYY-MM-DD\')', 'ASC')
       .getRawMany();
 
-    // 5. Tiempo promedio de entrega/cierre (ejemplo: deliveryDate - created_at)
-    //    Esto depende mucho de tu modelo (puede ser en días u horas).
-    const averageDeliveryTime = await this.orderRepository
-      .createQueryBuilder('o')
-      .select('AVG(o."deliveryDate" - o.created_at)', 'avg_time')
-      .where('o."deliveryDate" IS NOT NULL') // Para evitar los que no tienen entrega
-      .getRawOne();
-
-    // 6. Puedes agregar otra métrica adicional que consideres relevante,
-    //    por ejemplo, cuántas órdenes están pendientes de facturar,
-    //    cuántas están canceladas, etc.
-
-    // Retorna un objeto con todos los resultados
     return {
       ordersCountByDate,
       ordersByStatus,
+      ordersWithoutInvoiceCount,
+      overdueOrdersCount,
+      averageDeliveryTime,
       ordersByClient,
-      totalRevenueByDate,
-      averageDeliveryTime: averageDeliveryTime?.avg_time || 0,
-    };
+      ordersRevenueByDate,
+    } as OrdersOverview;
   }
 
   /**
