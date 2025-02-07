@@ -177,9 +177,12 @@ export class OrderService {
     // 6. Órdenes por cliente (Top 5 según cantidad de órdenes)
     const ordersByClient = await this.orderRepository
       .createQueryBuilder('o')
+      .leftJoinAndSelect('o.client', 'client')
       .select('o.client_id', 'clientId')
+      .addSelect('client.fantasyName', 'clientFantasyName')
       .addSelect('COUNT(o.id)', 'totalOrders')
       .groupBy('o.client_id')
+      .addGroupBy('client.fantasyName')
       .orderBy('COUNT(o.id)', 'DESC')
       .limit(5)
       .getRawMany();
