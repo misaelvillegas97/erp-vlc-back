@@ -1,5 +1,5 @@
-import { InvoiceStatusEnum }                      from '@modules/orders/domain/enums/invoice-status.enum';
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { InvoiceStatusEnum }                                            from '@modules/orders/domain/enums/invoice-status.enum';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateInvoiceDto {
   @IsNumber()
@@ -14,6 +14,10 @@ export class CreateInvoiceDto {
   @IsString()
   emissionDate: string;
 
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string;
+
   @IsOptional()
   @IsNumber()
   netAmount: number;
@@ -25,4 +29,7 @@ export class CreateInvoiceDto {
   @IsOptional()
   @IsNumber()
   totalAmount: number;
+
+  @IsUUID()
+  deliveryAssignmentId: string;
 }

@@ -10,6 +10,7 @@ export class UserMapper {
   static toDomain(raw: UserEntity): User {
     const domainEntity = new User();
     domainEntity.id = raw.id;
+    domainEntity.name = `${ raw.firstName } ${ raw.lastName }`;
     domainEntity.email = raw.email;
     domainEntity.password = raw.password;
     domainEntity.previousPassword = raw.previousPassword;
@@ -17,14 +18,14 @@ export class UserMapper {
     domainEntity.socialId = raw.socialId;
     domainEntity.firstName = raw.firstName;
     domainEntity.lastName = raw.lastName;
-    if (raw.photo) {
-      domainEntity.photo = FileMapper.toDomain(raw.photo);
-    }
     domainEntity.role = raw.role;
     domainEntity.status = raw.status;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
+
+    if (raw.photo) domainEntity.photo = FileMapper.toDomain(raw.photo);
+
     return domainEntity;
   }
 

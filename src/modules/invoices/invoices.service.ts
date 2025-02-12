@@ -1,19 +1,22 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { InjectRepository }                         from '@nestjs/typeorm';
-import { InvoiceEntity }                            from '@modules/invoices/domain/entities/invoice.entity';
-import { Repository }                               from 'typeorm';
-import { CreateInvoiceDto }                         from '@modules/orders/domain/dtos/create-invoice.dto';
-import { OrderEntity }                              from '@modules/orders/domain/entities/order.entity';
-import { ClientEntity }                             from '@modules/clients/domain/entities/client.entity';
-import { InvoiceQueryDto }                          from '@modules/invoices/domain/dtos/query.dto';
-import { InvoiceStatusEnum }                        from '@modules/orders/domain/enums/invoice-status.enum';
-import { OrderStatusEnum }                          from '@modules/orders/domain/enums/order-status.enum';
-import { StatusUpdateDto }                          from '@modules/invoices/domain/status-update.dto';
+import { forwardRef, Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { InjectRepository }                                             from '@nestjs/typeorm';
+import { InvoiceEntity }                                                from '@modules/invoices/domain/entities/invoice.entity';
+import { Repository }                                                   from 'typeorm';
+import { CreateInvoiceDto }                                             from '@modules/orders/domain/dtos/create-invoice.dto';
+import { OrderEntity }                                                  from '@modules/orders/domain/entities/order.entity';
+import { ClientEntity }                                                 from '@modules/clients/domain/entities/client.entity';
+import { InvoiceQueryDto }                                              from '@modules/invoices/domain/dtos/query.dto';
+import { InvoiceStatusEnum }                                            from '@modules/orders/domain/enums/invoice-status.enum';
+import { OrderStatusEnum }                                              from '@modules/orders/domain/enums/order-status.enum';
+import { StatusUpdateDto }                                              from '@modules/invoices/domain/dtos/status-update.dto';
+import { OrderService }                                                 from '@modules/orders/order.service';
+import { UserEntity }                                                   from '@modules/users/domain/entities/user.entity';
 
 @Injectable()
 export class InvoicesService {
   constructor(
-    @InjectRepository(InvoiceEntity) private readonly invoiceRepository: Repository<InvoiceEntity>
+    @InjectRepository(InvoiceEntity) private readonly invoiceRepository: Repository<InvoiceEntity>,
+    @Inject(forwardRef(() => OrderService)) private readonly ordersService: OrderService
   ) {}
 
   async findAll(query?: InvoiceQueryDto): Promise<InvoiceEntity[]> {
@@ -25,6 +28,7 @@ export class InvoicesService {
     if (query?.invoiceNumber) qb.andWhere('inv.invoiceNumber ilike :invoiceNumber', {invoiceNumber: `%${ query.invoiceNumber }%`});
     if (query?.clientId && Array.isArray(query.clientId)) qb.andWhere('inv.client.id IN (:...clientId)', {clientId: query.clientId});
     if (query?.clientId && !Array.isArray(query.clientId)) qb.andWhere('inv.client.id = :clientId', {clientId: query.clientId});
+    if (query?.orderNumber) qb.andWhere('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
     if (query?.status && Array.isArray(query.status)) qb.andWhere('inv.status IN (:...status)', {status: query.status});
     if (query?.status && !Array.isArray(query.status)) qb.andWhere('inv.status = :status', {status: query.status});
     if (query?.emissionDate?.from) qb.andWhere('inv.emissionDate >= :from', {from: query.emissionDate.from});
@@ -55,10 +59,8 @@ export class InvoicesService {
     if (statusUpdateDto.status === InvoiceStatusEnum.PAID)
       invoice.paymentDate = statusUpdateDto.paymentDate ? statusUpdateDto.paymentDate : new Date().toISOString();
 
-    if (statusUpdateDto.status === InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS || statusUpdateDto.status === InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS) {
-      invoice.order.status = OrderStatusEnum.DELIVERED;
-      invoice.order.deliveredDate = new Date().toISOString();
-    }
+    if ([ InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS, InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS ].includes(statusUpdateDto.status))
+      await this.updateOrderToDelivered(invoice);
 
     if (statusUpdateDto.observations)
       invoice.observations = statusUpdateDto.observations;
@@ -80,6 +82,9 @@ export class InvoicesService {
     const invoice = this.invoiceRepository.create(createInvoiceDto);
     invoice.order = new OrderEntity({id: orderId});
     invoice.client = new ClientEntity({id: clientId});
+    invoice.deliveryAssignment = new UserEntity({id: createInvoiceDto.deliveryAssignmentId});
+
+    console.log('invoice', invoice);
 
     return this.invoiceRepository.save(invoice);
   }
@@ -149,10 +154,6 @@ export class InvoicesService {
     `;
     const agingResults = await this.invoiceRepository.query(agingQuery);
 
-    // -----------------------------
-    // Consultas adicionales
-    // -----------------------------
-
     // 6. Tiempo promedio de pago (en días) para facturas pagadas
     const averagePaymentTimeResult = await this.invoiceRepository
       .createQueryBuilder('inv')
@@ -209,5 +210,12 @@ export class InvoicesService {
       invoicesByDeliveryAssignment,
       outstandingAmountByDate,
     };
+  }
+
+  private async updateOrderToDelivered(invoice: InvoiceEntity) {
+    invoice.order.status = OrderStatusEnum.DELIVERED;
+    invoice.order.deliveredDate = new Date().toISOString();
+
+    return this.ordersService.updateStatus(invoice.order.id, OrderStatusEnum.DELIVERED);
   }
 }

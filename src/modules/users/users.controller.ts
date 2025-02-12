@@ -39,24 +39,15 @@ import { UsersService }                                               from './us
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @ApiCreatedResponse({
-    type: User,
-  })
-  @SerializeOptions({
-    groups: [ 'admin' ],
-  })
+  @ApiCreatedResponse({type: User})
+  @SerializeOptions({groups: [ 'admin' ]})
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createProfileDto: CreateUserDto): Promise<User> {
     return this.usersService.create(createProfileDto);
   }
 
-  @ApiOkResponse({
-    type: InfinityPaginationResponse(User),
-  })
-  @SerializeOptions({
-    groups: [ 'admin' ],
-  })
+  @ApiOkResponse({type: InfinityPaginationResponse(User)})
   @Get()
   @HttpCode(HttpStatus.OK)
   async findAll(
@@ -64,9 +55,7 @@ export class UsersController {
   ): Promise<InfinityPaginationResponseDto<User>> {
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
-    if (limit > 50) {
-      limit = 50;
-    }
+    if (limit > 50) limit = 50;
 
     return infinityPagination(
       await this.usersService.findManyWithPagination({

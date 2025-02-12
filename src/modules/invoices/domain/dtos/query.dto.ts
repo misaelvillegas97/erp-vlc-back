@@ -10,6 +10,9 @@ export class InvoiceQueryDto {
   clientId: string[];
 
   @IsOptional()
+  orderNumber: number;
+
+  @IsOptional()
   @IsEnum(InvoiceStatusEnum, {each: true})
   status: InvoiceStatusEnum;
 

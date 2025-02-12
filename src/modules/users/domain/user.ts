@@ -7,10 +7,11 @@ import { Role }     from '../../roles/domain/role';
 import { Status }   from '../../statuses/domain/status';
 
 export class User {
-  @ApiProperty({
-    type: String,
-  })
+  @ApiProperty({type: String})
   id: string;
+
+  @ApiProperty({type: String, example: 'John Doe'})
+  name?: string | null;
 
   @ApiProperty({type: String, example: 'john.doe@example.com'})
   @Expose({groups: [ 'me', 'admin' ]})
@@ -30,10 +31,7 @@ export class User {
   @Expose({groups: [ 'me', 'admin' ]})
   socialId?: string | null;
 
-  @ApiProperty({
-    type: String,
-    example: 'John',
-  })
+  @ApiProperty({type: String, example: 'John'})
   firstName: string | null;
 
   @ApiProperty({type: String, example: 'Doe'})

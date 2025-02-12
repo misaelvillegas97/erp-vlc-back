@@ -378,37 +378,4 @@ export class CencosudB2bService {
 
     return true;
   }
-
-  private async saveCookies(cookies: any) {
-    this.logger.log('Saving cookies');
-    // if file does not existe, create it
-    if (!fs.existsSync(this.cookiesPath)) {
-      await fs.createFile(this.cookiesPath);
-    }
-    await fs.writeFile(this.cookiesPath, JSON.stringify(cookies, null, 2));
-
-    this.logger.log('Cookies saved');
-  }
-
-  private async loadCookies(browser: Browser) {
-    if (!fs.existsSync(this.cookiesPath)) {
-      this.logger.log('Cookies file not found');
-      return;
-    }
-
-    this.logger.log('Loading cookies');
-    const cookies = JSON.parse(await fs.readFile(this.cookiesPath, 'utf-8'));
-
-    for (const cookie of cookies) {
-      await browser.setCookie(cookie);
-    }
-
-    this.logger.log('Cookies loaded');
-  }
-
-  private async clearCookies() {
-    if (fs.existsSync(this.cookiesPath)) {
-      await fs.unlink(this.cookiesPath);
-    }
-  }
 }

@@ -58,7 +58,6 @@ export class UserSeedService {
 
     if (!countUser) {
       const salt = await bcrypt.genSalt();
-      const adminPassword = this.configService.get<string>('app.adminPassword', {infer: true});
       const password = await bcrypt.hash('secret', salt);
 
       await this.repository.save(

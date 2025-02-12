@@ -89,4 +89,9 @@ export class UserEntity extends EntityRelationalHelper {
   public loadPreviousPassword(): void {
     this.previousPassword = this.password;
   }
+
+  constructor(values?: Partial<UserEntity>) {
+    super();
+    Object.assign(this, values);
+  }
 }

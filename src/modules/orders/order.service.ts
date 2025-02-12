@@ -1,20 +1,14 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { InjectRepository }                         from '@nestjs/typeorm';
+import { forwardRef, Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { InjectRepository }                                             from '@nestjs/typeorm';
 
-import { Between, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
 import { CreateOrderDto }       from '@modules/orders/domain/dtos/create-order.dto';
 import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
 import { OrderEntity }          from './domain/entities/order.entity';
 import { ProductRequestEntity } from './domain/entities/product-request.entity';
 import { ClientEntity }         from '@modules/clients/domain/entities/client.entity';
-import {
-  IDashboardOverview,
-  INextDelivery,
-  IProductMini,
-  OrdersOverview
-}                               from '@modules/orders/domain/interfaces/dashboard-overview.interface';
-import { OrderMapper }          from '@modules/orders/domain/mappers/order.mapper';
+import { OrdersOverview }       from '@modules/orders/domain/interfaces/dashboard-overview.interface';
 import { CreateInvoiceDto }     from '@modules/orders/domain/dtos/create-invoice.dto';
 import { OrderQueryDto }        from '@modules/orders/domain/dtos/order-query.dto';
 import { InvoicesService }      from '@modules/invoices/invoices.service';
@@ -24,7 +18,7 @@ export class OrderService {
   constructor(
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
     @InjectRepository(ProductRequestEntity) private orderProductRepository: Repository<ProductRequestEntity>,
-    private readonly invoicesService: InvoicesService
+    @Inject(forwardRef(() => InvoicesService)) private readonly invoicesService: InvoicesService
   ) {}
 
   async findAll(query: OrderQueryDto): Promise<OrderEntity[]> {
@@ -207,130 +201,5 @@ export class OrderService {
       ordersByClient,
       ordersRevenueByDate,
     } as OrdersOverview;
-  }
-
-  /**
-   * @description Get dashboard info
-   * @return {object} Dashboard info
-   * @return {object.orders} All orders
-   * @return {object.countOverview} Detail count of completed, middle status or pending orders
-   * @return {object.countsByType} Counts by order type
-   * @return {object.countsByStatus} Counts by order status
-   * @return {object.countsByClient} Counts by client
-   * @return {object.countsStatusByClient} Counts by status (pending, middle or completed) and client
-   * @return {object.nextDeliveries} Next deliveries ordered by closer delivery date
-   */
-  async getDashboardInfo(year, month): Promise<IDashboardOverview> {
-    if (!year || !month) {
-      const date = new Date();
-      year = date.getFullYear().toString();
-      month = (date.getMonth() + 1).toString();
-    }
-
-    const countOverview = {
-      completed: 0,
-      middle: 0,
-      pending: 0,
-      canceled: 0,
-    };
-    const countsByType = {};
-    const countsByStatus = {};
-    const countsByClient = {};
-    let sumAmount = 0;
-
-    const lastDayOfMonth = new Date(year, month, 0).getDate();
-
-    const orders = await this.orderRepository.find({
-      where: {
-        deliveryDate: Between(`${ year }-${ month }-01`, `${ year }-${ month }-${ lastDayOfMonth }`),
-      },
-      relations: [ 'client', 'products' ],
-      order: {deliveryDate: 'ASC'},
-    });
-
-    orders.forEach((order) => {
-      let orderTotal = 0;
-      order.products.forEach((product) => {
-        const productTotal = product.unitaryPrice * product.quantity;
-        orderTotal += productTotal;
-      });
-
-      if (order.status === OrderStatusEnum.DELIVERED)
-        countOverview.completed++;
-      else if (order.status === OrderStatusEnum.PENDING)
-        countOverview.pending++;
-      else if (order.status === OrderStatusEnum.CANCELED)
-        countOverview.canceled++;
-      else
-        countOverview.middle++;
-
-      if (countsByType[order.type])
-        countsByType[order.type]++;
-      else
-        countsByType[order.type] = 1;
-
-      if (countsByStatus[order.status])
-        countsByStatus[order.status]++;
-      else
-        countsByStatus[order.status] = 1;
-
-      const clientId = order.client?.id || 'unassigned';
-      const clientFantasyName = order.client?.fantasyName || 'unassigned';
-      const clientBusinessName = order.client?.businessName || 'unassigned';
-
-      if (!countsByClient[clientId]) {
-        countsByClient[clientId] = {
-          id: clientId,
-          businessName: clientBusinessName,
-          fantasyName: clientFantasyName,
-          completed: 0,
-          pending: 0,
-          middle: 0,
-          canceled: 0,
-          totalOrders: 0,
-          totalAmount: 0,
-        };
-      }
-
-      countsByClient[clientId].totalOrders++;
-
-      if (order.status === OrderStatusEnum.DELIVERED)
-        countsByClient[clientId].completed++;
-      else if (order.status === OrderStatusEnum.PENDING)
-        countsByClient[clientId].pending++;
-      else if (order.status === OrderStatusEnum.CANCELED)
-        countsByClient[clientId].canceled++;
-      else
-        countsByClient[clientId].middle++;
-
-      countsByClient[clientId].totalAmount += orderTotal;
-
-      sumAmount += orderTotal;
-    });
-
-    // Get next deliveries, limit to 10
-    const nextDeliveries: INextDelivery[] = orders.slice(0, 10).map((order) => ({
-      orderNumber: order.orderNumber,
-      deliveryDate: order.deliveryDate,
-      client: order.client.fantasyName,
-      type: order.type,
-      deliveryLocation: order.deliveryLocation,
-      products: order.products.map((product) => ({
-        upcCode: product.upcCode,
-        unitaryPrice: product.unitaryPrice,
-        quantity: product.quantity,
-        description: product.description,
-      } as IProductMini)),
-    } as INextDelivery));
-
-    return {
-      orders: OrderMapper.mapAll(orders),
-      sumAmount,
-      countOverview,
-      countsByType,
-      countsByStatus,
-      countsByClient,
-      nextDeliveries,
-    };
   }
 }
