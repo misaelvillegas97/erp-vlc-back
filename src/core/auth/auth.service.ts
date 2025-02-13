@@ -303,7 +303,6 @@ export class AuthService {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async me(_userJwtPayload: JwtPayloadType): Promise<NullableType<User>> {
     return this.usersService.findById(this.request.user.id);
-    // return this.usersService.findById(userJwtPayload.id);
   }
 
   async update(

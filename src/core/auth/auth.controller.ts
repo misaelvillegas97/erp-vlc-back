@@ -95,7 +95,7 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @SerializeOptions({groups: [ 'me' ],})
+  @SerializeOptions({groups: [ 'me' ]})
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
   @ApiOkResponse({type: User})

@@ -1,24 +1,30 @@
 import { forwardRef, Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository }                                             from '@nestjs/typeorm';
+import { REQUEST }                                                      from '@nestjs/core';
 
-import { Repository } from 'typeorm';
+import { Request }                     from 'express';
+import { In, IsNull, Not, Repository } from 'typeorm';
 
-import { CreateOrderDto }       from '@modules/orders/domain/dtos/create-order.dto';
-import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
+import { ClientEntity }    from '@modules/clients/domain/entities/client.entity';
+import { InvoicesService } from '@modules/invoices/invoices.service';
+import { UsersService }    from '@modules/users/users.service';
+
+import { CreateOrderDto }       from './domain/dtos/create-order.dto';
+import { OrderStatusEnum }      from './domain/enums/order-status.enum';
 import { OrderEntity }          from './domain/entities/order.entity';
 import { ProductRequestEntity } from './domain/entities/product-request.entity';
-import { ClientEntity }         from '@modules/clients/domain/entities/client.entity';
-import { OrdersOverview }       from '@modules/orders/domain/interfaces/dashboard-overview.interface';
-import { CreateInvoiceDto }     from '@modules/orders/domain/dtos/create-invoice.dto';
-import { OrderQueryDto }        from '@modules/orders/domain/dtos/order-query.dto';
-import { InvoicesService }      from '@modules/invoices/invoices.service';
+import { CreateInvoiceDto }     from './domain/dtos/create-invoice.dto';
+import { OrderQueryDto }        from './domain/dtos/order-query.dto';
+import { OrdersOverview }       from './domain/interfaces/dashboard-overview.interface';
 
 @Injectable()
 export class OrderService {
   constructor(
+    @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
     @InjectRepository(ProductRequestEntity) private orderProductRepository: Repository<ProductRequestEntity>,
-    @Inject(forwardRef(() => InvoicesService)) private readonly invoicesService: InvoicesService
+    @Inject(forwardRef(() => InvoicesService)) private readonly invoicesService: InvoicesService,
+    private readonly userService: UsersService,
   ) {}
 
   async findAll(query: OrderQueryDto): Promise<OrderEntity[]> {
@@ -109,6 +115,62 @@ export class OrderService {
     order.invoice = await this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
 
     return this.orderRepository.save(order);
+  }
+
+  async getSummary() {
+    const userId: string = this.request.user.id;
+    const user = await this.userService.findById(userId);
+    const currentDate = new Date().toISOString().split('T')[0]; // formato YYYY-MM-DD
+
+    const summary: any = {};
+
+    // Información común para todos
+    summary.ordersToday = await this.orderRepository.count({
+      where: {deliveryDate: currentDate, status: Not(In([ 'DELIVERED', 'CANCELED' ]))}
+    });
+    summary.overdueOrders = await this.orderRepository
+      .createQueryBuilder('o')
+      .where('"deliveryDate" < :currentDate', {currentDate})
+      .andWhere('o.status NOT IN (:...statuses)', {statuses: [ 'DELIVERED', 'CANCELED' ]})
+      .getCount();
+
+    // Información para Admin
+    if (user.role.name === 'ADMIN') {
+      summary.ordersByStatus = await this.orderRepository
+        .createQueryBuilder('o')
+        .select('o.status', 'status')
+        .addSelect('COUNT(o.id)', 'total')
+        .groupBy('o.status')
+        .getRawMany();
+      // Otras métricas, gráficos, etc.
+    }
+
+    // Información para Accountant
+    if (user.role.name === 'ACCOUNTANT') {
+      summary.ordersWithoutInvoice = await this.orderRepository.count({
+        where: {invoice: {id: IsNull()}}
+      });
+      summary.pendingInvoices = await this.orderRepository.count({
+        where: {
+          invoice: {status: In([ 'ISSUED', 'RECEIVED_WITH_OBSERVATIONS', 'RECEIVED_WITHOUT_OBSERVATIONS' ])}
+        }
+      });
+    }
+
+    // Información para Driver (o roles que puedan tener asignaciones de entrega)
+    if (user.role.name === 'DRIVER' || user.role.name === 'OPERATOR') {
+      summary.assignedDeliveries = await this.orderRepository
+        .createQueryBuilder('o')
+        .leftJoinAndSelect('o.invoice', 'inv')
+        .where('o.deliveryDate = :currentDate', {currentDate})
+        .andWhere('o.status NOT IN (:...statuses)', {statuses: [ 'DELIVERED', 'CANCELED' ]})
+        .andWhere('inv.delivery_assignment_id = :driverId', {driverId: user.id})
+        .getMany();
+    }
+
+    // Otras secciones comunes: ingresos, estadísticas mensuales, etc.
+
+    return summary;
   }
 
   async updateStatus(id: string, status: OrderStatusEnum) {

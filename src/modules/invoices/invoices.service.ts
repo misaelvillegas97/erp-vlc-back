@@ -25,7 +25,7 @@ export class InvoicesService {
     qb.leftJoinAndSelect('inv.order', 'order');
     qb.leftJoinAndSelect('inv.client', 'client');
 
-    if (query?.invoiceNumber) qb.andWhere('inv.invoiceNumber ilike :invoiceNumber', {invoiceNumber: `%${ query.invoiceNumber }%`});
+    if (query?.invoiceNumber) qb.andWhere('inv.invoiceNumber = :invoiceNumber', {invoiceNumber: `${ query.invoiceNumber }`});
     if (query?.clientId && Array.isArray(query.clientId)) qb.andWhere('inv.client.id IN (:...clientId)', {clientId: query.clientId});
     if (query?.clientId && !Array.isArray(query.clientId)) qb.andWhere('inv.client.id = :clientId', {clientId: query.clientId});
     if (query?.orderNumber) qb.andWhere('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
