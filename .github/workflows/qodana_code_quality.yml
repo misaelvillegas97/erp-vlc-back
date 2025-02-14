@@ -6,7 +6,11 @@ on:
     branches: # Specify your branches here
       - main # The 'main' branch
       - 'releases/*' # The release branches
-
+exclude:
+  - name: All
+    paths:
+      - .hygen
+      - 2captcha-solver
 jobs:
   qodana:
     runs-on: ubuntu-latest
