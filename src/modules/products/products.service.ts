@@ -30,7 +30,6 @@ export class ProductsService {
 
     const results = await qb.getMany();
 
-    console.log(results.map((product) => product.providerCodes));
     return results;
   }
 

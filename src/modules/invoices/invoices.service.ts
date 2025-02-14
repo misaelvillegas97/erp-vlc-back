@@ -84,8 +84,6 @@ export class InvoicesService {
     invoice.client = new ClientEntity({id: clientId});
     invoice.deliveryAssignment = new UserEntity({id: createInvoiceDto.deliveryAssignmentId});
 
-    console.log('invoice', invoice);
-
     return this.invoiceRepository.save(invoice);
   }
 
