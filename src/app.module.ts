@@ -40,12 +40,14 @@ import { ClientsModule }        from '@modules/clients/clients.module';
 import { ServeStaticModule }    from '@nestjs/serve-static';
 import { ProductsModule }       from '@modules/products/products.module';
 import { InvoicesModule }       from '@modules/invoices/invoices.module';
+import { EventEmitterModule }   from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ServeStaticModule.forRoot({
       rootPath: path.join(__dirname, '..', 'public')
     }),
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [

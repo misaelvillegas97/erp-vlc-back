@@ -1,12 +1,11 @@
 import { Injectable, Logger }   from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-import { ClientService } from '@modules/clients/client.service';
-
-import { OrderService }       from '../../orders/order.service';
+import { ClientService }      from '@modules/clients/client.service';
 import { ComercioNetService } from '../services/comercio-net.service';
 import { CencosudB2bService } from '../services/cencosud-b2b.service';
 import { OrderRequestDto }    from '../domain/dto/order-request.dto';
+import { EventEmitter2 }      from '@nestjs/event-emitter';
 
 @Injectable()
 export class TasksScheduler {
@@ -15,8 +14,8 @@ export class TasksScheduler {
   constructor(
     private readonly comercioNetService: ComercioNetService,
     private readonly cencosudB2bService: CencosudB2bService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly clientService: ClientService,
-    private readonly orderService: OrderService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR, {disabled: true})
@@ -46,6 +45,6 @@ export class TasksScheduler {
       clientId: clientEntity.id
     } as OrderRequestDto));
 
-    await this.orderService.createAll(mappedOrders);
+    this.eventEmitter.emit('order-providers.createAll', mappedOrders);
   }
 }

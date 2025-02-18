@@ -16,6 +16,7 @@ import { ProductRequestEntity } from './domain/entities/product-request.entity';
 import { CreateInvoiceDto }     from './domain/dtos/create-invoice.dto';
 import { OrderQueryDto }        from './domain/dtos/order-query.dto';
 import { OrdersOverview }       from './domain/interfaces/dashboard-overview.interface';
+import { OnEvent }              from '@nestjs/event-emitter';
 
 @Injectable()
 export class OrderService {
@@ -71,6 +72,7 @@ export class OrderService {
     return this.orderRepository.save(this.orderRepository.create(order));
   }
 
+  @OnEvent('order-providers.createAll')
   async createAll(orders: CreateOrderDto[]): Promise<{ created: OrderEntity[]; updated: OrderEntity[] }> {
     const createdOrders = [];
     const updatedOrders = [];

@@ -46,7 +46,6 @@ export class CencosudB2bService {
   private readonly password;
   private readonly url;
   private readonly environment: Environment;
-  private readonly cookiesPath = path.resolve(__dirname, '../../cencosud-b2b.json');
 
   private configFileBackup: any;
 
@@ -100,6 +99,8 @@ export class CencosudB2bService {
       this.logger.error('Error loading main page, clearing cookies and retrying');
       this.logger.error(error.message);
 
+      await this.restoreConfigFile(pathToExtension);
+
       // await this.clearCookies();
       await browser.close();
 
@@ -120,8 +121,15 @@ export class CencosudB2bService {
   }
 
   private async restoreConfigFile(pathToExtension: string) {
+    // Modify the path to the extension + /common/config.js and add the API key from 2captcha
     const configPath = path.join(pathToExtension, 'common/config.js');
-    await fs.writeFile(configPath, this.configFileBackup);
+
+    this.configFileBackup = await fs.readFile(configPath, 'utf-8');
+
+    const apiKey = this.configService.get<string>('ac.captchaSolver', {infer: true});
+    const newConfigContent = this.configFileBackup.replace(apiKey, 'YOUR_API_KEY');
+
+    return {configPath, newConfigContent};
   }
 
   private async loadMainPage(browser: Browser, page: Page) {
@@ -135,19 +143,11 @@ export class CencosudB2bService {
 
       const loggedIn = await this.login(page);
 
-      // Save cookies
-      // const cookies = await browser.cookies();
-      // await this.saveCookies(cookies);
-
       if (!loggedIn) return;
     }
 
     // Get purchase orders
     const orders = await this.getPurchaseOrders(page);
-
-    // Save cookies again in case there was a token refresh
-    // const cookies = await browser.cookies();
-    // await this.saveCookies(cookies);
 
     await browser.close();
 
@@ -337,25 +337,22 @@ export class CencosudB2bService {
     await page.type('#username', this.username);
     await page.type('#password', this.password);
 
-    // Sleep for 1 minute
-    this.logger.log('Sleeping for 100 seconds...');
-    await new Promise((resolve) => setTimeout(resolve, 100_000));
+    // Read captcha field
+    let captcha = await this.getCaptchaFieldValue(page);
+    let captchaTries = 0;
 
-    // Check if captcha is solved
-    await page.evaluate(() => {
-      const captchaSolved = document.querySelector('.g-recaptcha-response');
-
-      // If textarea is empty, wait for 10 seconds
-      if (!captchaSolved || captchaSolved.textContent.trim() === '') {
-        return new Promise((resolve) => setTimeout(resolve, 20_000));
-      }
-    });
+    // check every second if captcha is filled, if not, wait one second and check it again
+    while (!captcha) {
+      captcha = await this.getCaptchaFieldValue(page);
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      this.logger.log(`Checking captcha field. Try ${ captchaTries++ }`);
+    }
 
     // Submit form
     await page.click('#kc-login', {delay: 1000});
 
     // Sleep for 30 seconds, and check if was redirected to main page
-    this.logger.log('Sleeping for 10 seconds...');
+    this.logger.log('Sleeping for 5 seconds...');
     await new Promise((resolve) => setTimeout(resolve, 5_000));
 
     // Check if was redirected to main page
@@ -377,5 +374,12 @@ export class CencosudB2bService {
     if (page.url().includes('/main')) this.logger.log('Logged in successfully');
 
     return true;
+  }
+
+  private async getCaptchaFieldValue(page: Page) {
+    return page.evaluate(() => {
+      const captchaField = document.getElementById('g-recaptcha-response');
+      return captchaField['value'];
+    });
   }
 }
