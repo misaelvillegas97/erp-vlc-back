@@ -1,7 +1,7 @@
 import { Injectable }       from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Not, Repository } from 'typeorm';
+import { LessThan, Not, Repository } from 'typeorm';
 
 import { User }          from '@modules/users/domain/user';
 import { NullableType }  from '@shared/utils/types/nullable.type';
@@ -21,6 +21,7 @@ export class SessionRepository {
     const entity = await this.sessionRepository.findOne({
       where: {
         id: Number(id),
+        expiresAt: LessThan(new Date()),
       },
     });
 

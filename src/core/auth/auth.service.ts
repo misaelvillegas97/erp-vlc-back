@@ -39,6 +39,8 @@ export class AuthService {
   ) {}
 
   async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
+    const rtExpiresIn = this.configService.getOrThrow<AllConfigType>('auth.refreshExpires', {infer: true});
+    const tsRefreshToken = Date.now() + ms(rtExpiresIn);
     const user = await this.usersService.findByEmail(loginDto.email);
 
     if (!user) throw this.getUnprocessableEntityException({email: 'notFound'});
@@ -59,7 +61,7 @@ export class AuthService {
       .update(randomStringGenerator())
       .digest('hex');
 
-    const session = await this.sessionService.create({user, hash});
+    const session = await this.sessionService.create({user, hash, expiresAt: new Date(tsRefreshToken)});
 
     const {token, refreshToken, tokenExpires, refreshTokenExpires} = await this.getTokensData({
       id: user.id,
@@ -81,6 +83,8 @@ export class AuthService {
   }
 
   async validateSocialLogin(authProvider: string, socialData: SocialInterface): Promise<LoginResponseDto> {
+    const rtExpiresIn = this.configService.getOrThrow<AllConfigType>('auth.refreshExpires', {infer: true});
+    const tsRefreshToken = Date.now() + ms(rtExpiresIn);
     let user: NullableType<User> = null;
     let userByEmail: NullableType<User> = null;
     const socialEmail = socialData.email?.toLowerCase();
@@ -130,7 +134,7 @@ export class AuthService {
       .update(randomStringGenerator())
       .digest('hex');
 
-    const session = await this.sessionService.create({user, hash});
+    const session = await this.sessionService.create({user, hash, expiresAt: new Date(tsRefreshToken)});
 
     const {
       token: jwtToken,
@@ -369,6 +373,8 @@ export class AuthService {
     const session = await this.sessionService.findById(data.sessionId);
 
     if (!session || session.hash !== data.hash) throw new UnauthorizedException();
+
+    if (session.expiresAt < new Date()) throw new UnauthorizedException();
 
     const hash = crypto
       .createHash('sha256')
