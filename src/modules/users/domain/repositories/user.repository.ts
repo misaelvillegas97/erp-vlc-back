@@ -56,6 +56,24 @@ export class UserRepository {
     return entities.map((user) => UserMapper.toDomain(user));
   }
 
+  async findManyByQuery(query: string): Promise<User[]> {
+    // find users by query, for example, David Misael Villegas Sandoval matches David Misael in firstName, and Villegas Sandoval in lastname, or david.misa97@gmail.com in email
+    const qb = this.usersRepository.createQueryBuilder('user');
+
+    qb.leftJoinAndSelect('user.role', 'role');
+    qb.leftJoinAndSelect('user.roles', 'roles');
+    qb.leftJoinAndSelect('roles.role', 'rolesUserRole');
+
+    if (query) {
+      qb.where('user.email ilike :query', {query: `%${ query }%`})
+        .orWhere('CONCAT(user.firstName, \' \', user.lastName) ilike :query', {query: `%${ query }%`});
+    }
+
+    const entities = await qb.getMany();
+
+    return entities.map((user) => UserMapper.toDomain(user));
+  }
+
   async findById(id: User['id']): Promise<NullableType<User>> {
     const entity = await this.usersRepository.findOne({where: {id}});
 

@@ -28,9 +28,7 @@ export class ProductsService {
     if (name) qb.andWhere('product.name ilike :name', {name: `%${ name }%`});
     if (unitaryPrice) qb.andWhere('product.unitaryPrice = :unitaryPrice', {unitaryPrice});
 
-    const results = await qb.getMany();
-
-    return results;
+    return await qb.getMany();
   }
 
   async findOne(id: string): Promise<ProductEntity> {

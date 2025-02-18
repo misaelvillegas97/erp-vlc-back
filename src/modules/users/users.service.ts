@@ -78,6 +78,10 @@ export class UsersService {
     });
   }
 
+  findByQuery(query: string): Promise<User[]> {
+    return this.usersRepository.findManyByQuery(query);
+  }
+
   findById(id: User['id']): Promise<NullableType<User>> {
     return this.usersRepository.findById(id);
   }

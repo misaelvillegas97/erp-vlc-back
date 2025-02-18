@@ -7,6 +7,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryColumn,
   UpdateDateColumn,
@@ -20,6 +21,7 @@ import { ApiProperty }            from '@nestjs/swagger';
 import { v4 }                     from 'uuid';
 import { EntityRelationalHelper } from '@shared/utils/relational-entity-helper';
 import { AuthProvidersEnum }      from '@core/auth/auth-providers.enum';
+import { RoleUserEntity }         from '@modules/roles/domain/entities/role-user.entity';
 
 @Entity('user')
 export class UserEntity extends EntityRelationalHelper {
@@ -68,6 +70,9 @@ export class UserEntity extends EntityRelationalHelper {
   @ApiProperty({type: () => RoleEntity,})
   @ManyToOne(() => RoleEntity, {eager: true,})
   role?: RoleEntity | null;
+
+  @OneToMany(() => RoleUserEntity, role => role.user)
+  roles?: RoleUserEntity[];
 
   @ApiProperty({type: () => StatusEntity,})
   @ManyToOne(() => StatusEntity, {eager: true,})

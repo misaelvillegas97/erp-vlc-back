@@ -15,4 +15,9 @@ export class RoleEntity extends EntityRelationalHelper {
   })
   @Column()
   name?: string;
+
+  constructor(partial?: Partial<RoleEntity>) {
+    super();
+    Object.assign(this, partial);
+  }
 }

@@ -3,14 +3,11 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: # Specify your branches here
-      - master # The 'master' branch
-      - 'releases/*' # The release branches
-exclude:
-  - name: All
-    paths:
-      - .hygen
-      - 2captcha-solver
+  exclude:
+    - name: All
+      paths:
+        - .hygen
+        - 2captcha-solver
 jobs:
   qodana:
     runs-on: ubuntu-latest
@@ -38,11 +35,10 @@ jobs:
           else
             echo "Unable to determine package manager"
             exit 1
-          fi
       - uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}  # to check out the actual pull request commit, not the merge commit
-          fetch-depth: 0  # a full history is required for pull request analysis
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          fetch-depth: 0
       - name: 'Qodana Scan'
         uses: JetBrains/qodana-action@v2024.3
         with:

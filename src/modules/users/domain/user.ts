@@ -2,9 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { Exclude, Expose } from 'class-transformer';
 
-import { FileType } from '../../files/domain/file';
-import { Role }     from '../../roles/domain/role';
-import { Status }   from '../../statuses/domain/status';
+import { FileType }       from '../../files/domain/file';
+import { Role }           from '../../roles/domain/role';
+import { Status }         from '../../statuses/domain/status';
+import { RoleUserEntity } from '@modules/roles/domain/entities/role-user.entity';
 
 export class User {
   @ApiProperty({type: String})
@@ -37,13 +38,16 @@ export class User {
   @ApiProperty({type: String, example: 'Doe'})
   lastName: string | null;
 
-  @ApiProperty({type: () => FileType,})
+  @ApiProperty({type: () => FileType})
   photo?: FileType | null;
 
-  @ApiProperty({type: () => Role,})
+  @ApiProperty({type: () => Role})
   role?: Role | null;
 
-  @ApiProperty({type: () => Status,})
+  @ApiProperty({type: () => RoleUserEntity})
+  roles?: RoleUserEntity[];
+
+  @ApiProperty({type: () => Status})
   status?: Status;
 
   @ApiProperty()

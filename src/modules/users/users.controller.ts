@@ -11,9 +11,9 @@ import {
   Query,
   SerializeOptions,
   UseGuards,
-}                                                                               from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiTags, } from '@nestjs/swagger';
-import { AuthGuard }                                                            from '@nestjs/passport';
+}                                                                                         from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, } from '@nestjs/swagger';
+import { AuthGuard }                                                                      from '@nestjs/passport';
 
 
 import { InfinityPaginationResponse, InfinityPaginationResponseDto, } from '@shared/utils/dto/infinity-pagination-response.dto';
@@ -68,6 +68,17 @@ export class UsersController {
       }),
       {page, limit},
     );
+  }
+
+  @ApiOkResponse({type: Array<User>})
+  @Get('query')
+  @HttpCode(HttpStatus.OK)
+  @SerializeOptions({groups: [ 'admin' ]})
+  @ApiQuery({name: 'query', type: String, required: true})
+  async findByQuery(
+    @Query('query') query: string,
+  ): Promise<User[]> {
+    return this.usersService.findByQuery(query);
   }
 
   @ApiOkResponse({

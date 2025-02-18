@@ -8,10 +8,11 @@ import { UserRepository }  from '@modules/users/domain/repositories/user.reposit
 import { FilesModule }     from '../files/files.module';
 import { UsersController } from './users.controller';
 import { UsersService }    from './users.service';
+import { RoleUserEntity }  from '@modules/roles/domain/entities/role-user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ UserEntity, RoleEntity, StatusEntity ]),
+    TypeOrmModule.forFeature([ UserEntity, RoleEntity, RoleUserEntity, StatusEntity ]),
     FilesModule
   ],
   controllers: [ UsersController ],

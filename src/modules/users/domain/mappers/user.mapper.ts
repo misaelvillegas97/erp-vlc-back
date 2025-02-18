@@ -19,6 +19,7 @@ export class UserMapper {
     domainEntity.firstName = raw.firstName;
     domainEntity.lastName = raw.lastName;
     domainEntity.role = raw.role;
+    domainEntity.roles = raw.roles;
     domainEntity.status = raw.status;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
