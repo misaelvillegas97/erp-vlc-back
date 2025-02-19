@@ -19,7 +19,7 @@ export class SessionEntity extends EntityRelationalHelper {
   @Column()
   hash: string;
 
-  @Column({type: 'timestamp', nullable: true})
+  @Column({nullable: true})
   expiresAt: Date;
 
   @CreateDateColumn()

@@ -1,6 +1,6 @@
-import { forwardRef, Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { InjectRepository }                                             from '@nestjs/typeorm';
-import { REQUEST }                                                      from '@nestjs/core';
+import { Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
+import { InjectRepository }                                         from '@nestjs/typeorm';
+import { REQUEST }                                                  from '@nestjs/core';
 
 import { Request }                     from 'express';
 import { In, IsNull, Not, Repository } from 'typeorm';
@@ -9,23 +9,29 @@ import { ClientEntity }    from '@modules/clients/domain/entities/client.entity'
 import { InvoicesService } from '@modules/invoices/invoices.service';
 import { UsersService }    from '@modules/users/users.service';
 
-import { CreateOrderDto }       from './domain/dtos/create-order.dto';
-import { OrderStatusEnum }      from './domain/enums/order-status.enum';
-import { OrderEntity }          from './domain/entities/order.entity';
-import { ProductRequestEntity } from './domain/entities/product-request.entity';
-import { CreateInvoiceDto }     from './domain/dtos/create-invoice.dto';
-import { OrderQueryDto }        from './domain/dtos/order-query.dto';
-import { OrdersOverview }       from './domain/interfaces/dashboard-overview.interface';
-import { OnEvent }              from '@nestjs/event-emitter';
-import { ProductsService }      from '@modules/products/products.service';
+import { CreateOrderDto }           from './domain/dtos/create-order.dto';
+import { OrderStatusEnum }          from './domain/enums/order-status.enum';
+import { OrderEntity }              from './domain/entities/order.entity';
+import { ProductRequestEntity }     from './domain/entities/product-request.entity';
+import { CreateInvoiceDto }         from './domain/dtos/create-invoice.dto';
+import { OrderQueryDto }            from './domain/dtos/order-query.dto';
+import { OrdersOverview }           from './domain/interfaces/dashboard-overview.interface';
+import { OnEvent }                  from '@nestjs/event-emitter';
+import { ProductsService }          from '@modules/products/products.service';
+import { DateTime }                 from 'luxon';
+import { InvoiceEntity }            from '@modules/invoices/domain/entities/invoice.entity';
+import { INVOICE_DELIVERED }        from '@modules/invoices/domain/events.constant';
+import { OrdersObservationsEntity } from '@modules/orders/domain/entities/orders-observations.entity';
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
     @InjectRepository(ProductRequestEntity) private orderProductRepository: Repository<ProductRequestEntity>,
-    @Inject(forwardRef(() => InvoicesService)) private readonly invoicesService: InvoicesService,
+    private readonly invoicesService: InvoicesService,
     private readonly productsService: ProductsService,
     private readonly userService: UsersService,
   ) {}
@@ -35,6 +41,7 @@ export class OrderService {
     qb.leftJoinAndSelect('order.client', 'client');
     qb.leftJoinAndSelect('order.products', 'products');
     qb.leftJoinAndSelect('order.invoice', 'invoice');
+    qb.leftJoinAndSelect('order.observations', 'observations');
 
     if (query.orderNumber)
       qb.where('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
@@ -61,7 +68,7 @@ export class OrderService {
       qb.andWhere('order.amount = :amount', {amount: query.amount});
 
     if (query.invoice)
-      qb.andWhere('invoice.invoiceNumber ilike :invoice', {invoice: `%${ query.invoice }%`});
+      qb.andWhere('invoice.invoiceNumber = :invoice', {invoice: `${ query.invoice }`});
 
     return qb.getMany();
   }
@@ -99,9 +106,14 @@ export class OrderService {
 
         createdOrders.push(
           await this.orderRepository.save(
-            this.orderRepository.create({...order, client: new ClientEntity({id: order.clientId})})
+            this.orderRepository.create({
+              ...order,
+              observations: order.observation && [ new OrdersObservationsEntity({observation: order.observation}) ],
+              client: new ClientEntity({id: order.clientId})
+            })
           )
         );
+        this.logger.log(`Order ${ order.orderNumber } created from providers`);
       }
     }
 
@@ -190,7 +202,19 @@ export class OrderService {
     const order = await this.orderRepository.findOne({where: {id}});
     order.status = status;
 
+    if (status === OrderStatusEnum.DELIVERED) order.deliveredDate = DateTime.now().toISODate();
+
     return this.orderRepository.save(order);
+  }
+
+  @OnEvent(INVOICE_DELIVERED, {async: true})
+  async markAsDelivered({order}: InvoiceEntity) {
+    order.status = OrderStatusEnum.DELIVERED;
+    order.deliveredDate = DateTime.now().toISODate();
+
+    const savedOrder = await this.orderRepository.save(order, {reload: true});
+
+    this.logger.log(`Order ${ order.orderNumber } saved with status ${ savedOrder.status } and deliveredDate ${ savedOrder.deliveredDate }`);
   }
 
   async ordersOverview(): Promise<OrdersOverview> {

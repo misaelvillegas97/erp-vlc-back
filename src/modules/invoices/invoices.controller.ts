@@ -22,6 +22,9 @@ export class InvoicesController {
 
   @Put(':invoiceId/status')
   async updateStatus(@Param('invoiceId') invoiceId: string, @Body() body: StatusUpdateDto) {
-    return this.invoicesService.updateStatus(invoiceId, body);
+    const invoice = await this.invoicesService.updateStatus(invoiceId, body);
+
+
+    return InvoiceMapper.map(invoice);
   }
 }

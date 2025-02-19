@@ -9,13 +9,14 @@ import {
   PrimaryColumn,
   Unique,
   UpdateDateColumn
-}                               from 'typeorm';
-import { ProductRequestEntity } from './product-request.entity';
-import { v4 }                   from 'uuid';
-import { ClientEntity }         from '@modules/clients/domain/entities/client.entity';
-import { OrderTypeEnum }        from '@modules/orders/domain/enums/order-type.enum';
-import { OrderStatusEnum }      from '@modules/orders/domain/enums/order-status.enum';
-import { InvoiceEntity }        from '@modules/invoices/domain/entities/invoice.entity';
+}                                   from 'typeorm';
+import { ProductRequestEntity }     from './product-request.entity';
+import { v4 }                       from 'uuid';
+import { ClientEntity }             from '@modules/clients/domain/entities/client.entity';
+import { OrderTypeEnum }            from '@modules/orders/domain/enums/order-type.enum';
+import { OrderStatusEnum }          from '@modules/orders/domain/enums/order-status.enum';
+import { InvoiceEntity }            from '@modules/invoices/domain/entities/invoice.entity';
+import { OrdersObservationsEntity } from '@modules/orders/domain/entities/orders-observations.entity';
 
 @Entity({name: 'orders'})
 @Unique([ 'orderNumber' ])
@@ -47,11 +48,11 @@ export class OrderEntity {
   @Column({type: 'date', nullable: true})
   deliveredDate?: string;
 
-  @Column({nullable: true})
-  observations?: string;
-
   @Column({nullable: true, type: 'json'})
   additionalInfo?: Record<string, any>;
+
+  @OneToMany(() => OrdersObservationsEntity, (observation) => observation.order, {cascade: true})
+  observations?: OrdersObservationsEntity[];
 
   @OneToMany(() => ProductRequestEntity, (product) => product.orderRequest, {cascade: true})
   products: ProductRequestEntity[];

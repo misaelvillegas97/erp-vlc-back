@@ -13,8 +13,9 @@ export class OrderMapper {
   readonly status: OrderStatusEnum;
   readonly deliveryLocation: string;
   readonly deliveryDate: string;
+  readonly deliveredDate: string;
   readonly emissionDate: string;
-  readonly observations: string;
+  readonly observations: any;
   readonly totalAmount: number;
   readonly client: ClientLightMapper;
   readonly invoice: InvoiceMapper;
@@ -35,6 +36,7 @@ export class OrderMapper {
       status: entity.status,
       deliveryLocation: entity.deliveryLocation,
       deliveryDate: entity.deliveryDate,
+      deliveredDate: entity.deliveredDate,
       emissionDate: entity.emissionDate,
       observations: entity.observations,
       products: OrderProductMapper.mapAll(entity.products),

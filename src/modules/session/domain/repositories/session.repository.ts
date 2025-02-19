@@ -1,7 +1,7 @@
 import { Injectable }       from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { LessThan, Not, Repository } from 'typeorm';
+import { MoreThanOrEqual, Not, Repository } from 'typeorm';
 
 import { User }          from '@modules/users/domain/user';
 import { NullableType }  from '@shared/utils/types/nullable.type';
@@ -21,9 +21,11 @@ export class SessionRepository {
     const entity = await this.sessionRepository.findOne({
       where: {
         id: Number(id),
-        expiresAt: LessThan(new Date()),
+        expiresAt: MoreThanOrEqual((new Date())),
       },
     });
+
+    console.log(entity);
 
     return entity ? SessionMapper.toDomain(entity) : null;
   }

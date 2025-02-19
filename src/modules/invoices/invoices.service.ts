@@ -1,22 +1,25 @@
-import { forwardRef, Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { InjectRepository }                                             from '@nestjs/typeorm';
-import { InvoiceEntity }                                                from '@modules/invoices/domain/entities/invoice.entity';
-import { Repository }                                                   from 'typeorm';
-import { CreateInvoiceDto }                                             from '@modules/orders/domain/dtos/create-invoice.dto';
-import { OrderEntity }                                                  from '@modules/orders/domain/entities/order.entity';
-import { ClientEntity }                                                 from '@modules/clients/domain/entities/client.entity';
-import { InvoiceQueryDto }                                              from '@modules/invoices/domain/dtos/query.dto';
-import { InvoiceStatusEnum }                                            from '@modules/orders/domain/enums/invoice-status.enum';
-import { OrderStatusEnum }                                              from '@modules/orders/domain/enums/order-status.enum';
-import { StatusUpdateDto }                                              from '@modules/invoices/domain/dtos/status-update.dto';
-import { OrderService }                                                 from '@modules/orders/order.service';
-import { UserEntity }                                                   from '@modules/users/domain/entities/user.entity';
+import { Injectable, Logger, UnprocessableEntityException }    from '@nestjs/common';
+import { InjectRepository }                                    from '@nestjs/typeorm';
+import { InvoiceEntity }                                       from '@modules/invoices/domain/entities/invoice.entity';
+import { Repository }                                          from 'typeorm';
+import { CreateInvoiceDto }                                    from '@modules/orders/domain/dtos/create-invoice.dto';
+import { OrderEntity }                                         from '@modules/orders/domain/entities/order.entity';
+import { ClientEntity }                                        from '@modules/clients/domain/entities/client.entity';
+import { InvoiceQueryDto }                                     from '@modules/invoices/domain/dtos/query.dto';
+import { InvoiceStatusEnum }                                   from '@modules/orders/domain/enums/invoice-status.enum';
+import { StatusUpdateDto }                                     from '@modules/invoices/domain/dtos/status-update.dto';
+import { UserEntity }                                          from '@modules/users/domain/entities/user.entity';
+import { EventEmitter2 }                                       from '@nestjs/event-emitter';
+import { INVOICE_DELIVERED }                                   from '@modules/invoices/domain/events.constant';
+import { ORDER_OBSERVATION_CREATED, ORDER_OBSERVATION_ORIGIN } from '@modules/orders/domain/events.constant';
 
 @Injectable()
 export class InvoicesService {
+  readonly #logger = new Logger(InvoicesService.name);
+
   constructor(
     @InjectRepository(InvoiceEntity) private readonly invoiceRepository: Repository<InvoiceEntity>,
-    @Inject(forwardRef(() => OrderService)) private readonly ordersService: OrderService
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   async findAll(query?: InvoiceQueryDto): Promise<InvoiceEntity[]> {
@@ -59,13 +62,26 @@ export class InvoicesService {
     if (statusUpdateDto.status === InvoiceStatusEnum.PAID)
       invoice.paymentDate = statusUpdateDto.paymentDate ? statusUpdateDto.paymentDate : new Date().toISOString();
 
-    if ([ InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS, InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS ].includes(statusUpdateDto.status))
-      await this.updateOrderToDelivered(invoice);
-
-    if (statusUpdateDto.observations)
+    if (statusUpdateDto.observations) {
       invoice.observations = statusUpdateDto.observations;
+      this.eventEmitter.emit(ORDER_OBSERVATION_CREATED, {
+        orderId: invoice.order.id,
+        observation: statusUpdateDto.observations,
+        origin: ORDER_OBSERVATION_ORIGIN.INVOICE,
+        invoice: {
+          invoiceNumber: invoice.invoiceNumber,
+          status: statusUpdateDto.status,
+          paymentDate: invoice.paymentDate && invoice.paymentDate,
+        }
+      });
+    }
 
-    return this.invoiceRepository.save(invoice);
+    if ([ InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS, InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS ].includes(statusUpdateDto.status)) {
+      this.eventEmitter.emit(INVOICE_DELIVERED, {...invoice});
+      this.#logger.log(`Invoice ${ invoice.invoiceNumber } delivered`);
+    }
+
+    return await this.invoiceRepository.save(invoice);
   }
 
   async create(orderId: string, clientId: string, createInvoiceDto: CreateInvoiceDto) {
@@ -208,12 +224,5 @@ export class InvoicesService {
       invoicesByDeliveryAssignment,
       outstandingAmountByDate,
     };
-  }
-
-  private async updateOrderToDelivered(invoice: InvoiceEntity) {
-    invoice.order.status = OrderStatusEnum.DELIVERED;
-    invoice.order.deliveredDate = new Date().toISOString();
-
-    return this.ordersService.updateStatus(invoice.order.id, OrderStatusEnum.DELIVERED);
   }
 }
