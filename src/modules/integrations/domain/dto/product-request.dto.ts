@@ -3,7 +3,22 @@ import { CreateOrderProductDto }    from '@modules/orders/domain/dtos/create-ord
 
 export class ProductRequestDto extends CreateOrderProductDto {
   static mapFromComercioNet(values: any): CreateOrderProductDto {
-    return new ProductRequestDto({...values, provider: 'ComercioNet'});
+    const {item: code, upcCode, providerCode, observation, quantity, unitPrice: unitaryPrice, totalPrice, ...others} = values;
+
+    const parsedQuantity = parseCommaAndDotToNumber(quantity);
+    const parsedUnitaryPrice = parseCommaAndDotToNumber(unitaryPrice);
+    const parsedTotalPrice = parseCommaAndDotToNumber(totalPrice);
+
+    return new ProductRequestDto({
+      code,
+      upcCode,
+      providerCode,
+      description: observation,
+      quantity: parsedQuantity,
+      unitaryPrice: parsedUnitaryPrice,
+      totalPrice: parsedTotalPrice,
+      additionalInfo: others,
+    });
   }
 
   static mapFromCencoB2B(values: any): CreateOrderProductDto {
@@ -18,7 +33,7 @@ export class ProductRequestDto extends CreateOrderProductDto {
       code: productCode,
       providerCode: providerCode,
       upcCode: barcode,
-      description: description,
+      description,
       quantity,
       unitaryPrice,
       totalPrice,

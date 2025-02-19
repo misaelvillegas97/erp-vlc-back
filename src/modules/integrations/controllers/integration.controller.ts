@@ -11,6 +11,13 @@ export class IntegrationController {
   cencosud() {
     void this.tasksScheduler.checkCencoB2B();
 
-    return {message: 'CencoB2B tasks scheduled'};
+    return {message: 'CencosudB2B tasks scheduled'};
+  }
+
+  @Get('wallmart')
+  wallmart() {
+    void this.tasksScheduler.checkComercioNet();
+
+    return {message: 'WallmartB2B tasks scheduled'};
   }
 }

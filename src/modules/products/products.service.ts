@@ -67,4 +67,8 @@ export class ProductsService {
 
     return this.clientProductRepository.save(clientProduct);
   }
+
+  findClientProducts(clientId: string, providerCode?: number): Promise<ProductsClientEntity> {
+    return this.clientProductRepository.findOne({where: {client: {id: clientId}, providerCode}, relations: [ 'product' ]});
+  }
 }

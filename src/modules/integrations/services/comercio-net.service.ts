@@ -1,8 +1,9 @@
-import { Injectable }                   from '@nestjs/common';
-import * as puppeteer                   from 'puppeteer';
-import { Browser, ElementHandle, Page } from 'puppeteer';
-import * as fs                          from 'fs-extra';
-import * as path                        from 'path';
+import { Injectable, Logger }                           from '@nestjs/common';
+import * as puppeteer                                   from 'puppeteer';
+import { Browser, ElementHandle, executablePath, Page } from 'puppeteer';
+import { ConfigService }                                from '@nestjs/config';
+import { AllConfigType }                                from '@core/config/config.type';
+import { Environment }                                  from '@core/config/app.config';
 
 interface Order {
   id: string;
@@ -48,76 +49,74 @@ interface OrderDetail {
 
 @Injectable()
 export class ComercioNetService {
-  private readonly username = process.env.COMERCIO_USERNAME;
-  private readonly password = process.env.COMERCIO_PASSWORD;
-  private readonly cookiesPath = path.resolve(__dirname, '../../cookies.json');
+  private readonly logger = new Logger(ComercioNetService.name);
+  private readonly username: string;
+  private readonly password: string;
+  private readonly environment: Environment;
 
-  constructor() {
-    console.log('Scraping service initialized.', this.username, this.password);
-    // this.run();
+  constructor(private readonly cs: ConfigService<AllConfigType>) {
+    this.username = this.cs.get('comercio.username', {infer: true});
+    this.password = this.cs.get('comercio.password', {infer: true});
+    this.environment = this.cs.get('app.nodeEnv', {infer: true});
   }
 
-  async run(): Promise<void> {
-    const browser = await puppeteer.launch({headless: true});
+  async run(): Promise<Order[]> {
+    const browser: Browser = await puppeteer.launch({
+      headless: true,
+      args: [ '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu' ],
+      executablePath: this.environment === Environment.Development ? executablePath() : '/usr/bin/google-chrome',
+    });
     const page = await browser.newPage();
 
-    await this.login(page);
+    await page.setViewport({width: 1920, height: 1080});
 
-    await this.extractOrders(browser, page);
+    const maxRetries = 3;
+    let attempt = 0;
 
-    // await this.downloadAllDocuments(browser, page);
+    while (attempt < maxRetries) {
+      try {
+        await this.performLogin(page);
 
-    await browser.close();
-  }
+        const orders = await this.extractOrders(browser, page);
 
-  // Main function to log in and maintain the session
-  async login(page: Page): Promise<void> {
-    // Attempt to load previously saved cookies
-    const cookiesLoaded = await this.loadCookies(page);
+        await browser.close();
 
-    if (cookiesLoaded) {
-      console.log('Continuing with loaded cookies.');
-    }
-
-    // Navigate to the main page after loading cookies
-    await page.goto('https://www.comercionet.cl/principal.php', {
-      waitUntil: 'networkidle0',
-    });
-
-    // Check if already authenticated
-    if (await this.isAuthenticated(page)) {
-      console.log('Session already initiated with loaded cookies.');
-    } else {
-      // If not authenticated, perform the login process
-      await this.performLogin(page);
-      // Save cookies after logging in
-      await this.saveCookies(page);
+        return orders;
+      } catch (error) {
+        this.logger.error(`Attempt ${ attempt + 1 } failed:`, error);
+        attempt++;
+        if (attempt === maxRetries) {
+          await browser.close();
+          throw error;
+        }
+      }
     }
   }
 
   async extractOrders(browser: Browser, page: Page): Promise<Order[]> {
-    const yesterdayDate = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
+    const lastWeek = new Date(new Date().getTime() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const todayDate = new Date().toISOString().split('T')[0];
     const queryParams = {
       tido_id: '9',
       tipo: 'recibidos',
-      fecha_inicio: yesterdayDate,
+      fecha_inicio: lastWeek,
       fecha_termino: todayDate,
       estado: '0',
       offset: '0',
     };
 
     const url = 'https://www.comercionet.cl/listadoDocumentos.php?' + new URLSearchParams(queryParams);
-    console.log(`Navigating to URL: ${ url }`);
+    this.logger.log(`Extracting orders from ${ url }`);
 
     try {
+      this.logger.log('Navigating to the orders page...');
       await page.goto(url, {waitUntil: 'networkidle0'});
 
-      // Wait for the table to be present in the DOM
-      await page.waitForSelector('table.tabla', {timeout: 5000});
+      this.logger.log('Waiting for the table to be present in the DOM...');
+      await page.waitForSelector('table.tabla');
 
-      // Capture a screenshot after the table is found
-      await page.screenshot({path: 'screenshots/table_found.png', fullPage: true});
+      this.logger.log('Table found, waiting for 3 seconds to load the table info.');
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
 
       // Extract rows from the table
       const orders: Order[] = [];
@@ -159,20 +158,9 @@ export class ComercioNetService {
         await newPage.close();
       }
 
-      // Capture a screenshot after orders extraction
-      await page.screenshot({path: 'screenshots/orders_extracted.png', fullPage: true});
-      console.log('Screenshot after orders extraction taken.');
-
-      // save orders as json
-      await fs.writeFile(__dirname + '../../../' + 'orders.json', JSON.stringify(orders, null, 2));
-
       return orders;
     } catch (error) {
-      console.error('An error occurred while extracting orders:', error);
-
-      // Capture a screenshot if an error occurs
-      await page.screenshot({path: 'screenshots/error_occurred.png', fullPage: true});
-      console.log('Screenshot after error taken.');
+      this.logger.error('An error occurred while extracting orders:', error);
 
       return [];
     }
@@ -319,32 +307,6 @@ export class ComercioNetService {
       });
   }
 
-  logger(message: string): void {
-    console.log(message);
-  }
-
-  // Load cookies from a file if it exists
-  private async loadCookies(page: puppeteer.Page): Promise<boolean> {
-    try {
-      const cookiesString = await fs.readFile(this.cookiesPath, 'utf8');
-      const cookies = JSON.parse(cookiesString);
-      await page.setCookie(...cookies);
-      console.log('Cookies loaded successfully.');
-
-      return true;
-    } catch (error: any) {
-      console.log('No cookies found to load.', error);
-      return false;
-    }
-  }
-
-  // Save the current cookies to a file
-  private async saveCookies(page: puppeteer.Page): Promise<void> {
-    const cookies = await page.cookies();
-    await fs.writeFile(this.cookiesPath, JSON.stringify(cookies, null, 2));
-    console.log('Cookies saved successfully.');
-  }
-
   // Check if the session is authenticated by looking for a specific element
   private async isAuthenticated(page: puppeteer.Page): Promise<boolean> {
     // Wait for the frames to load
@@ -396,15 +358,15 @@ export class ComercioNetService {
     });
 
     // Fill in the login form
-    await page.type('input[name="login"]', this.username);
-    await page.type('input[name="_password"]', this.password);
+    await page.type('input[name="login"]', this.username, {delay: 100});
+    await page.type('input[name="_password"]', this.password, {delay: 100});
 
     // Submit the form
     await Promise.all([ page.click('input[type="submit"]'), page.waitForNavigation({waitUntil: 'networkidle0'}) ]);
 
     // Verify that the login was successful
     if (await this.isAuthenticated(page)) {
-      console.log('Login successful.');
+      this.logger.log('Login successful.');
     } else {
       throw new Error('Login failed.');
     }

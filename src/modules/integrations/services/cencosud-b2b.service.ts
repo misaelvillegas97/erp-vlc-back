@@ -42,9 +42,9 @@ export interface OrderRequest {
 @Injectable()
 export class CencosudB2bService {
   private readonly logger = new Logger(CencosudB2bService.name);
-  private readonly username;
-  private readonly password;
-  private readonly url;
+  private readonly username: string;
+  private readonly password: string;
+  private readonly url: string;
   private readonly environment: Environment;
 
   private configFileBackup: any;
@@ -78,8 +78,6 @@ export class CencosudB2bService {
       args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu' ],
       executablePath: this.environment === Environment.Development ? executablePath() : '/usr/bin/google-chrome',
     });
-
-    // await this.loadCookies(browser);
 
     const page: Page = await browser.newPage();
 

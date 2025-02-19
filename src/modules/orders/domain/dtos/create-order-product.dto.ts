@@ -11,11 +11,11 @@ export class CreateOrderProductDto {
 
   @IsString()
   @IsNotEmpty()
-  public readonly upcCode: string;
+  public upcCode: string;
 
   @IsString()
   @IsNotEmpty()
-  public readonly description: string;
+  public description: string;
 
   @IsNotEmpty()
   @IsNumber()

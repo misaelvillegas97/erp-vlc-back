@@ -20,10 +20,32 @@ export class TasksScheduler {
 
   @Cron(CronExpression.EVERY_HOUR, {disabled: true})
   async checkComercioNet() {
-    await this.comercioNetService.run();
+    this.logger.log(`Initializing WallmartB2B task at ${ new Date().toISOString() }`);
+
+    const clientEntity = await this.clientService.findByCode('WallmartB2B');
+
+    const beginningTimestamp = new Date().getTime();
+    const orders = await this.comercioNetService.run();
+    const endingTimestamp = new Date().getTime();
+
+    this.logger.log(`WallmartB2B task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
+
+    if (!orders) {
+      this.logger.log('No orders found');
+      return;
+    }
+
+    const mappedOrders: OrderRequestDto[] = orders?.map((order: any) => ({
+      ...OrderRequestDto.mapFromComercioNet(order),
+      clientId: clientEntity.id
+    } as OrderRequestDto));
+
+    console.log(mappedOrders);
+
+    this.eventEmitter.emit('order-providers.createAll', mappedOrders);
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES, {disabled: true})
+  @Cron(CronExpression.EVERY_3_HOURS, {disabled: true})
   async checkCencoB2B() {
     this.logger.log(`Initializing CencosudB2B task at ${ new Date().toISOString() }`);
 

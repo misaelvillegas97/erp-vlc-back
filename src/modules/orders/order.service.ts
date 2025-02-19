@@ -17,6 +17,7 @@ import { CreateInvoiceDto }     from './domain/dtos/create-invoice.dto';
 import { OrderQueryDto }        from './domain/dtos/order-query.dto';
 import { OrdersOverview }       from './domain/interfaces/dashboard-overview.interface';
 import { OnEvent }              from '@nestjs/event-emitter';
+import { ProductsService }      from '@modules/products/products.service';
 
 @Injectable()
 export class OrderService {
@@ -25,6 +26,7 @@ export class OrderService {
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
     @InjectRepository(ProductRequestEntity) private orderProductRepository: Repository<ProductRequestEntity>,
     @Inject(forwardRef(() => InvoicesService)) private readonly invoicesService: InvoicesService,
+    private readonly productsService: ProductsService,
     private readonly userService: UsersService,
   ) {}
 
@@ -86,6 +88,15 @@ export class OrderService {
           updatedOrders.push(await this.orderRepository.save(existingOrder));
         }
       } else {
+        order.products = await Promise.all(order.products.map(async (product) => {
+          const productEntity = await this.productsService.findClientProducts(order.clientId, +product.providerCode);
+
+          if (!productEntity) return product;
+
+          product.description = productEntity.product.name;
+          product.upcCode = productEntity.product.upcCode;
+        }));
+
         createdOrders.push(
           await this.orderRepository.save(
             this.orderRepository.create({...order, client: new ClientEntity({id: order.clientId})})

@@ -6,9 +6,11 @@ import { OrderEntity }          from '@modules/orders/domain/entities/order.enti
 import { ProductRequestEntity } from '@modules/orders/domain/entities/product-request.entity';
 import { InvoicesModule }       from '@modules/invoices/invoices.module';
 import { UsersModule }          from '@modules/users/users.module';
+import { ProductsModule }       from '@modules/products/products.module';
 
 @Module({
   imports: [
+    ProductsModule,
     UsersModule,
     TypeOrmModule.forFeature([ OrderEntity, ProductRequestEntity ]),
     forwardRef(() => InvoicesModule)
