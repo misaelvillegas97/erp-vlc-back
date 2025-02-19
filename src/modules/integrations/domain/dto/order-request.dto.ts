@@ -14,8 +14,7 @@ export class OrderRequestDto extends CreateOrderDto {
     const emissionDate = receptionDate.split(' ')[0].split('/').reverse().join('-');
     const deliveryDate = shipmentDate.split('/').reverse().join('-');
 
-    return new OrderRequestDto(
-      {
+    return new OrderRequestDto({
         orderNumber,
         businessName,
         type: orderType == '37' ? OrderTypeEnum.PURCHASE_ORDER : OrderTypeEnum.UNKNOWN,

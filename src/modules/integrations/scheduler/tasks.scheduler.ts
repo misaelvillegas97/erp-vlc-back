@@ -6,21 +6,29 @@ import { ComercioNetService } from '../services/comercio-net.service';
 import { CencosudB2bService } from '../services/cencosud-b2b.service';
 import { OrderRequestDto }    from '../domain/dto/order-request.dto';
 import { EventEmitter2 }      from '@nestjs/event-emitter';
+import { Environment }        from '@core/config/app.config';
+import { ConfigService }      from '@nestjs/config';
 
 @Injectable()
 export class TasksScheduler {
   private readonly logger = new Logger(TasksScheduler.name);
+  private readonly environment!: Environment;
 
   constructor(
     private readonly comercioNetService: ComercioNetService,
     private readonly cencosudB2bService: CencosudB2bService,
     private readonly eventEmitter: EventEmitter2,
     private readonly clientService: ClientService,
-  ) {}
+    private readonly cs: ConfigService
+  ) {
+    this.environment = this.cs.get<Environment>('app.nodeEnv', {infer: true}) as Environment || Environment.Development;
+  }
 
-  @Cron(CronExpression.EVERY_HOUR, {disabled: true})
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  @Cron(CronExpression.EVERY_3_HOURS, {disabled: this.environment === Environment.Development})
   async checkComercioNet() {
-    this.logger.log(`Initializing WallmartB2B task at ${ new Date().toISOString() }`);
+    this.logger.log(`[WallmartB2B] Initializing task at ${ new Date().toISOString() }`);
 
     const clientEntity = await this.clientService.findByCode('WallmartB2B');
 
@@ -28,10 +36,10 @@ export class TasksScheduler {
     const orders = await this.comercioNetService.run();
     const endingTimestamp = new Date().getTime();
 
-    this.logger.log(`WallmartB2B task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
+    this.logger.log(`[WallmartB2B] Task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
 
     if (!orders) {
-      this.logger.log('No orders found');
+      this.logger.log('[WallmartB2B] No orders found');
       return;
     }
 
@@ -40,14 +48,14 @@ export class TasksScheduler {
       clientId: clientEntity.id
     } as OrderRequestDto));
 
-    console.log(mappedOrders);
-
     this.eventEmitter.emit('order-providers.createAll', mappedOrders);
   }
 
-  @Cron(CronExpression.EVERY_3_HOURS, {disabled: true})
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  @Cron(CronExpression.EVERY_3_HOURS, {disabled: this.environment === Environment.Development})
   async checkCencoB2B() {
-    this.logger.log(`Initializing CencosudB2B task at ${ new Date().toISOString() }`);
+    this.logger.log(`[CencosudB2B] Initializing task at ${ new Date().toISOString() }`);
 
     const clientEntity = await this.clientService.findByCode('CencosudB2B');
 
@@ -55,10 +63,10 @@ export class TasksScheduler {
     const orders = await this.cencosudB2bService.run();
     const endingTimestamp = new Date().getTime();
 
-    this.logger.log(`CencosudB2B task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
+    this.logger.log(`[CencosudB2B] Task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
 
     if (!orders) {
-      this.logger.log('No orders found');
+      this.logger.log('[CencosudB2B] No orders found');
       return;
     }
 
