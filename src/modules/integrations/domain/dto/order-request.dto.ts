@@ -3,6 +3,7 @@ import { ProductRequestDto } from './product-request.dto';
 import { OrderType }         from '@modules/integrations/utils/order-type.util';
 import { OrderStatusEnum }   from '@modules/orders/domain/enums/order-status.enum';
 import { OrderTypeEnum }     from '@modules/orders/domain/enums/order-type.enum';
+import { fixEncoding }       from '@shared/utils/encoding.util';
 
 export class OrderRequestDto extends CreateOrderDto {
   static mapFromComercioNet(values: any): OrderRequestDto {
@@ -19,7 +20,7 @@ export class OrderRequestDto extends CreateOrderDto {
         businessName,
         type: orderType == '37' ? OrderTypeEnum.PURCHASE_ORDER : OrderTypeEnum.UNKNOWN,
         status: OrderStatusEnum.PENDING,
-        deliveryLocation: `${ deliveryLocation2 } - ${ deliveryLocation }`,
+        deliveryLocation: fixEncoding(`${ deliveryLocation2 } - ${ deliveryLocation }`),
         deliveryDate,
         emissionDate,
         observation: '',
