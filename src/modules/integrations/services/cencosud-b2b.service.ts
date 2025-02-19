@@ -342,7 +342,7 @@ export class CencosudB2bService {
     // Read captcha field
     let captcha = await this.getCaptchaFieldValue(page);
     let captchaTries = 0;
-    const maxTries = 100;
+    const maxTries = 20;
 
     // check every second if captcha is filled or maxTries is reached
     while (!captcha && captchaTries < maxTries) {
