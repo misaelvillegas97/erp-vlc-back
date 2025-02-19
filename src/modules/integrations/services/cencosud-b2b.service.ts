@@ -7,6 +7,7 @@ import StealthPlugin                     from 'puppeteer-extra-plugin-stealth';
 import { Browser, executablePath, Page } from 'puppeteer';
 import { Environment }                   from '@core/config/app.config';
 import { AllConfigType }                 from '@core/config/config.type';
+import { Solver }                        from '@2captcha/captcha-solver';
 
 export interface Order {
   rowNumber: number;
@@ -41,11 +42,13 @@ export interface OrderRequest {
 
 @Injectable()
 export class CencosudB2bService {
-  private readonly logger = new Logger(CencosudB2bService.name);
-  private readonly username: string;
-  private readonly password: string;
-  private readonly url: string;
-  private readonly environment: Environment;
+  readonly logger = new Logger(CencosudB2bService.name);
+  readonly username: string;
+  readonly password: string;
+  readonly url: string;
+  readonly environment: Environment;
+  readonly captchaSolverApiKey: string;
+  readonly siteKey: string;
 
   private configFileBackup: any;
 
@@ -57,6 +60,9 @@ export class CencosudB2bService {
     this.url = this.configService.get<string>('cencosud.url', {infer: true});
 
     this.environment = this.configService.get('app.nodeEnv', {infer: true});
+
+    this.captchaSolverApiKey = this.configService.get<string>('ac.captchaSolver', {infer: true});
+    this.siteKey = '6LcVYtEUAAAAALlg52jHvKf9IM8n2FvJfqHSyqxg';
   }
 
   async run(maxTries = 3) {
@@ -66,21 +72,10 @@ export class CencosudB2bService {
     }
 
     puppeteer.use(StealthPlugin());
-    // set api key
-    const pathToExtension = path.join(__dirname, '../../../../2captcha-solver');
-
-    const {configPath, newConfigContent} = await this.updateConfigFile(pathToExtension);
-
-    await fs.writeFile(configPath, newConfigContent);
-
-    // Wait to implement changes
-    await new Promise((resolve) => setTimeout(resolve, 3_000));
-
-    this.logger.log('Path to extension: ' + pathToExtension);
 
     const browser: Browser = await puppeteer.launch({
       headless: true,
-      args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu' ],
+      args: [ '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu' ],
       executablePath: this.environment === Environment.Development ? executablePath() : '/usr/bin/google-chrome',
     });
 
@@ -93,8 +88,6 @@ export class CencosudB2bService {
       // try access to main page
       const orders = await this.loadMainPage(browser, page);
 
-      await this.restoreConfigFile(pathToExtension);
-
       await browser.close();
 
       return orders;
@@ -102,9 +95,6 @@ export class CencosudB2bService {
       this.logger.error('Error loading main page, clearing cookies and retrying');
       this.logger.error(error.message);
 
-      await this.restoreConfigFile(pathToExtension);
-
-      // await this.clearCookies();
       await browser.close();
 
       return this.run(maxTries - 1);
@@ -340,21 +330,16 @@ export class CencosudB2bService {
     await page.type('#password', this.password);
 
     // Read captcha field
-    let captcha = await this.getCaptchaFieldValue(page);
-    let captchaTries = 0;
-    const maxTries = 20;
+    const token = await this.solveCaptcha(page);
 
-    // check every second if captcha is filled or maxTries is reached
-    while (!captcha && captchaTries < maxTries) {
-      captcha = await this.getCaptchaFieldValue(page);
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
-      this.logger.log(`Checking captcha field. Try ${ captchaTries++ }`);
-    }
+    console.log('Token:', token);
 
-    if (!captcha && captchaTries === maxTries) {
-      this.logger.error('Max captcha retries reached');
-      return false;
-    }
+    await page.evaluate((token) => {
+      const captchaField = document.getElementById('g-recaptcha-response');
+      return captchaField.innerText = token;
+    }, token);
+
+    await new Promise((resolve) => setTimeout(resolve, 30_000));
 
     // Submit form
     await page.click('#kc-login', {delay: 1000});
@@ -368,9 +353,7 @@ export class CencosudB2bService {
       this.logger.error('Login failed');
 
       // If public folder does not exist, create it
-      if (!fs.existsSync('public')) {
-        await fs.mkdir('public');
-      }
+      if (!fs.existsSync('public')) await fs.mkdir('public');
 
       const screenshotPath = `public/login-failed${ new Date().getTime() }.png`;
       await page.screenshot({path: screenshotPath, fullPage: true});
@@ -389,5 +372,16 @@ export class CencosudB2bService {
       const captchaField = document.getElementById('g-recaptcha-response');
       return captchaField['value'];
     });
+  }
+
+  private async solveCaptcha(page: Page) {
+    const solver = new Solver(this.captchaSolverApiKey);
+
+    const token = await solver.recaptcha({
+      pageurl: page.url(),
+      googlekey: this.siteKey
+    });
+
+    return token.data;
   }
 }
