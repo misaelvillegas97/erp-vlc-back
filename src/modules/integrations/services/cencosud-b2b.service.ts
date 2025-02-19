@@ -79,7 +79,7 @@ export class CencosudB2bService {
     this.logger.log('Path to extension: ' + pathToExtension);
 
     const browser: Browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu' ],
       executablePath: this.environment === Environment.Development ? executablePath() : '/usr/bin/google-chrome',
     });
