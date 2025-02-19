@@ -25,8 +25,6 @@ export class SessionRepository {
       },
     });
 
-    console.log(entity);
-
     return entity ? SessionMapper.toDomain(entity) : null;
   }
 

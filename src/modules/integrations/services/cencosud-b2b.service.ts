@@ -59,7 +59,12 @@ export class CencosudB2bService {
     this.environment = this.configService.get('app.nodeEnv', {infer: true});
   }
 
-  async run() {
+  async run(maxTries = 3) {
+    if (maxTries <= 0) {
+      this.logger.error('Max retries reached. Aborting operation.');
+      throw new Error('Max retries reached');
+    }
+
     puppeteer.use(StealthPlugin());
     // set api key
     const pathToExtension = path.join(__dirname, '../../../../2captcha-solver');
@@ -74,7 +79,7 @@ export class CencosudB2bService {
     this.logger.log('Path to extension: ' + pathToExtension);
 
     const browser: Browser = await puppeteer.launch({
-      headless: true,
+      headless: false,
       args: [ `--disable-extensions-except=${ pathToExtension }`, `--load-extension=${ pathToExtension }`, '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu' ],
       executablePath: this.environment === Environment.Development ? executablePath() : '/usr/bin/google-chrome',
     });
@@ -102,7 +107,7 @@ export class CencosudB2bService {
       // await this.clearCookies();
       await browser.close();
 
-      return this.run();
+      return this.run(maxTries - 1);
     }
   }
 
@@ -133,7 +138,6 @@ export class CencosudB2bService {
   private async loadMainPage(browser: Browser, page: Page) {
     this.logger.log(`Loading main page. ${ this.url }`);
     await page.goto(this.url, {waitUntil: 'networkidle0'});
-    await page.reload();
 
     // Check if was redirected to login page
     if (page.url().includes('/auth')) {
@@ -338,12 +342,18 @@ export class CencosudB2bService {
     // Read captcha field
     let captcha = await this.getCaptchaFieldValue(page);
     let captchaTries = 0;
+    const maxTries = 100;
 
-    // check every second if captcha is filled, if not, wait one second and check it again
-    while (!captcha) {
+    // check every second if captcha is filled or maxTries is reached
+    while (!captcha && captchaTries < maxTries) {
       captcha = await this.getCaptchaFieldValue(page);
       await new Promise((resolve) => setTimeout(resolve, 1_000));
       this.logger.log(`Checking captcha field. Try ${ captchaTries++ }`);
+    }
+
+    if (!captcha && captchaTries === maxTries) {
+      this.logger.error('Max captcha retries reached');
+      return false;
     }
 
     // Submit form

@@ -19,7 +19,7 @@ import { InvoiceEntity }            from '@modules/invoices/domain/entities/invo
 import { OrdersObservationsEntity } from '@modules/orders/domain/entities/orders-observations.entity';
 
 @Entity({name: 'orders'})
-@Unique([ 'orderNumber' ])
+@Unique([ 'orderNumber', 'client' ])
 export class OrderEntity {
   @PrimaryColumn({type: 'uuid'})
   id: string = v4();
