@@ -89,12 +89,7 @@ export class OrderService {
     // Validate if order already exists by orderNumber, if exists, check status and update if necessary, if not, create new order
     for (const order of orders) {
       const existingOrder = await this.orderRepository.findOne({where: {orderNumber: order.orderNumber}});
-      if (existingOrder) {
-        if (existingOrder.status !== order.status) {
-          existingOrder.status = order.status;
-          updatedOrders.push(await this.orderRepository.save(existingOrder));
-        }
-      } else {
+      if (!existingOrder) {
         order.products = await Promise.all(order.products.map(async (product) => {
           const productEntity = await this.productsService.findClientProducts(order.clientId, +product.providerCode);
 
@@ -134,8 +129,8 @@ export class OrderService {
       createInvoiceDto.totalAmount = createInvoiceDto.netAmount + createInvoiceDto.taxAmount;
     }
 
-    if (order.status !== OrderStatusEnum.DELIVERED)
-      order.status = OrderStatusEnum.INVOICED;
+    if (order.status !== OrderStatusEnum.DELIVERED && createInvoiceDto.markAsPendingDelivery)
+      order.status = OrderStatusEnum.PENDING_DELIVERY;
 
     order.invoice = await this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
 

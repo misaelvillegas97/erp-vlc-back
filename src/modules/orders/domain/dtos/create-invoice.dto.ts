@@ -32,4 +32,7 @@ export class CreateInvoiceDto {
 
   @IsUUID()
   deliveryAssignmentId: string;
+
+  @IsOptional()
+  markAsPendingDelivery: boolean = false;
 }
