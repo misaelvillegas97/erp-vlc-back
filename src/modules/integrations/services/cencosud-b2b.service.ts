@@ -346,7 +346,7 @@ export class CencosudB2bService {
     await new Promise((resolve) => setTimeout(resolve, 3_000));
 
     // Check if was redirected to main page
-    if (page.url().includes('/auth1')) {
+    if (page.url().includes('/auth')) {
       this.logger.error('Login failed');
 
       // If public folder does not exist, create it
