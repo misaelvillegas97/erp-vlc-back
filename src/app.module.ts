@@ -41,11 +41,14 @@ import { ServeStaticModule }    from '@nestjs/serve-static';
 import { ProductsModule }       from '@modules/products/products.module';
 import { InvoicesModule }       from '@modules/invoices/invoices.module';
 import { EventEmitterModule }   from '@nestjs/event-emitter';
+import { AppController }        from './app.controller';
 
 @Module({
   imports: [
     ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'public')
+      rootPath: path.join(__dirname, '..', 'public'),
+      serveRoot: '/public',
+      serveStaticOptions: {index: false}
     }),
     EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
@@ -119,5 +122,6 @@ import { EventEmitterModule }   from '@nestjs/event-emitter';
     ProductsModule,
     ClientsModule,
   ],
+  controllers: [ AppController ]
 })
 export class AppModule {}

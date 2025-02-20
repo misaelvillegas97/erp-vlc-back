@@ -340,14 +340,13 @@ export class CencosudB2bService {
     }, token);
 
     // Submit form
+    this.logger.log('Clicking login button');
     await page.click('#kc-login', {delay: 1000});
 
-    // Sleep for 30 seconds, and check if was redirected to main page
-    this.logger.log('Sleeping for 5 seconds...');
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
 
     // Check if was redirected to main page
-    if (page.url().includes('/auth')) {
+    if (page.url().includes('/auth1')) {
       this.logger.error('Login failed');
 
       // If public folder does not exist, create it
