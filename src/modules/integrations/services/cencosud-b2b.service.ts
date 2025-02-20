@@ -339,8 +339,6 @@ export class CencosudB2bService {
       return captchaField.innerText = token;
     }, token);
 
-    await new Promise((resolve) => setTimeout(resolve, 30_000));
-
     // Submit form
     await page.click('#kc-login', {delay: 1000});
 
