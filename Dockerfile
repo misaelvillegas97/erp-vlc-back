@@ -27,8 +27,6 @@ COPY --chown=node:node package*.json ./
 
 COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
 
-COPY --chown=node:node --from=development /usr/src/app/2captcha-solver ./2captcha-solver
-
 COPY --chown=node:node --from=development /usr/src/app/public ./public
 
 COPY --chown=node:node . .
@@ -65,7 +63,6 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
-COPY --chown=node:node --from=build /usr/src/app/2captcha-solver ./2captcha-solver
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 COPY --chown=node:node --from=build /usr/src/app/public ./public
 
