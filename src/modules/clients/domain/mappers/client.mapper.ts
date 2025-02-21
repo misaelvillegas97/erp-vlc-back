@@ -10,6 +10,7 @@ export class ClientMapper implements Partial<ClientEntity> {
   readonly email: string;
   readonly phoneNumber?: string;
   readonly address?: ClientAddress[];
+  readonly deletable: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date;
@@ -28,6 +29,7 @@ export class ClientMapper implements Partial<ClientEntity> {
       email: entity.email,
       phoneNumber: entity.phoneNumber,
       address: entity.address,
+      deletable: entity.deletable,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,

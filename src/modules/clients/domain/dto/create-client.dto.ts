@@ -33,4 +33,8 @@ export class CreateClientDto implements Partial<ClientEntity> {
   @ApiProperty({example: '', type: Object})
   @IsOptional()
   public readonly address: ClientAddress[];
+
+  @ApiProperty({example: true, type: Boolean})
+  @IsOptional()
+  public readonly deletable: boolean = true;
 }

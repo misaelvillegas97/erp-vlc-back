@@ -4,11 +4,11 @@ export class OrderStatusProvider {
   public static parseFromCencoB2B(status: string) {
     switch (status) {
       case 'Aceptada':
-        return OrderStatusEnum.PENDING;
+        return OrderStatusEnum.CREATED;
       case 'Liberada':
-        return OrderStatusEnum.PENDING;
+        return OrderStatusEnum.CREATED;
       default:
-        return OrderStatusEnum.PENDING;
+        return OrderStatusEnum.CREATED;
     }
   }
 }

@@ -29,6 +29,9 @@ export class ClientEntity {
   @Column({nullable: true, type: 'json'})
   address: ClientAddress[];
 
+  @Column({default: true})
+  deletable: boolean = true;
+
   @CreateDateColumn()
   createdAt: Date;
 
