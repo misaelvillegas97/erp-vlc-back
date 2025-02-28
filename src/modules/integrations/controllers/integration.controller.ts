@@ -7,6 +7,13 @@ export class IntegrationController {
     private readonly tasksScheduler: TasksScheduler,
   ) {}
 
+  @Get()
+  run() {
+    void this.tasksScheduler.checkExternalOrders();
+
+    return {message: 'External orders tasks scheduled'};
+  }
+
   @Get('cencosud')
   cencosud() {
     void this.tasksScheduler.checkCencoB2B();

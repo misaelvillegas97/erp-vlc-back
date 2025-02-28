@@ -1,8 +1,13 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class CreateOrderProductDto {
-  @IsUUID()
-  public id: string;
+export class CreateExternalOrderProductDto {
+  @IsString()
+  @IsNotEmpty()
+  public readonly code: string;
+
+  @IsString()
+  @IsOptional()
+  public readonly providerCode?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -27,7 +32,7 @@ export class CreateOrderProductDto {
   @IsOptional()
   public readonly additionalInfo?: Record<string, any>;
 
-  constructor(values: Partial<CreateOrderProductDto>) {
+  constructor(values: Partial<CreateExternalOrderProductDto>) {
     Object.assign(this, values);
   }
 }

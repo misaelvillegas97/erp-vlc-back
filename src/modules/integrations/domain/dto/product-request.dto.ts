@@ -1,8 +1,8 @@
-import { parseCommaAndDotToNumber } from '@shared/utils/currency.util';
-import { CreateOrderProductDto }    from '@modules/orders/domain/dtos/create-order-product.dto';
+import { parseCommaAndDotToNumber }      from '@shared/utils/currency.util';
+import { CreateExternalOrderProductDto } from '@modules/orders/domain/dtos/create-external-order-product.dto';
 
-export class ProductRequestDto extends CreateOrderProductDto {
-  static mapFromComercioNet(values: any): CreateOrderProductDto {
+export class ProductRequestDto extends CreateExternalOrderProductDto {
+  static mapFromComercioNet(values: any): CreateExternalOrderProductDto {
     const {item: code, upcCode, providerCode, observation, quantity, unitPrice: unitaryPrice, totalPrice, ...others} = values;
 
     const parsedQuantity = parseCommaAndDotToNumber(quantity);
@@ -21,7 +21,7 @@ export class ProductRequestDto extends CreateOrderProductDto {
     });
   }
 
-  static mapFromCencoB2B(values: any): CreateOrderProductDto {
+  static mapFromCencoB2B(values: any): CreateExternalOrderProductDto {
     const {productCode, providerCode, barcode, description, requestedQty, finalCost, ...others} = values;
 
     // Number format 10.000,00 -> 10000.00

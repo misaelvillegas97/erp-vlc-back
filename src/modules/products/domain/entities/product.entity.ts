@@ -23,4 +23,8 @@ export class ProductEntity {
   @OneToMany(() => ProductsClientEntity, (productClient) => productClient.product)
   @JoinTable()
   providerCodes: ProductsClientEntity[];
+
+  constructor(values: Partial<ProductEntity>) {
+    Object.assign(this, values);
+  }
 }

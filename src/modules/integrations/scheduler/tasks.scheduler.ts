@@ -27,6 +27,11 @@ export class TasksScheduler {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   @Cron(CronExpression.EVERY_3_HOURS, {disabled: this.environment === Environment.Development})
+  async checkExternalOrders() {
+    await this.checkCencoB2B();
+    await this.checkComercioNet();
+  }
+
   async checkComercioNet() {
     this.logger.log(`[WallmartB2B] Initializing task at ${ new Date().toISOString() }`);
 
@@ -51,9 +56,6 @@ export class TasksScheduler {
     this.eventEmitter.emit('order-providers.createAll', mappedOrders);
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  @Cron(CronExpression.EVERY_3_HOURS, {disabled: this.environment === Environment.Development})
   async checkCencoB2B() {
     this.logger.log(`[CencosudB2B] Initializing task at ${ new Date().toISOString() }`);
 

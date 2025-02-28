@@ -17,18 +17,19 @@ import { OrderTypeEnum }            from '@modules/orders/domain/enums/order-typ
 import { OrderStatusEnum }          from '@modules/orders/domain/enums/order-status.enum';
 import { InvoiceEntity }            from '@modules/invoices/domain/entities/invoice.entity';
 import { OrdersObservationsEntity } from '@modules/orders/domain/entities/orders-observations.entity';
+import { DateTime }                 from 'luxon';
 
 @Entity({name: 'orders'})
-@Unique([ 'orderNumber', 'client' ])
+@Unique([ 'referenceId', 'client' ])
 export class OrderEntity {
   @PrimaryColumn({type: 'uuid'})
   id: string = v4();
 
-  @Column()
+  @Column({unique: true})
   orderNumber: string;
 
-  @Column()
-  businessName: string;
+  @Column({nullable: true})
+  referenceId: string;
 
   @Column()
   type: OrderTypeEnum;
@@ -43,7 +44,7 @@ export class OrderEntity {
   deliveryDate: string;
 
   @Column({type: 'date'})
-  emissionDate: string = new Date().toISOString().split('T')[0];
+  emissionDate: string = DateTime.now().toISODate();
 
   @Column({type: 'date', nullable: true})
   deliveredDate?: string;

@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Inject, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { REQUEST }                                                           from '@nestjs/core';
-import { CreateOrderDto }                                                    from './domain/dtos/create-order.dto';
 import { OrderStatusEnum }                                                   from './domain/enums/order-status.enum';
 import { OrderMapper }                                                       from './domain/mappers/order.mapper';
 import { CreateInvoiceDto }                                                  from './domain/dtos/create-invoice.dto';
@@ -8,6 +7,7 @@ import { OrderQueryDto }                                                     fro
 import { OrderService }                                                      from './order.service';
 import { Request }                                                           from 'express';
 import { AuthGuard }                                                         from '@nestjs/passport';
+import { CreateOrderDto }                                                    from '@modules/orders/domain/dtos/create-order.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('orders')

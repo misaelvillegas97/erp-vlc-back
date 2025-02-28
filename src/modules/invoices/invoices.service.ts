@@ -46,6 +46,8 @@ export class InvoicesService {
     if (query?.totalAmount?.to) qb.andWhere('inv.totalAmount <= :to', {to: query.totalAmount.to});
     if (query?.deliveryAssignment) qb.andWhere('inv.deliveryAssignment.id = :deliveryAssignment', {deliveryAssignment: query.deliveryAssignment});
 
+    qb.orderBy('inv.createdAt', 'DESC');
+
     return qb.getMany();
   }
 

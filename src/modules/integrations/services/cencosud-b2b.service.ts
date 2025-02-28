@@ -1,5 +1,4 @@
 import { Injectable, Logger }            from '@nestjs/common';
-import * as path                         from 'node:path';
 import * as fs                           from 'fs-extra';
 import { ConfigService }                 from '@nestjs/config';
 import puppeteer                         from 'puppeteer-extra';
@@ -88,6 +87,9 @@ export class CencosudB2bService {
       // try access to main page
       const orders = await this.loadMainPage(browser, page);
 
+      const pages = await browser.pages();
+      await Promise.all(pages.map((page) => page.close()));
+
       await browser.close();
 
       return orders;
@@ -99,30 +101,6 @@ export class CencosudB2bService {
 
       return this.run(maxTries - 1);
     }
-  }
-
-  private async updateConfigFile(pathToExtension: string) {
-    // Modify the path to the extension + /common/config.js and add the API key from 2captcha
-    const configPath = path.join(pathToExtension, 'common/config.js');
-
-    this.configFileBackup = await fs.readFile(configPath, 'utf-8');
-
-    const apiKey = this.configService.get<string>('ac.captchaSolver', {infer: true});
-    const newConfigContent = this.configFileBackup.replace('YOUR_API_KEY', apiKey);
-
-    return {configPath, newConfigContent};
-  }
-
-  private async restoreConfigFile(pathToExtension: string) {
-    // Modify the path to the extension + /common/config.js and add the API key from 2captcha
-    const configPath = path.join(pathToExtension, 'common/config.js');
-
-    this.configFileBackup = await fs.readFile(configPath, 'utf-8');
-
-    const apiKey = this.configService.get<string>('ac.captchaSolver', {infer: true});
-    const newConfigContent = this.configFileBackup.replace(apiKey, 'YOUR_API_KEY');
-
-    return {configPath, newConfigContent};
   }
 
   private async loadMainPage(browser: Browser, page: Page) {
@@ -231,7 +209,7 @@ export class CencosudB2bService {
       await page.waitForSelector('.v-window .v-grid-tablewrapper', {visible: true});
 
       // Leave some time for the modal detail to load
-      await new Promise((resolve) => setTimeout(resolve, 3_000));
+      await new Promise((resolve) => setTimeout(resolve, 5_000));
 
       const modalTableData = await page.evaluate(() => {
         const table = document.querySelector('.v-window .v-grid-tablewrapper');
@@ -362,13 +340,6 @@ export class CencosudB2bService {
     if (page.url().includes('/main')) this.logger.log('Logged in successfully');
 
     return true;
-  }
-
-  private async getCaptchaFieldValue(page: Page) {
-    return page.evaluate(() => {
-      const captchaField = document.getElementById('g-recaptcha-response');
-      return captchaField['value'];
-    });
   }
 
   private async solveCaptcha(page: Page) {

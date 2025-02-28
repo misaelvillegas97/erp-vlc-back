@@ -79,6 +79,7 @@ export class ComercioNetService {
 
         const orders = await this.extractOrders(browser, page);
 
+        await page.close();
         await browser.close();
 
         return orders;

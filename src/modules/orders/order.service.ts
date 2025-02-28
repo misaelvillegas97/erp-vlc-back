@@ -1,15 +1,15 @@
 import { Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
-import { InjectRepository }                                         from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository }                       from '@nestjs/typeorm';
 import { REQUEST }                                                  from '@nestjs/core';
 
-import { Request }                     from 'express';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { Request }                                 from 'express';
+import { DataSource, In, IsNull, Not, Repository } from 'typeorm';
 
 import { ClientEntity }    from '@modules/clients/domain/entities/client.entity';
 import { InvoicesService } from '@modules/invoices/invoices.service';
 import { UsersService }    from '@modules/users/users.service';
 
-import { CreateOrderDto }           from './domain/dtos/create-order.dto';
+import { CreateExternalOrderDto }   from './domain/dtos/create-external-order.dto';
 import { OrderStatusEnum }          from './domain/enums/order-status.enum';
 import { OrderEntity }              from './domain/entities/order.entity';
 import { ProductRequestEntity }     from './domain/entities/product-request.entity';
@@ -22,6 +22,8 @@ import { DateTime }                 from 'luxon';
 import { InvoiceEntity }            from '@modules/invoices/domain/entities/invoice.entity';
 import { INVOICE_DELIVERED }        from '@modules/invoices/domain/events.constant';
 import { OrdersObservationsEntity } from '@modules/orders/domain/entities/orders-observations.entity';
+import { CreateOrderDto }           from '@modules/orders/domain/dtos/create-order.dto';
+import { ProductEntity }            from '@modules/products/domain/entities/product.entity';
 
 @Injectable()
 export class OrderService {
@@ -29,6 +31,7 @@ export class OrderService {
 
   constructor(
     @Inject(REQUEST) private readonly request: Request,
+    @InjectDataSource() private dataSource: DataSource,
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
     @InjectRepository(ProductRequestEntity) private orderProductRepository: Repository<ProductRequestEntity>,
     private readonly invoicesService: InvoicesService,
@@ -70,6 +73,8 @@ export class OrderService {
     if (query.invoice)
       qb.andWhere('invoice.invoiceNumber = :invoice', {invoice: `${ query.invoice }`});
 
+    qb.orderBy('order.orderNumber', 'DESC');
+
     return qb.getMany();
   }
 
@@ -78,11 +83,22 @@ export class OrderService {
   }
 
   async create(order: CreateOrderDto): Promise<OrderEntity> {
-    return this.orderRepository.save(this.orderRepository.create(order));
+    const nextOrderNumber = await this.generateOrderNumber();
+    order.products = await Promise.all(order.products.map((product) => ({
+      ...product,
+      product: new ProductEntity({id: product.id})
+    } as ProductRequestEntity)));
+
+    return this.orderRepository.save(this.orderRepository.create({
+      ...order,
+      client: new ClientEntity({id: order.clientId}),
+      orderNumber: nextOrderNumber,
+      observations: order.observations && [ new OrdersObservationsEntity({observation: order.observations}) ],
+    }));
   }
 
   @OnEvent('order-providers.createAll')
-  async createAll(orders: CreateOrderDto[]): Promise<{ created: OrderEntity[]; updated: OrderEntity[] }> {
+  async createAll(orders: CreateExternalOrderDto[]): Promise<{ created: OrderEntity[]; updated: OrderEntity[] }> {
     const createdOrders = [];
     const updatedOrders = [];
 
@@ -90,6 +106,7 @@ export class OrderService {
     for (const order of orders) {
       const existingOrder = await this.orderRepository.findOne({where: {orderNumber: order.orderNumber}});
       if (!existingOrder) {
+        const nextOrderNumber = await this.generateOrderNumber();
         order.products = await Promise.all(order.products.map(async (product) => {
           const productEntity = await this.productsService.findClientProducts(order.clientId, +product.providerCode);
 
@@ -97,12 +114,19 @@ export class OrderService {
 
           product.description = productEntity.product.name;
           product.upcCode = productEntity.product.upcCode;
+
+          return {
+            ...product,
+            product: productEntity?.product && productEntity.product,
+          } as ProductRequestEntity;
         }));
 
         createdOrders.push(
           await this.orderRepository.save(
             this.orderRepository.create({
               ...order,
+              orderNumber: nextOrderNumber,
+              referenceId: order.orderNumber,
               observations: order.observation && [ new OrdersObservationsEntity({observation: order.observation}) ],
               client: new ClientEntity({id: order.clientId})
             })
@@ -298,5 +322,25 @@ export class OrderService {
       ordersByClient,
       ordersRevenueByDate,
     } as OrdersOverview;
+  }
+
+  async generateOrderNumber(prefix: string = 'R'): Promise<string> {
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+    await this.dataSource.query(`
+      CREATE SEQUENCE IF NOT EXISTS order_number_seq
+      START WITH 1
+      INCREMENT BY 1
+      NO MINVALUE
+      NO MAXVALUE
+      CACHE 1;
+    `);
+
+    const result = await this.dataSource.query('SELECT nextval(\'order_number_seq\') as seq');
+    const seqNumber = result[0].seq;
+
+    const formattedCounter = seqNumber.toString().padStart(6, '0');
+
+    return `${ prefix }-${ today }-${ formattedCounter }`;
   }
 }
