@@ -36,7 +36,9 @@ export class OrderController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return this.orderService.findOne(id);
+    const order = await this.orderService.findOne(id);
+
+    return OrderMapper.map(order);
   }
 
   @Post()

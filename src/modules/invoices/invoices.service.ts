@@ -54,14 +54,34 @@ export class InvoicesService {
   }
 
   async updateStatus(invoiceId: string, statusUpdateDto: StatusUpdateDto) {
-    const invoice = await this.invoiceRepository.findOne({where: {id: invoiceId}, relations: [ 'order' ]});
+    const invoice = await this.invoiceRepository.findOne({
+      where: {id: invoiceId},
+      relations: [ 'order' ]
+    });
+
     if (!invoice) throw new UnprocessableEntityException({code: 'INVOICE_NOT_FOUND'});
 
-    invoice.status = statusUpdateDto.status;
+    const previousStatus = invoice.status;
+    const previousDelivered = [
+      InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS,
+      InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS
+    ].includes(previousStatus);
+    const newDelivered = [
+      InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS,
+      InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS
+    ].includes(statusUpdateDto.status);
 
-    if (statusUpdateDto.status === InvoiceStatusEnum.PAID)
-      invoice.paymentDate = statusUpdateDto.paymentDate ? statusUpdateDto.paymentDate : new Date().toISOString();
+    // Only update status if it's different from the current one
+    if (previousStatus !== statusUpdateDto.status) {
+      invoice.status = statusUpdateDto.status;
+    }
 
+    // Only update payment date if the invoice is being marked as PAID and it doesn't have a payment date
+    if (statusUpdateDto.status === InvoiceStatusEnum.PAID && !invoice.paymentDate) {
+      invoice.paymentDate = statusUpdateDto.paymentDate || new Date().toISOString();
+    }
+
+    // If there are observations, update them and emit an event
     if (statusUpdateDto.observations) {
       invoice.observations = statusUpdateDto.observations;
       this.eventEmitter.emit(ORDER_OBSERVATION_CREATED, {
@@ -71,18 +91,20 @@ export class InvoicesService {
         invoice: {
           invoiceNumber: invoice.invoiceNumber,
           status: statusUpdateDto.status,
-          paymentDate: invoice.paymentDate && invoice.paymentDate,
+          paymentDate: invoice.paymentDate,
         }
       });
     }
 
-    if ([ InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS, InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS ].includes(statusUpdateDto.status)) {
+    // Emit event if the invoice is being marked as delivered
+    if (newDelivered && !previousDelivered) {
       this.eventEmitter.emit(INVOICE_DELIVERED, {...invoice});
       this.#logger.log(`Invoice ${ invoice.invoiceNumber } delivered`);
     }
 
     return await this.invoiceRepository.save(invoice);
   }
+
 
   async create(orderId: string, clientId: string, createInvoiceDto: CreateInvoiceDto) {
     const existingInvoice = await this.invoiceRepository.findOne({

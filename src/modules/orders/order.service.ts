@@ -74,7 +74,7 @@ export class OrderService {
   }
 
   async findOne(id: string): Promise<OrderEntity> {
-    return this.orderRepository.findOne({where: {id}});
+    return this.orderRepository.findOne({where: {id}, relations: [ 'products', 'invoice', 'observations' ]});
   }
 
   async create(order: CreateOrderDto): Promise<OrderEntity> {
@@ -204,6 +204,9 @@ export class OrderService {
 
   @OnEvent(INVOICE_DELIVERED, {async: true})
   async markAsDelivered({order}: InvoiceEntity) {
+    if (!order || order.status === OrderStatusEnum.DELIVERED)
+      this.logger.warn(`Order ${ order.orderNumber } already marked as delivered`);
+
     order.status = OrderStatusEnum.DELIVERED;
     order.deliveredDate = DateTime.now().toISODate();
 
