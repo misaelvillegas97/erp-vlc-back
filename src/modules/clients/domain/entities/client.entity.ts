@@ -1,29 +1,26 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinTable, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import { v4 }                                                                                                        from 'uuid';
-import { ProductsProviderCodeEntity }                                                                                from '@modules/products/domain/entities/products-provider-code.entity';
-import { ClientAddress }                                                                                             from '@modules/clients/domain/models/client-address';
+import { Column, Entity, JoinTable, OneToMany } from 'typeorm';
+import { ProductsProviderCodeEntity }           from '@modules/products/domain/entities/products-provider-code.entity';
+import { ClientAddress }                        from '@modules/clients/domain/models/client-address';
+import { AbstractEntity }                       from '@shared/domain/entities/abstract.entity';
 
 @Entity('client')
-export class ClientEntity {
-  @PrimaryColumn({type: 'uuid'})
-  id: string = v4();
-
-  @Column()
+export class ClientEntity extends AbstractEntity {
+  @Column({name: 'business_name'})
   businessName: string;
 
-  @Column()
+  @Column({name: 'fantasy_name'})
   fantasyName: string;
 
   @Column({nullable: true})
   code: string;
 
-  @Column()
+  @Column({name: 'national_id'})
   nationalId: string;
 
   @Column({nullable: true})
   email: string;
 
-  @Column({nullable: true})
+  @Column({nullable: true, name: 'phone_number'})
   phoneNumber: string;
 
   @Column({nullable: true, type: 'json'})
@@ -32,20 +29,12 @@ export class ClientEntity {
   @Column({default: true})
   deletable: boolean = true;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @DeleteDateColumn()
-  deletedAt: Date;
-
   @OneToMany(() => ProductsProviderCodeEntity, clientProduct => clientProduct.client)
   @JoinTable()
   products: ProductsProviderCodeEntity[];
 
   constructor(values: Partial<ClientEntity>) {
+    super();
     Object.assign(this, values);
   }
 }
