@@ -22,14 +22,11 @@ import { infinityPagination }                                         from '@sha
 import { CreateUserDto }                                              from './dto/create-user.dto';
 import { QueryUserDto }                                               from './dto/query-user.dto';
 import { UpdateUserDto }                                              from './dto/update-user.dto';
-import { Roles }                                                      from '../roles/roles.decorator';
-import { RoleEnum }                                                   from '../roles/roles.enum';
 import { RolesGuard }                                                 from '../roles/roles.guard';
 import { User }                                                       from './domain/user';
 import { UsersService }                                               from './users.service';
 
 @ApiBearerAuth()
-@Roles(RoleEnum.admin)
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiTags('Users')
 @Controller({
@@ -73,7 +70,6 @@ export class UsersController {
   @ApiOkResponse({type: Array<User>})
   @Get('query')
   @HttpCode(HttpStatus.OK)
-  @SerializeOptions({groups: [ 'admin' ]})
   @ApiQuery({name: 'query', type: String, required: true})
   async findByQuery(
     @Query('query') query: string,
@@ -81,40 +77,21 @@ export class UsersController {
     return this.usersService.findByQuery(query);
   }
 
-  @ApiOkResponse({
-    type: User,
-  })
-  @SerializeOptions({
-    groups: [ 'admin' ],
-  })
+  @ApiOkResponse({type: User})
+  @SerializeOptions({groups: [ 'admin' ]})
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiParam({
-    name: 'id',
-    type: String,
-    required: true,
-  })
+  @ApiParam({name: 'id', type: String, required: true})
   findOne(@Param('id') id: User['id']): Promise<NullableType<User>> {
     return this.usersService.findById(id);
   }
 
-  @ApiOkResponse({
-    type: User,
-  })
-  @SerializeOptions({
-    groups: [ 'admin' ],
-  })
+  @ApiOkResponse({type: User})
+  @SerializeOptions({groups: [ 'admin' ]})
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiParam({
-    name: 'id',
-    type: String,
-    required: true,
-  })
-  update(
-    @Param('id') id: User['id'],
-    @Body() updateProfileDto: UpdateUserDto,
-  ): Promise<User | null> {
+  @ApiParam({name: 'id', type: String, required: true})
+  update(@Param('id') id: User['id'], @Body() updateProfileDto: UpdateUserDto): Promise<User | null> {
     return this.usersService.update(id, updateProfileDto);
   }
 
