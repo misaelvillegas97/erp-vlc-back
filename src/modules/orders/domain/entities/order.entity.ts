@@ -1,23 +1,20 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, Unique, UpdateDateColumn } from 'typeorm';
-import { ProductRequestEntity }                                                                                        from './product-request.entity';
-import { v4 }                                                                                                          from 'uuid';
-import { ClientEntity }                                                                                                from '@modules/clients/domain/entities/client.entity';
-import { OrderTypeEnum }                                                                                               from '@modules/orders/domain/enums/order-type.enum';
-import { OrderStatusEnum }                                                                                             from '@modules/orders/domain/enums/order-status.enum';
-import { InvoiceEntity }                                                                                               from '@modules/invoices/domain/entities/invoice.entity';
-import { OrdersObservationsEntity }                                                                                    from '@modules/orders/domain/entities/orders-observations.entity';
-import { DateTime }                                                                                                    from 'luxon';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
+import { ProductRequestEntity }                                     from './product-request.entity';
+import { ClientEntity }                                             from '@modules/clients/domain/entities/client.entity';
+import { OrderTypeEnum }                                            from '@modules/orders/domain/enums/order-type.enum';
+import { OrderStatusEnum }                                          from '@modules/orders/domain/enums/order-status.enum';
+import { InvoiceEntity }                                            from '@modules/invoices/domain/entities/invoice.entity';
+import { OrdersObservationsEntity }                                 from '@modules/orders/domain/entities/orders-observations.entity';
+import { DateTime }                                                 from 'luxon';
+import { AbstractEntity }                                           from '@shared/domain/entities/abstract.entity';
 
 @Entity({name: 'orders'})
 @Unique([ 'referenceId', 'client' ])
-export class OrderEntity {
-  @PrimaryColumn({type: 'uuid'})
-  id: string = v4();
-
-  @Column({unique: true})
+export class OrderEntity extends AbstractEntity {
+  @Column({unique: true, name: 'order_number'})
   orderNumber: string;
 
-  @Column({nullable: true})
+  @Column({nullable: true, name: 'reference_id'})
   referenceId: string;
 
   @Column()
@@ -26,25 +23,25 @@ export class OrderEntity {
   @Column()
   status: OrderStatusEnum;
 
-  @Column()
+  @Column({name: 'delivery_location'})
   deliveryLocation: string;
 
-  @Column({type: 'date'})
+  @Column({type: 'date', name: 'delivery_date'})
   deliveryDate: string;
 
-  @Column({type: 'date'})
+  @Column({type: 'date', name: 'emission_date'})
   emissionDate: string = DateTime.now().toISODate();
 
-  @Column({type: 'date', nullable: true})
+  @Column({type: 'date', nullable: true, name: 'delivered_date'})
   deliveredDate?: string;
 
-  @Column({nullable: true, type: 'json'})
+  @Column({nullable: true, type: 'json', name: 'additional_info'})
   additionalInfo?: Record<string, any>;
 
   @OneToMany(() => OrdersObservationsEntity, (observation) => observation.order, {cascade: true})
   observations?: OrdersObservationsEntity[];
 
-  @OneToMany(() => ProductRequestEntity, (product) => product.orderRequest, {cascade: true})
+  @OneToMany(() => ProductRequestEntity, (product) => product.order, {cascade: true})
   products: ProductRequestEntity[];
 
   @OneToMany(() => InvoiceEntity, (invoice) => invoice.order, {cascade: true})
@@ -54,13 +51,8 @@ export class OrderEntity {
   @JoinColumn({name: 'client_id'})
   client: ClientEntity;
 
-  @CreateDateColumn({name: 'created_at'})
-  createdAt: Date;
-
-  @UpdateDateColumn({name: 'updated_at'})
-  updatedAt: Date;
-
   constructor(values: Partial<OrderEntity>) {
+    super();
     Object.assign(this, values);
   }
 }

@@ -11,10 +11,10 @@ export class ProductRequestEntity {
   @Column({nullable: true})
   code: string;
 
-  @Column({nullable: true})
+  @Column({nullable: true, name: 'provider_code'})
   providerCode: string;
 
-  @Column()
+  @Column({name: 'upc_code'})
   upcCode: string;
 
   @Column()
@@ -23,17 +23,18 @@ export class ProductRequestEntity {
   @Column()
   quantity: number;
 
-  @Column('decimal') // Use 'decimal' for monetary values
+  @Column('decimal', {name: 'unitary_price'})
   unitaryPrice: number;
 
-  @Column()
+  @Column({name: 'total_price'})
   totalPrice: number;
 
-  @Column({nullable: true, type: 'json'})
+  @Column({nullable: true, type: 'json', name: 'additional_info'})
   additionalInfo?: Record<string, any>;
 
   @ManyToOne(() => OrderEntity, (orderRequest) => orderRequest.products)
-  orderRequest: OrderEntity;
+  @JoinColumn({name: 'order_id'})
+  order: OrderEntity;
 
   @ManyToOne(() => ProductEntity, (product) => product.id, {nullable: true})
   @JoinColumn({name: 'product_id'})

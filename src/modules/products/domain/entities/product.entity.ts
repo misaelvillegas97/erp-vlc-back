@@ -1,6 +1,6 @@
 import { Column, Entity, JoinTable, OneToMany, PrimaryColumn, Unique } from 'typeorm';
 import { v4 }                                                          from 'uuid';
-import { ProductsClientEntity }                                        from '@modules/products/domain/entities/products-client.entity';
+import { ProductsProviderCodeEntity }                                  from '@modules/products/domain/entities/products-provider-code.entity';
 
 @Entity({name: 'products'})
 @Unique([ 'upcCode' ])
@@ -8,7 +8,7 @@ export class ProductEntity {
   @PrimaryColumn({type: 'uuid'})
   id: string = v4();
 
-  @Column()
+  @Column({nullable: false, name: 'upc_code'})
   upcCode: string;
 
   @Column()
@@ -17,12 +17,12 @@ export class ProductEntity {
   @Column({nullable: true})
   description?: string;
 
-  @Column()
+  @Column('decimal', {name: 'unitary_price'})
   unitaryPrice: number;
 
-  @OneToMany(() => ProductsClientEntity, (productClient) => productClient.product)
+  @OneToMany(() => ProductsProviderCodeEntity, (productClient) => productClient.product)
   @JoinTable()
-  providerCodes: ProductsClientEntity[];
+  providerCodes: ProductsProviderCodeEntity[];
 
   constructor(values: Partial<ProductEntity>) {
     Object.assign(this, values);

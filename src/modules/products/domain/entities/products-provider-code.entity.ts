@@ -3,9 +3,9 @@ import { AbstractEntity }                                from '@shared/domain/en
 import { ClientEntity }                                  from '@modules/clients/domain/entities/client.entity';
 import { ProductEntity }                                 from '@modules/products/domain/entities/product.entity';
 
-@Entity('products_client')
+@Entity('products_provider_code')
 @Unique([ 'product', 'client' ])
-export class ProductsClientEntity extends AbstractEntity {
+export class ProductsProviderCodeEntity extends AbstractEntity {
   @ManyToOne(() => ProductEntity, product => product.providerCodes)
   @JoinColumn({name: 'product_id'})
   product: ProductEntity;
@@ -14,6 +14,6 @@ export class ProductsClientEntity extends AbstractEntity {
   @JoinColumn({name: 'client_id'})
   client: ClientEntity;
 
-  @Column()
+  @Column({name: 'provider_code'})
   providerCode: number;
 }

@@ -9,7 +9,7 @@ import { CreditNoteEntity }                                         from '@modul
 @Entity({name: 'orders_invoice'})
 @Unique([ 'invoiceNumber' ])
 export class InvoiceEntity extends AbstractEntity {
-  @Column()
+  @Column({nullable: false, name: 'invoice_number'})
   invoiceNumber: number;
 
   @Column({type: 'enum', enum: InvoiceStatusEnum})
@@ -18,23 +18,29 @@ export class InvoiceEntity extends AbstractEntity {
   @Column({nullable: true})
   observations?: string;
 
-  @Column({type: 'date'})
+  @Column({type: 'date', nullable: false, name: 'emission_date'})
   emissionDate: string;
 
-  @Column({type: 'date', nullable: true})
+  @Column({type: 'date', nullable: true, name: 'due_date'})
   dueDate?: string;
 
-  @Column({type: 'date', nullable: true})
+  @Column({type: 'date', nullable: true, name: 'payment_date'})
   paymentDate?: string;
 
-  @Column()
+  @Column({nullable: false, name: 'net_amount'})
   netAmount: number;
 
-  @Column()
+  @Column({nullable: false, name: 'tax_amount'})
   taxAmount: number;
 
-  @Column()
+  @Column({nullable: false, name: 'total_amount'})
   totalAmount: number;
+
+  @Column({nullable: false, default: false, name: 'is_paid'})
+  isPaid: boolean;
+
+  @Column({nullable: false, default: true, name: 'is_active'})
+  isActive: boolean;
 
   @ManyToOne(() => OrderEntity, (order) => order.invoices, {onDelete: 'CASCADE'})
   order: OrderEntity;

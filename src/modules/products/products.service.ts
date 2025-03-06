@@ -3,7 +3,7 @@ import { InjectRepository }                         from '@nestjs/typeorm';
 import { ProductEntity }                            from '@modules/products/domain/entities/product.entity';
 import { Repository }                               from 'typeorm';
 import { AssignProductToClientDto }                 from '@modules/products/domain/dtos/assign-product-to-client.dto';
-import { ProductsClientEntity }                     from '@modules/products/domain/entities/products-client.entity';
+import { ProductsProviderCodeEntity }               from '@modules/products/domain/entities/products-provider-code.entity';
 import { CreateProductDto }                         from '@modules/products/domain/dtos/create-product.dto';
 import { UpdateProductDto }                         from '@modules/products/domain/dtos/update-product.dto';
 import { QueryProductDto }                          from '@modules/products/domain/dtos/query-product.dto';
@@ -12,7 +12,7 @@ import { QueryProductDto }                          from '@modules/products/doma
 export class ProductsService {
   constructor(
     @InjectRepository(ProductEntity) private readonly productRepository: Repository<ProductEntity>,
-    @InjectRepository(ProductsClientEntity) private readonly clientProductRepository: Repository<ProductsClientEntity>,
+    @InjectRepository(ProductsProviderCodeEntity) private readonly clientProductRepository: Repository<ProductsProviderCodeEntity>,
   ) {}
 
   async findAll(queryProductDto: QueryProductDto): Promise<ProductEntity[]> {
@@ -68,7 +68,7 @@ export class ProductsService {
     return this.clientProductRepository.save(clientProduct);
   }
 
-  findClientProducts(clientId: string, providerCode?: number): Promise<ProductsClientEntity> {
+  findClientProducts(clientId: string, providerCode?: number): Promise<ProductsProviderCodeEntity> {
     return this.clientProductRepository.findOne({where: {client: {id: clientId}, providerCode}, relations: [ 'product' ]});
   }
 }

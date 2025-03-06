@@ -22,12 +22,11 @@ import { infinityPagination }                                         from '@sha
 import { CreateUserDto }                                              from './dto/create-user.dto';
 import { QueryUserDto }                                               from './dto/query-user.dto';
 import { UpdateUserDto }                                              from './dto/update-user.dto';
-import { RolesGuard }                                                 from '../roles/roles.guard';
 import { User }                                                       from './domain/user';
 import { UsersService }                                               from './users.service';
 
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'))
 @ApiTags('Users')
 @Controller({
   path: 'users',

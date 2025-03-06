@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinTable, OneToMany, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { v4 }                                                                                                        from 'uuid';
-import { ProductsClientEntity }                                                                                      from '@modules/products/domain/entities/products-client.entity';
+import { ProductsProviderCodeEntity }                                                                                from '@modules/products/domain/entities/products-provider-code.entity';
 import { ClientAddress }                                                                                             from '@modules/clients/domain/models/client-address';
 
 @Entity('client')
@@ -41,9 +41,9 @@ export class ClientEntity {
   @DeleteDateColumn()
   deletedAt: Date;
 
-  @OneToMany(() => ProductsClientEntity, clientProduct => clientProduct.client)
+  @OneToMany(() => ProductsProviderCodeEntity, clientProduct => clientProduct.client)
   @JoinTable()
-  products: ProductsClientEntity[];
+  products: ProductsProviderCodeEntity[];
 
   constructor(values: Partial<ClientEntity>) {
     Object.assign(this, values);

@@ -1,8 +1,10 @@
 import { Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
+import { OnEvent }                                                  from '@nestjs/event-emitter';
 import { InjectDataSource, InjectRepository }                       from '@nestjs/typeorm';
 import { REQUEST }                                                  from '@nestjs/core';
 
 import { Request }                         from 'express';
+import { DateTime }                        from 'luxon';
 import { DataSource, In, Not, Repository } from 'typeorm';
 
 import { ClientEntity }    from '@modules/clients/domain/entities/client.entity';
@@ -13,16 +15,14 @@ import { CreateExternalOrderDto }   from './domain/dtos/create-external-order.dt
 import { OrderStatusEnum }          from './domain/enums/order-status.enum';
 import { OrderEntity }              from './domain/entities/order.entity';
 import { ProductRequestEntity }     from './domain/entities/product-request.entity';
+import { OrdersObservationsEntity } from './domain/entities/orders-observations.entity';
 import { CreateInvoiceDto }         from './domain/dtos/create-invoice.dto';
+import { CreateOrderDto }           from './domain/dtos/create-order.dto';
 import { OrderQueryDto }            from './domain/dtos/order-query.dto';
 import { OrdersOverview }           from './domain/interfaces/dashboard-overview.interface';
-import { OnEvent }                  from '@nestjs/event-emitter';
 import { ProductsService }          from '@modules/products/products.service';
-import { DateTime }                 from 'luxon';
 import { InvoiceEntity }            from '@modules/invoices/domain/entities/invoice.entity';
 import { INVOICE_DELIVERED }        from '@modules/invoices/domain/events.constant';
-import { OrdersObservationsEntity } from '@modules/orders/domain/entities/orders-observations.entity';
-import { CreateOrderDto }           from '@modules/orders/domain/dtos/create-order.dto';
 import { ProductEntity }            from '@modules/products/domain/entities/product.entity';
 
 @Injectable()
@@ -83,7 +83,7 @@ export class OrderService {
   }
 
   async create(order: CreateOrderDto): Promise<OrderEntity> {
-    const nextOrderNumber = await this.generateOrderNumber();
+    const nextOrderNumber = await this.generateOrderNumber('O');
     order.products = await Promise.all(order.products.map((product) => ({
       ...product,
       product: new ProductEntity({id: product.id})
