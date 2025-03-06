@@ -18,7 +18,7 @@ export class OrderMapper {
   readonly observations: any;
   readonly totalAmount: number;
   readonly client: ClientLightMapper;
-  readonly invoice: InvoiceMapper;
+  readonly invoices: InvoiceMapper[];
   readonly products: OrderProductMapper[];
 
   constructor(partial: Partial<OrderMapper>) {
@@ -40,7 +40,7 @@ export class OrderMapper {
       emissionDate: entity.emissionDate,
       observations: entity.observations,
       products: OrderProductMapper.mapAll(entity.products),
-      invoice: entity.invoice && InvoiceMapper.map(entity.invoice),
+      invoices: entity.invoices && InvoiceMapper.mapAll(entity.invoices),
       client: ClientLightMapper.map(entity.client),
       totalAmount,
     });

@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger, UnprocessableEntityException } from '@nestj
 import { InjectDataSource, InjectRepository }                       from '@nestjs/typeorm';
 import { REQUEST }                                                  from '@nestjs/core';
 
-import { Request }                                 from 'express';
-import { DataSource, In, IsNull, Not, Repository } from 'typeorm';
+import { Request }                         from 'express';
+import { DataSource, In, Not, Repository } from 'typeorm';
 
 import { ClientEntity }    from '@modules/clients/domain/entities/client.entity';
 import { InvoicesService } from '@modules/invoices/invoices.service';
@@ -43,7 +43,7 @@ export class OrderService {
     const qb = this.orderRepository.createQueryBuilder('order');
     qb.leftJoinAndSelect('order.client', 'client');
     qb.leftJoinAndSelect('order.products', 'products');
-    qb.leftJoinAndSelect('order.invoice', 'invoice');
+    qb.leftJoinAndSelect('order.invoices', 'invoices');
     qb.leftJoinAndSelect('order.observations', 'observations');
 
     if (query.orderNumber)
@@ -71,7 +71,7 @@ export class OrderService {
       qb.andWhere('order.amount = :amount', {amount: query.amount});
 
     if (query.invoice)
-      qb.andWhere('invoice.invoiceNumber = :invoice', {invoice: `${ query.invoice }`});
+      qb.andWhere('invoices.invoiceNumber = :invoice', {invoice: `${ query.invoice }`});
 
     qb.orderBy('order.orderNumber', 'DESC');
 
@@ -79,7 +79,7 @@ export class OrderService {
   }
 
   async findOne(id: string): Promise<OrderEntity> {
-    return this.orderRepository.findOne({where: {id}, relations: [ 'products', 'invoice', 'observations' ]});
+    return this.orderRepository.findOne({where: {id}, relations: [ 'products', 'invoices', 'observations' ]});
   }
 
   async create(order: CreateOrderDto): Promise<OrderEntity> {
@@ -104,7 +104,7 @@ export class OrderService {
 
     // Validate if order already exists by orderNumber, if exists, check status and update if necessary, if not, create new order
     for (const order of orders) {
-      const existingOrder = await this.orderRepository.findOne({where: {orderNumber: order.orderNumber}});
+      const existingOrder = await this.orderRepository.findOne({where: {referenceId: order.orderNumber}});
       if (!existingOrder) {
         const nextOrderNumber = await this.generateOrderNumber();
         order.products = await Promise.all(order.products.map(async (product) => {
@@ -143,22 +143,34 @@ export class OrderService {
   }
 
   async createInvoice(id: string, createInvoiceDto: CreateInvoiceDto) {
-    const order = await this.orderRepository.findOne({where: {id}, relations: [ 'products', 'invoice' ]});
+    // Fetch the order with necessary relations
+    const order = await this.orderRepository.findOne({
+      where: {id},
+      relations: [ 'products', 'invoices' ],
+    });
 
-    if (order.invoice) throw new UnprocessableEntityException({code: 'ORDER_ALREADY_INVOICED'});
+    // Check if the order already has invoices
+    if (order.invoices?.length > 0) throw new UnprocessableEntityException({code: 'ORDER_ALREADY_INVOICED'});
 
+    // Calculate amounts if not provided
     if (!createInvoiceDto.netAmount || !createInvoiceDto.taxAmount || !createInvoiceDto.totalAmount) {
-      createInvoiceDto.netAmount = order.products.reduce((acc, product) => acc + (product.unitaryPrice * product.quantity), 0);
-      createInvoiceDto.taxAmount = createInvoiceDto.netAmount * 0.19;
-      createInvoiceDto.totalAmount = createInvoiceDto.netAmount + createInvoiceDto.taxAmount;
+      const netAmount = order.products.reduce((acc, product) => acc + product.unitaryPrice * product.quantity, 0);
+
+      createInvoiceDto.netAmount = netAmount;
+      createInvoiceDto.taxAmount = netAmount * 0.19;
+      createInvoiceDto.totalAmount = netAmount + createInvoiceDto.taxAmount;
     }
 
-    if (order.status !== OrderStatusEnum.DELIVERED && createInvoiceDto.markAsPendingDelivery)
+    // Update order status if applicable
+    if (order.status !== OrderStatusEnum.DELIVERED && createInvoiceDto.markAsPendingDelivery) {
       order.status = OrderStatusEnum.PENDING_DELIVERY;
+    }
 
-    order.invoice = await this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
+    // Save the updated order status
+    await this.orderRepository.save(order);
 
-    return this.orderRepository.save(order);
+    // Create and return the invoice
+    return this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
   }
 
   async getSummary() {
@@ -189,17 +201,17 @@ export class OrderService {
       // Otras métricas, gráficos, etc.
     }
 
-    // Información para Accountant
-    if (user.role.name === 'ACCOUNTANT') {
-      summary.ordersWithoutInvoice = await this.orderRepository.count({
-        where: {invoice: {id: IsNull()}}
-      });
-      summary.pendingInvoices = await this.orderRepository.count({
-        where: {
-          invoice: {status: In([ 'ISSUED', 'RECEIVED_WITH_OBSERVATIONS', 'RECEIVED_WITHOUT_OBSERVATIONS' ])}
-        }
-      });
-    }
+    // // Información para Accountant
+    // if (user.role.name === 'ACCOUNTANT') {
+    //   summary.ordersWithoutInvoice = await this.orderRepository.count({
+    //     where: {invoice: {id: IsNull()}}
+    //   });
+    //   summary.pendingInvoices = await this.orderRepository.count({
+    //     where: {
+    //       invoice: {status: In([ 'ISSUED', 'RECEIVED_WITH_OBSERVATIONS', 'RECEIVED_WITHOUT_OBSERVATIONS' ])}
+    //     }
+    //   });
+    // }
 
     // Información para Driver (o roles que puedan tener asignaciones de entrega)
     if (user.role.name === 'DRIVER' || user.role.name === 'OPERATOR') {
@@ -324,23 +336,35 @@ export class OrderService {
     } as OrdersOverview;
   }
 
-  async generateOrderNumber(prefix: string = 'R'): Promise<string> {
-    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  async generateOrderNumber(prefix: string = 'R', period: 'year' | 'month' = 'month'): Promise<string> {
+    const now = new Date();
+    let periodString: string;
+
+    if (period === 'year') {
+      periodString = now.getFullYear().toString();
+    } else {
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      periodString = `${ now.getFullYear() }${ month }`;
+    }
+
+    const sequenceName = `order_number_seq_${ periodString }`;
 
     await this.dataSource.query(`
-      CREATE SEQUENCE IF NOT EXISTS order_number_seq
-      START WITH 1
-      INCREMENT BY 1
-      NO MINVALUE
-      NO MAXVALUE
-      CACHE 1;
-    `);
+    CREATE SEQUENCE IF NOT EXISTS ${ sequenceName }
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+  `);
 
-    const result = await this.dataSource.query('SELECT nextval(\'order_number_seq\') as seq');
+    // Obtener el siguiente valor de la secuencia
+    const result = await this.dataSource.query(`SELECT nextval('${ sequenceName }') as seq`);
     const seqNumber = result[0].seq;
 
-    const formattedCounter = seqNumber.toString().padStart(6, '0');
+    const formattedCounter = seqNumber.toString().padStart(4, '0');
 
-    return `${ prefix }-${ today }-${ formattedCounter }`;
+    return `${ prefix }-${ periodString }-${ formattedCounter }`;
   }
+
 }

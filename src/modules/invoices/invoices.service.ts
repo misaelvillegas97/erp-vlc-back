@@ -12,6 +12,8 @@ import { UserEntity }                                          from '@modules/us
 import { EventEmitter2 }                                       from '@nestjs/event-emitter';
 import { INVOICE_DELIVERED }                                   from '@modules/invoices/domain/events.constant';
 import { ORDER_OBSERVATION_CREATED, ORDER_OBSERVATION_ORIGIN } from '@modules/orders/domain/events.constant';
+import { CreateCreditNoteDto }                                 from '@modules/invoices/domain/dtos/create-credit-note.dto';
+import { CreditNoteEntity }                                    from '@modules/invoices/domain/entities/credit-note.entity';
 
 @Injectable()
 export class InvoicesService {
@@ -19,7 +21,8 @@ export class InvoicesService {
 
   constructor(
     @InjectRepository(InvoiceEntity) private readonly invoiceRepository: Repository<InvoiceEntity>,
-    private readonly eventEmitter: EventEmitter2
+    @InjectRepository(CreditNoteEntity) private readonly creditNoteRepository: Repository<CreditNoteEntity>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findAll(query?: InvoiceQueryDto): Promise<InvoiceEntity[]> {
@@ -116,7 +119,7 @@ export class InvoicesService {
 
     if (existingInvoice) throw new UnprocessableEntityException({
       code: 'INVOICE_ALREADY_EXISTS',
-      orderNumber: existingInvoice.order.orderNumber
+      orderNumber: existingInvoice.order?.orderNumber
     });
 
     const invoice = this.invoiceRepository.create(createInvoiceDto);
@@ -125,6 +128,19 @@ export class InvoicesService {
     invoice.deliveryAssignment = new UserEntity({id: createInvoiceDto.deliveryAssignmentId});
 
     return this.invoiceRepository.save(invoice);
+  }
+
+  async createCreditNote(invoiceId: string, createCreditNoteDto: CreateCreditNoteDto): Promise<CreditNoteEntity> {
+    const invoice = await this.invoiceRepository.findOneBy({id: invoiceId});
+
+    if (!invoice) throw new UnprocessableEntityException(`Invoice with id ${ invoiceId } not found`);
+
+    const creditNote = this.creditNoteRepository.create({
+      ...createCreditNoteDto,
+      invoice,
+    });
+
+    return this.creditNoteRepository.save(creditNote);
   }
 
   async invoicesOverview() {
