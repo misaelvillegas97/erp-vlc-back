@@ -30,6 +30,7 @@ export class CreateInvoiceDto {
   @IsNumber()
   totalAmount: number;
 
+  @IsOptional()
   @IsUUID()
   deliveryAssignmentId: string;
 

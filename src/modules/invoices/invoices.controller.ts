@@ -4,6 +4,7 @@ import { InvoiceMapper }                                  from '@modules/orders/
 import { InvoiceQueryDto }                                from '@modules/invoices/domain/dtos/query.dto';
 import { StatusUpdateDto }                                from '@modules/invoices/domain/dtos/status-update.dto';
 import { CreateCreditNoteDto }                            from '@modules/invoices/domain/dtos/create-credit-note.dto';
+import { CreateInvoiceDto }                               from '@modules/orders/domain/dtos/create-invoice.dto';
 
 @Controller('invoices')
 export class InvoicesController {
@@ -44,5 +45,12 @@ export class InvoicesController {
     const creditNote = await this.invoicesService.createCreditNote(invoiceId, createCreditNoteDto);
 
     return creditNote;
+  }
+
+  @Get(':invoiceId/re-invoice')
+  async reInvoice(@Param('invoiceId') invoiceId: string, @Body() createInvoiceDto: CreateInvoiceDto) {
+    const invoice = await this.invoicesService.reInvoice(invoiceId, createInvoiceDto);
+
+    return InvoiceMapper.map(invoice);
   }
 }

@@ -280,7 +280,8 @@ export class OrderService {
     // 3. Órdenes sin factura asociada (invoice_id es null)
     const ordersWithoutInvoiceCount = await this.orderRepository
       .createQueryBuilder('o')
-      .where('o.invoice_id IS NULL')
+      .leftJoinAndSelect('o.invoices', 'i')
+      .where('i.id IS NULL')
       .getCount();
 
     // 4. Órdenes vencidas: donde la fecha de entrega ya pasó y el estado NO es DELIVERED ni CANCELED.
@@ -296,8 +297,8 @@ export class OrderService {
     // Calculamos la diferencia entre deliveredDate y deliveryDate
     const averageDeliveryTimeResult = await this.orderRepository
       .createQueryBuilder('o')
-      .select('AVG(DATE_PART(\'day\', o."deliveredDate"::timestamp - o."deliveryDate"::timestamp))', 'avgDeliveryDays')
-      .where('o.deliveredDate IS NOT NULL')
+      .select('AVG(DATE_PART(\'day\', o."delivered_date"::timestamp - o."delivery_date"::timestamp))', 'avgDeliveryDays')
+      .where('o.delivered_date IS NOT NULL')
       .getRawOne();
     const averageDeliveryTime = averageDeliveryTimeResult ? +averageDeliveryTimeResult.avgDeliveryDays : 0;
 
@@ -318,11 +319,11 @@ export class OrderService {
     //    agrupado por la fecha de emisión de la orden.
     const ordersRevenueByDate = await this.orderProductRepository
       .createQueryBuilder('p')
-      .leftJoin('p.orderRequest', 'o')
-      .select('to_char(o.emissionDate, \'YYYY-MM-DD\')', 'date')
-      .addSelect('SUM(p."totalPrice")', 'revenue')
-      .groupBy('to_char(o.emissionDate, \'YYYY-MM-DD\')')
-      .orderBy('to_char(o.emissionDate, \'YYYY-MM-DD\')', 'ASC')
+      .leftJoin('p.order', 'o')
+      .select('to_char(o.emission_date, \'YYYY-MM-DD\')', 'date')
+      .addSelect('SUM(p."total_price")', 'revenue')
+      .groupBy('to_char(o.emission_date, \'YYYY-MM-DD\')')
+      .orderBy('to_char(o.emission_date, \'YYYY-MM-DD\')', 'ASC')
       .getRawMany();
 
     return {

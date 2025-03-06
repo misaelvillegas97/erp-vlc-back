@@ -14,6 +14,7 @@ import { INVOICE_DELIVERED }                                   from '@modules/in
 import { ORDER_OBSERVATION_CREATED, ORDER_OBSERVATION_ORIGIN } from '@modules/orders/domain/events.constant';
 import { CreateCreditNoteDto }                                 from '@modules/invoices/domain/dtos/create-credit-note.dto';
 import { CreditNoteEntity }                                    from '@modules/invoices/domain/entities/credit-note.entity';
+import { INVOICE_ALREADY_EXISTS, INVOICE_NOT_FOUND }           from '@modules/invoices/domain/constants/error.constant';
 
 @Injectable()
 export class InvoicesService {
@@ -118,7 +119,7 @@ export class InvoicesService {
     });
 
     if (existingInvoice) throw new UnprocessableEntityException({
-      code: 'INVOICE_ALREADY_EXISTS',
+      code: INVOICE_ALREADY_EXISTS,
       orderNumber: existingInvoice.order?.orderNumber
     });
 
@@ -130,10 +131,32 @@ export class InvoicesService {
     return this.invoiceRepository.save(invoice);
   }
 
+  async reInvoice(invoiceId: string, createInvoiceDto: CreateInvoiceDto) {
+    const invoice = await this.invoiceRepository.findOne({
+      where: {id: invoiceId},
+      relations: [ 'order' ]
+    });
+
+    if (!invoice) throw new UnprocessableEntityException({code: INVOICE_NOT_FOUND});
+
+    invoice.status = InvoiceStatusEnum.RE_INVOICED;
+    invoice.isActive = false;
+
+    const newInvoice = this.invoiceRepository.create(createInvoiceDto);
+    newInvoice.netAmount = invoice.netAmount;
+    newInvoice.taxAmount = invoice.taxAmount;
+    newInvoice.totalAmount = invoice.totalAmount;
+    newInvoice.order = invoice.order;
+    newInvoice.client = invoice.client;
+    newInvoice.deliveryAssignment = invoice.deliveryAssignment;
+
+    return this.invoiceRepository.save(newInvoice);
+  }
+
   async createCreditNote(invoiceId: string, createCreditNoteDto: CreateCreditNoteDto): Promise<CreditNoteEntity> {
     const invoice = await this.invoiceRepository.findOneBy({id: invoiceId});
 
-    if (!invoice) throw new UnprocessableEntityException(`Invoice with id ${ invoiceId } not found`);
+    if (!invoice) throw new UnprocessableEntityException({code: INVOICE_NOT_FOUND});
 
     const creditNote = this.creditNoteRepository.create({
       ...createCreditNoteDto,
