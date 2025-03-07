@@ -9,6 +9,8 @@ export class InvoiceMapper {
   readonly status: InvoiceStatusEnum;
   readonly emissionDate: string;
   readonly dueDate?: string;
+  readonly isPaid?: boolean;
+  readonly isActive?: boolean;
   readonly paymentDate?: string;
   readonly netAmount?: number;
   readonly taxAmount?: number;
@@ -30,6 +32,8 @@ export class InvoiceMapper {
       status: entity.status,
       emissionDate: entity.emissionDate,
       dueDate: entity.dueDate,
+      isPaid: entity.isPaid,
+      isActive: entity.isActive,
       paymentDate: entity.paymentDate,
       netAmount: entity.netAmount,
       taxAmount: entity.taxAmount,

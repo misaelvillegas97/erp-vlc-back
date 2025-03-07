@@ -30,7 +30,7 @@ export class InvoicesController {
     return InvoiceMapper.map(invoice);
   }
 
-  @Post()
+  // @Post()
   // async createInvoice(@Body() createInvoiceDto: CreateInvoiceDto) {
   //   const invoice = await this.invoicesService.createInvoice(createInvoiceDto);
   //
@@ -42,12 +42,10 @@ export class InvoicesController {
     @Param('invoiceId') invoiceId: string,
     @Body() createCreditNoteDto: CreateCreditNoteDto
   ) {
-    const creditNote = await this.invoicesService.createCreditNote(invoiceId, createCreditNoteDto);
-
-    return creditNote;
+    return await this.invoicesService.createCreditNote(invoiceId, createCreditNoteDto);
   }
 
-  @Get(':invoiceId/re-invoice')
+  @Post(':invoiceId/re-invoice')
   async reInvoice(@Param('invoiceId') invoiceId: string, @Body() createInvoiceDto: CreateInvoiceDto) {
     const invoice = await this.invoicesService.reInvoice(invoiceId, createInvoiceDto);
 

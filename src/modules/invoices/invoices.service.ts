@@ -15,6 +15,8 @@ import { ORDER_OBSERVATION_CREATED, ORDER_OBSERVATION_ORIGIN } from '@modules/or
 import { CreateCreditNoteDto }                                 from '@modules/invoices/domain/dtos/create-credit-note.dto';
 import { CreditNoteEntity }                                    from '@modules/invoices/domain/entities/credit-note.entity';
 import { INVOICE_ALREADY_EXISTS, INVOICE_NOT_FOUND }           from '@modules/invoices/domain/constants/error.constant';
+import { DateTime }                                            from 'luxon';
+import { isNil, isUndefined }                                  from '@nestjs/common/utils/shared.utils';
 
 @Injectable()
 export class InvoicesService {
@@ -38,6 +40,7 @@ export class InvoicesService {
     if (query?.orderNumber) qb.andWhere('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
     if (query?.status && Array.isArray(query.status)) qb.andWhere('inv.status IN (:...status)', {status: query.status});
     if (query?.status && !Array.isArray(query.status)) qb.andWhere('inv.status = :status', {status: query.status});
+    if (!isUndefined(query?.isPaid) && !isNil(query?.isPaid)) qb.andWhere('inv.isPaid = :isPaid', {isPaid: query.isPaid});
     if (query?.emissionDate?.from) qb.andWhere('inv.emissionDate >= :from', {from: query.emissionDate.from});
     if (query?.emissionDate?.to) qb.andWhere('inv.emissionDate <= :to', {to: query.emissionDate.to});
     if (query?.dueDate?.from) qb.andWhere('inv.dueDate >= :from', {from: query.dueDate.from});
@@ -46,8 +49,8 @@ export class InvoicesService {
     if (query?.netAmount?.to) qb.andWhere('inv.netAmount <= :to', {to: query.netAmount.to});
     if (query?.taxAmount?.from) qb.andWhere('inv.taxAmount >= :from', {from: query.taxAmount.from});
     if (query?.taxAmount?.to) qb.andWhere('inv.taxAmount <= :to', {to: query.taxAmount.to});
-    if (query?.totalAmount?.from) qb.andWhere('inv.totalAmount >= :from', {from: query.totalAmount.from});
-    if (query?.totalAmount?.to) qb.andWhere('inv.totalAmount <= :to', {to: query.totalAmount.to});
+    if (query?.totalAmount?.from) qb.andWhere('inv.total_amount >= :from', {from: query.totalAmount.from});
+    if (query?.totalAmount?.to) qb.andWhere('inv.total_amount <= :to', {to: query.totalAmount.to});
     if (query?.deliveryAssignment) qb.andWhere('inv.deliveryAssignment.id = :deliveryAssignment', {deliveryAssignment: query.deliveryAssignment});
 
     qb.orderBy('inv.createdAt', 'DESC');
@@ -67,6 +70,9 @@ export class InvoicesService {
 
     if (!invoice) throw new UnprocessableEntityException({code: 'INVOICE_NOT_FOUND'});
 
+    if (invoice.status === InvoiceStatusEnum.RE_INVOICED) throw new UnprocessableEntityException({code: 'INVOICE_RE_INVOICED'});
+    if (invoice.isPaid) throw new UnprocessableEntityException({code: 'INVOICE_ALREADY_PAID'});
+
     const previousStatus = invoice.status;
     const previousDelivered = [
       InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS,
@@ -83,8 +89,9 @@ export class InvoicesService {
     }
 
     // Only update payment date if the invoice is being marked as PAID and it doesn't have a payment date
-    if (statusUpdateDto.status === InvoiceStatusEnum.PAID && !invoice.paymentDate) {
-      invoice.paymentDate = statusUpdateDto.paymentDate || new Date().toISOString();
+    if (newDelivered && statusUpdateDto.isPaid && !invoice.paymentDate) {
+      invoice.isPaid = true;
+      invoice.paymentDate = statusUpdateDto.paymentDate || DateTime.now().toISODate();
     }
 
     // If there are observations, update them and emit an event
@@ -111,7 +118,6 @@ export class InvoicesService {
     return await this.invoiceRepository.save(invoice);
   }
 
-
   async create(orderId: string, clientId: string, createInvoiceDto: CreateInvoiceDto) {
     const existingInvoice = await this.invoiceRepository.findOne({
       where: {invoiceNumber: createInvoiceDto.invoiceNumber},
@@ -134,13 +140,15 @@ export class InvoicesService {
   async reInvoice(invoiceId: string, createInvoiceDto: CreateInvoiceDto) {
     const invoice = await this.invoiceRepository.findOne({
       where: {id: invoiceId},
-      relations: [ 'order' ]
+      relations: [ 'order', 'client' ]
     });
 
     if (!invoice) throw new UnprocessableEntityException({code: INVOICE_NOT_FOUND});
 
     invoice.status = InvoiceStatusEnum.RE_INVOICED;
     invoice.isActive = false;
+
+    await this.invoiceRepository.save(invoice); // Save the previous invoice
 
     const newInvoice = this.invoiceRepository.create(createInvoiceDto);
     newInvoice.netAmount = invoice.netAmount;
@@ -183,10 +191,10 @@ export class InvoicesService {
     // 2. Monto total facturado por período (por día)
     const totalInvoicedByDate = await this.invoiceRepository
       .createQueryBuilder('inv')
-      .select('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'date')
-      .addSelect('SUM(inv."totalAmount")', 'total')
-      .groupBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')')
-      .orderBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'ASC')
+      .select('to_char(inv.emission_date, \'YYYY-MM-DD\')', 'date')
+      .addSelect('SUM(inv."total_amount")', 'total')
+      .groupBy('to_char(inv.emission_date, \'YYYY-MM-DD\')')
+      .orderBy('to_char(inv.emission_date, \'YYYY-MM-DD\')', 'ASC')
       .getRawMany();
 
     // 3. Facturas por cliente (TOP 5 en monto facturado)
@@ -194,11 +202,11 @@ export class InvoicesService {
       .createQueryBuilder('inv')
       .leftJoinAndSelect('inv.client', 'client')
       .select('inv.client_id', 'clientId')
-      .addSelect('client.fantasyName', 'clientFantasyName')
-      .addSelect('SUM(inv."totalAmount")', 'totalAmount')
+      .addSelect('client.fantasy_name', 'clientFantasyName')
+      .addSelect('SUM(inv."total_amount")', 'totalAmount')
       .groupBy('inv.client_id')
-      .addGroupBy('client.fantasyName')
-      .orderBy('SUM(inv."totalAmount")', 'DESC')
+      .addGroupBy('client.fantasy_name')
+      .orderBy('SUM(inv."total_amount")', 'DESC')
       .limit(5)
       .getRawMany();
 
@@ -206,9 +214,9 @@ export class InvoicesService {
     const now = new Date();
     const overdueInvoicesCount = await this.invoiceRepository
       .createQueryBuilder('inv')
-      .where('inv."dueDate" < :now', {now})
-      .andWhere('inv."dueDate" IS NOT NULL')
-      .andWhere('inv.status != :paidStatus', {paidStatus: 'PAID'})
+      .where('inv."due_date" < :now', {now})
+      .andWhere('inv."due_date" IS NOT NULL')
+      .andWhere('inv.is_paid = :paidStatus', {paidStatus: false})
       .getCount();
 
     const totalInvoicesCount = await this.invoiceRepository.count();
@@ -219,14 +227,15 @@ export class InvoicesService {
     // 5. Edad de las facturas (Aging)
     const agingQuery = `
       SELECT CASE
-               WHEN "dueDate" < NOW() THEN 'Overdue'
-               WHEN "dueDate" BETWEEN NOW() AND NOW() + INTERVAL '30 days' THEN '0-30'
-               WHEN "dueDate" BETWEEN NOW() + INTERVAL '30 days' AND NOW() + INTERVAL '60 days' THEN '30-60'
+               WHEN "due_date" < NOW() THEN 'Overdue'
+               WHEN "due_date" BETWEEN NOW() AND NOW() + INTERVAL '30 days' THEN '0-30'
+               WHEN "due_date" BETWEEN NOW() + INTERVAL '30 days' AND NOW() + INTERVAL '60 days' THEN '30-60'
                ELSE '60+'
                END AS bucket,
              COUNT(*) as total
       FROM orders_invoice
-      WHERE "dueDate" IS NOT NULL
+      WHERE "due_date" IS NOT NULL
+      AND is_paid = false
       GROUP BY bucket
     `;
     const agingResults = await this.invoiceRepository.query(agingQuery);
@@ -235,10 +244,10 @@ export class InvoicesService {
     const averagePaymentTimeResult = await this.invoiceRepository
       .createQueryBuilder('inv')
       .select(
-        `AVG(DATE_PART('day', inv."paymentDate"::timestamp - inv."emissionDate"::timestamp))`,
+        `AVG(DATE_PART('day', inv.payment_date::timestamp - inv.emission_date::timestamp))`,
         'avgPaymentDays',
       )
-      .where('inv.status = :paidStatus', {paidStatus: InvoiceStatusEnum.PAID})
+      .where('inv.is_paid = :paidStatus', {paidStatus: true})
       .getRawOne();
     const averagePaymentTime = averagePaymentTimeResult
       ? Number(averagePaymentTimeResult.avgPaymentDays)
@@ -247,33 +256,46 @@ export class InvoicesService {
     // 7. Porcentaje de facturas pagadas por período (por día)
     const paidInvoicesByDate = await this.invoiceRepository
       .createQueryBuilder('inv')
-      .select('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'date')
+      .select('to_char(inv.emission_date, \'YYYY-MM-DD\')', 'date')
       .addSelect(
-        `SUM(CASE WHEN inv.status = '${ InvoiceStatusEnum.PAID }' THEN 1 ELSE 0 END)`,
+        `SUM(CASE WHEN inv.isPaid = '${ true }' THEN 1 ELSE 0 END)`,
         'paidCount',
       )
       .addSelect('COUNT(inv.id)', 'totalCount')
-      .groupBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')')
-      .orderBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'ASC')
+      .groupBy('to_char(inv.emission_date, \'YYYY-MM-DD\')')
+      .orderBy('to_char(inv.emission_date, \'YYYY-MM-DD\')', 'ASC')
       .getRawMany();
 
     // 8. Distribución de facturas por asignación de entrega
     //    Se agrupa por el ID del repartidor asignado (delivery_assignment_id)
-    const invoicesByDeliveryAssignment = await this.invoiceRepository
+    let invoicesByDeliveryAssignment = await this.invoiceRepository
       .createQueryBuilder('inv')
+      .leftJoinAndSelect('inv.deliveryAssignment', 'deliveryAssignment')
       .select('inv.delivery_assignment_id', 'deliveryAssignmentId')
+      .addSelect('deliveryAssignment.firstName', 'deliveryAssignmentFirstName')
+      .addSelect('deliveryAssignment.lastName', 'deliveryAssignmentLastName')
       .addSelect('COUNT(inv.id)', 'total')
       .groupBy('inv.delivery_assignment_id')
+      .addGroupBy('deliveryAssignment.firstName')
+      .addGroupBy('deliveryAssignment.lastName')
       .getRawMany();
+
+    invoicesByDeliveryAssignment = invoicesByDeliveryAssignment.map((item) => {
+      return {
+        deliveryAssignmentId: item.deliveryAssignmentId,
+        deliveryAssignmentName: `${ item.deliveryAssignmentFirstName } ${ item.deliveryAssignmentLastName }`,
+        total: item.total,
+      };
+    });
 
     // 9. Monto total pendiente (facturas no pagadas) por período (por día)
     const outstandingAmountByDate = await this.invoiceRepository
       .createQueryBuilder('inv')
-      .select('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'date')
-      .addSelect('SUM(inv."totalAmount")', 'outstandingTotal')
-      .where('inv.status != :paidStatus', {paidStatus: 'PAID'})
-      .groupBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')')
-      .orderBy('to_char(inv.emissionDate, \'YYYY-MM-DD\')', 'ASC')
+      .select('to_char(inv.emission_date, \'YYYY-MM-DD\')', 'date')
+      .addSelect('SUM(inv."total_amount")', 'outstandingTotal')
+      .where('inv.is_paid != :paidStatus', {paidStatus: true})
+      .groupBy('to_char(inv.emission_date, \'YYYY-MM-DD\')')
+      .orderBy('to_char(inv.emission_date, \'YYYY-MM-DD\')', 'ASC')
       .getRawMany();
 
     return {

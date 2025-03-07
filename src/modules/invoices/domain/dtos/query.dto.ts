@@ -16,6 +16,9 @@ export class InvoiceQueryDto {
   @IsEnum(InvoiceStatusEnum, {each: true})
   status: InvoiceStatusEnum;
 
+  @IsOptional()
+  isPaid: boolean;
+
   // Date will come as JSON.stringify from the client, so we need to parse it
   @IsOptional()
   @Transform(({value}) => JSON.parse(value))

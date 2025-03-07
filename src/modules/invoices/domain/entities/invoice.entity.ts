@@ -40,7 +40,7 @@ export class InvoiceEntity extends AbstractEntity {
   isPaid: boolean;
 
   @Column({nullable: false, default: true, name: 'is_active'})
-  isActive: boolean;
+  isActive: boolean = true;
 
   @ManyToOne(() => OrderEntity, (order) => order.invoices, {onDelete: 'CASCADE'})
   order: OrderEntity;
