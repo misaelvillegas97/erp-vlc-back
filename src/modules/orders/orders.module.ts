@@ -9,6 +9,8 @@ import { ProductsModule }            from '@modules/products/products.module';
 import { OrdersObservationsEntity }  from '@modules/orders/domain/entities/orders-observations.entity';
 import { InvoicesModule }            from '@modules/invoices/invoices.module';
 import { OrdersObservationsService } from '@modules/orders/services/orders-observations.service';
+import { ReportsController }         from '@modules/orders/controllers/reports.controller';
+import { ReportsService }            from '@modules/orders/services/reports.service';
 
 @Module({
   imports: [
@@ -17,8 +19,8 @@ import { OrdersObservationsService } from '@modules/orders/services/orders-obser
     TypeOrmModule.forFeature([ OrderEntity, ProductRequestEntity, OrdersObservationsEntity ]),
     InvoicesModule
   ],
-  controllers: [ OrderController ],
-  providers: [ OrderService, OrdersObservationsService ],
+  controllers: [ OrderController, ReportsController ],
+  providers: [ OrderService, OrdersObservationsService, ReportsService ],
   exports: [ OrderService ]
 })
 export class OrdersModule {}

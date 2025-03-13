@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
-import { OnEvent }                                                  from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent }                                   from '@nestjs/event-emitter';
 import { InjectDataSource, InjectRepository }                       from '@nestjs/typeorm';
 import { REQUEST }                                                  from '@nestjs/core';
 
@@ -7,9 +7,13 @@ import { Request }                         from 'express';
 import { DateTime }                        from 'luxon';
 import { DataSource, In, Not, Repository } from 'typeorm';
 
-import { ClientEntity }    from '@modules/clients/domain/entities/client.entity';
-import { InvoicesService } from '@modules/invoices/invoices.service';
-import { UsersService }    from '@modules/users/users.service';
+import { ClientEntity }      from '@modules/clients/domain/entities/client.entity';
+import { InvoiceEntity }     from '@modules/invoices/domain/entities/invoice.entity';
+import { INVOICE_DELIVERED } from '@modules/invoices/domain/events.constant';
+import { InvoicesService }   from '@modules/invoices/invoices.service';
+import { ProductEntity }     from '@modules/products/domain/entities/product.entity';
+import { ProductsService }   from '@modules/products/products.service';
+import { UsersService }      from '@modules/users/users.service';
 
 import { CreateExternalOrderDto }   from './domain/dtos/create-external-order.dto';
 import { OrderStatusEnum }          from './domain/enums/order-status.enum';
@@ -20,10 +24,6 @@ import { CreateInvoiceDto }         from './domain/dtos/create-invoice.dto';
 import { CreateOrderDto }           from './domain/dtos/create-order.dto';
 import { OrderQueryDto }            from './domain/dtos/order-query.dto';
 import { OrdersOverview }           from './domain/interfaces/dashboard-overview.interface';
-import { ProductsService }          from '@modules/products/products.service';
-import { InvoiceEntity }            from '@modules/invoices/domain/entities/invoice.entity';
-import { INVOICE_DELIVERED }        from '@modules/invoices/domain/events.constant';
-import { ProductEntity }            from '@modules/products/domain/entities/product.entity';
 
 @Injectable()
 export class OrderService {
@@ -37,6 +37,7 @@ export class OrderService {
     private readonly invoicesService: InvoicesService,
     private readonly productsService: ProductsService,
     private readonly userService: UsersService,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   async findAll(query: OrderQueryDto): Promise<OrderEntity[]> {
@@ -169,8 +170,16 @@ export class OrderService {
     // Save the updated order status
     await this.orderRepository.save(order);
 
-    // Create and return the invoice
-    return this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
+    const invoice = await this.invoicesService.create(order.id, order.client.id, createInvoiceDto);
+
+    this.eventEmitter.emit(
+      'notifications.user',
+      createInvoiceDto.deliveryAssignmentId,
+      'NEW_DELIVERY_ASSIGNMENT',
+      {invoiceNumber: invoice.invoiceNumber, orderNumber: order.orderNumber}
+    );
+
+    return invoice;
   }
 
   async getSummary() {
@@ -229,11 +238,22 @@ export class OrderService {
     return summary;
   }
 
+  async getOrdersToday(): Promise<OrderEntity[]> {
+    const today = DateTime.now().toISODate();
+    const excludedStatuses = [ OrderStatusEnum.DELIVERED, OrderStatusEnum.CANCELED ];
+
+    return this.orderRepository
+      .createQueryBuilder('o')
+      .where('o.deliveryDate = :today', {today})
+      .andWhere('o.status NOT IN (:...excluded)', {excluded: excludedStatuses})
+      .getMany();
+  }
+
   async updateStatus(id: string, status: OrderStatusEnum) {
     const order = await this.orderRepository.findOne({where: {id}});
     order.status = status;
 
-    if (status === OrderStatusEnum.DELIVERED) order.deliveredDate = DateTime.now().toISODate();
+    if (status === OrderStatusEnum.DELIVERED) order.deliveredDate = DateTime.now().toJSDate();
 
     return this.orderRepository.save(order);
   }
@@ -244,7 +264,7 @@ export class OrderService {
       this.logger.warn(`Order ${ order.orderNumber } already marked as delivered`);
 
     order.status = OrderStatusEnum.DELIVERED;
-    order.deliveredDate = DateTime.now().toISODate();
+    order.deliveredDate = DateTime.now().toJSDate();
 
     const savedOrder = await this.orderRepository.save(order, {reload: true});
 

@@ -34,6 +34,13 @@ export class OrderController {
     return this.orderService.getSummary();
   }
 
+  @Get('today')
+  async getOrdersToday(): Promise<OrderMapper[]> {
+    const order = await this.orderService.getOrdersToday();
+
+    return OrderMapper.mapAll(order);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const order = await this.orderService.findOne(id);

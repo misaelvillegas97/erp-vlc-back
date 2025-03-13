@@ -20,7 +20,7 @@ export class OrderEntity extends AbstractEntity {
   @Column()
   type: OrderTypeEnum;
 
-  @Column()
+  @Column({type: 'enum', enum: OrderStatusEnum, default: OrderStatusEnum.CREATED})
   status: OrderStatusEnum;
 
   @Column({name: 'delivery_location'})
@@ -32,8 +32,8 @@ export class OrderEntity extends AbstractEntity {
   @Column({type: 'date', name: 'emission_date'})
   emissionDate: string = DateTime.now().toISODate();
 
-  @Column({type: 'date', nullable: true, name: 'delivered_date'})
-  deliveredDate?: string;
+  @Column({nullable: true, name: 'delivered_date', type: 'timestamp without time zone'})
+  deliveredDate?: Date;
 
   @Column({nullable: true, type: 'json', name: 'additional_info'})
   additionalInfo?: Record<string, any>;

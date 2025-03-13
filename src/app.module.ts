@@ -8,40 +8,42 @@ import { HeaderResolver }                from 'nestjs-i18n';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import path                              from 'path';
 
-import { AuthModule }           from '@core/auth/auth.module';
-import authConfig               from '@core/auth/config/auth.config';
-import { AuthAppleModule }      from '@core/auth-apple/auth-apple.module';
-import appleConfig              from '@core/auth-apple/config/apple.config';
-import { AuthFacebookModule }   from '@core/auth-facebook/auth-facebook.module';
-import facebookConfig           from '@core/auth-facebook/config/facebook.config';
-import { AuthGoogleModule }     from '@core/auth-google/auth-google.module';
-import googleConfig             from '@core/auth-google/config/google.config';
-import { AuthTwitterModule }    from '@core/auth-twitter/auth-twitter.module';
-import twitterConfig            from '@core/auth-twitter/config/twitter.config';
-import acConfig                 from '@core/config/ac.config';
-import appConfig                from '@core/config/app.config';
-import cencoConfig              from '@core/config/cenco.config';
-import comercioConfig           from '@core/config/comercio.config';
-import { AllConfigType }        from '@core/config/config.type';
-import databaseConfig           from '@core/database/config/database.config';
-import { TypeOrmConfigService } from '@core/database/typeorm-config.service';
-import fileConfig               from '@modules/files/config/file.config';
-import { FilesModule }          from '@modules/files/files.module';
-import mailConfig               from '@modules/mail/config/mail.config';
-import { MailModule }           from '@modules/mail/mail.module';
-import { MailerModule }         from '@modules/mailer/mailer.module';
-import { SeederModule }         from '@modules/seeder/seeder.module';
-import { SessionModule }        from '@modules/session/session.module';
-import { UsersModule }          from '@modules/users/users.module';
-import { IntegrationsModule }   from '@modules/integrations/integrations.module';
-import { OrdersModule }         from '@modules/orders/orders.module';
-import { ScheduleModule }       from '@nestjs/schedule';
-import { ClientsModule }        from '@modules/clients/clients.module';
-import { ServeStaticModule }    from '@nestjs/serve-static';
-import { ProductsModule }       from '@modules/products/products.module';
-import { InvoicesModule }       from '@modules/invoices/invoices.module';
-import { EventEmitterModule }   from '@nestjs/event-emitter';
-import { AppController }        from './app.controller';
+import { AuthModule }             from '@core/auth/auth.module';
+import authConfig                 from '@core/auth/config/auth.config';
+import { AuthAppleModule }        from '@core/auth-apple/auth-apple.module';
+import appleConfig                from '@core/auth-apple/config/apple.config';
+import { AuthFacebookModule }     from '@core/auth-facebook/auth-facebook.module';
+import facebookConfig             from '@core/auth-facebook/config/facebook.config';
+import { AuthGoogleModule }       from '@core/auth-google/auth-google.module';
+import googleConfig               from '@core/auth-google/config/google.config';
+import { AuthTwitterModule }      from '@core/auth-twitter/auth-twitter.module';
+import twitterConfig              from '@core/auth-twitter/config/twitter.config';
+import acConfig                   from '@core/config/ac.config';
+import appConfig                  from '@core/config/app.config';
+import cencoConfig                from '@core/config/cenco.config';
+import comercioConfig             from '@core/config/comercio.config';
+import { AllConfigType }          from '@core/config/config.type';
+import databaseConfig             from '@core/database/config/database.config';
+import { TypeOrmConfigService }   from '@core/database/typeorm-config.service';
+import fileConfig                 from '@modules/files/config/file.config';
+import { FilesModule }            from '@modules/files/files.module';
+import mailConfig                 from '@modules/mail/config/mail.config';
+import { MailModule }             from '@modules/mail/mail.module';
+import { MailerModule }           from '@modules/mailer/mailer.module';
+import { SeederModule }           from '@modules/seeder/seeder.module';
+import { SessionModule }          from '@modules/session/session.module';
+import { UsersModule }            from '@modules/users/users.module';
+import { IntegrationsModule }     from '@modules/integrations/integrations.module';
+import { OrdersModule }           from '@modules/orders/orders.module';
+import { ScheduleModule }         from '@nestjs/schedule';
+import { ClientsModule }          from '@modules/clients/clients.module';
+import { ServeStaticModule }      from '@nestjs/serve-static';
+import { ProductsModule }         from '@modules/products/products.module';
+import { InvoicesModule }         from '@modules/invoices/invoices.module';
+import { EventEmitterModule }     from '@nestjs/event-emitter';
+import { AppController }          from './app.controller';
+import { SupplierInvoicesModule } from '@modules/supplier-invoices/supplier-invoices.module';
+import { NotificationsModule }    from '@modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -118,9 +120,11 @@ import { AppController }        from './app.controller';
     SeederModule,
     IntegrationsModule,
     InvoicesModule,
+    SupplierInvoicesModule,
     OrdersModule,
     ProductsModule,
     ClientsModule,
+    NotificationsModule
   ],
   controllers: [ AppController ]
 })

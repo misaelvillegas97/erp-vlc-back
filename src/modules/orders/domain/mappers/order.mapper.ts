@@ -13,7 +13,7 @@ export class OrderMapper {
   readonly status: OrderStatusEnum;
   readonly deliveryLocation: string;
   readonly deliveryDate: string;
-  readonly deliveredDate: string;
+  readonly deliveredDate: Date;
   readonly emissionDate: string;
   readonly observations: any;
   readonly totalAmount: number;

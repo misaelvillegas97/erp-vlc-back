@@ -5,6 +5,7 @@ import { OrderEntity }                                              from '@modul
 import { ClientEntity }                                             from '@modules/clients/domain/entities/client.entity';
 import { UserEntity }                                               from '@modules/users/domain/entities/user.entity';
 import { CreditNoteEntity }                                         from '@modules/invoices/domain/entities/credit-note.entity';
+import { PaymentEntity }                                            from '@modules/invoices/domain/entities/payment.entity';
 
 @Entity({name: 'orders_invoice'})
 @Unique([ 'invoiceNumber' ])
@@ -12,7 +13,11 @@ export class InvoiceEntity extends AbstractEntity {
   @Column({nullable: false, name: 'invoice_number'})
   invoiceNumber: number;
 
-  @Column({type: 'enum', enum: InvoiceStatusEnum})
+  @Column({
+    type: 'enum',
+    enum: InvoiceStatusEnum,
+    default: InvoiceStatusEnum.ISSUED
+  })
   status: InvoiceStatusEnum;
 
   @Column({nullable: true})
@@ -52,8 +57,12 @@ export class InvoiceEntity extends AbstractEntity {
   @OneToMany(() => CreditNoteEntity, (creditNote) => creditNote.invoice, {cascade: true})
   creditNotes: CreditNoteEntity[];
 
+  @OneToMany(() => PaymentEntity, payment => payment.invoice)
+  payments: PaymentEntity[];
+
   // Delivery assignment
   @ManyToOne(() => UserEntity, user => user.id)
   @JoinColumn({name: 'delivery_assignment_id'})
   deliveryAssignment?: UserEntity;
+
 }
