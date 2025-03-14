@@ -1,7 +1,7 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { InvoiceEntity }                                     from '@modules/invoices/domain/entities/invoice.entity';
 
-@Entity('payments')
+@Entity('invoices_payments')
 export class PaymentEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -13,7 +13,7 @@ export class PaymentEntity {
   amount: number;
 
   @Column({nullable: true})
-  method: string;
+  method?: string;
 
   @Column({nullable: true})
   reference?: string;

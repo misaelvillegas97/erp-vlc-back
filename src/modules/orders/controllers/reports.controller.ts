@@ -13,9 +13,6 @@ export class ReportsController {
 
   constructor(private readonly reportsService: ReportsService) {}
 
-  /**
-   * Generar reporte de entregas
-   */
   @Get('delivery')
   @Roles(RoleEnum.admin, RoleEnum.dispatcher)
   async getDeliveryReport(
@@ -27,9 +24,6 @@ export class ReportsController {
     return this.reportsService.generateDeliveryReport(startDate, endDate, driverId);
   }
 
-  /**
-   * Exportar reporte a Excel
-   */
   @Get('delivery/export')
   @Roles(RoleEnum.admin, RoleEnum.dispatcher)
   async exportDeliveryReport(
@@ -40,7 +34,6 @@ export class ReportsController {
   ) {
     this.logger.log(`GET /api/logistics/reports/delivery/export - From ${ startDate } to ${ endDate }`);
 
-    // Generar los datos del reporte
     const reportData = await this.reportsService.generateDeliveryReport(
       startDate,
       endDate,
@@ -58,7 +51,6 @@ export class ReportsController {
       'Content-Length': buffer.byteLength,
     });
 
-    // Enviar el buffer como respuesta
     res.end(buffer);
   }
 }

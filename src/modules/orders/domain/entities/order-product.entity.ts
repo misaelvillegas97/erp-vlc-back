@@ -4,7 +4,7 @@ import { v4 }                                                   from 'uuid';
 import { ProductEntity }                                        from '@modules/products/domain/entities/product.entity';
 
 @Entity('orders_products')
-export class ProductRequestEntity {
+export class OrderProductEntity {
   @PrimaryColumn({type: 'uuid'})
   id: string = v4();
 
@@ -40,7 +40,7 @@ export class ProductRequestEntity {
   @JoinColumn({name: 'product_id'})
   product?: ProductEntity;
 
-  constructor(values: Partial<ProductRequestEntity>) {
+  constructor(values: Partial<OrderProductEntity>) {
     Object.assign(this, values);
   }
 }

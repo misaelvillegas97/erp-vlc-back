@@ -2,6 +2,7 @@ import { InvoiceEntity }     from '@modules/invoices/domain/entities/invoice.ent
 import { InvoiceStatusEnum } from '@modules/orders/domain/enums/invoice-status.enum';
 import { UserLightMapper }   from '@modules/users/domain/mappers/user-light.mapper';
 import { ClientLightMapper } from '@modules/clients/domain/mappers/client-light.mapper';
+import { PaymentEntity }     from '@modules/invoices/domain/entities/payment.entity';
 
 export class InvoiceMapper {
   readonly id: string;
@@ -11,7 +12,7 @@ export class InvoiceMapper {
   readonly dueDate?: string;
   readonly isPaid?: boolean;
   readonly isActive?: boolean;
-  readonly paymentDate?: string;
+  readonly paymentDate?: Date;
   readonly netAmount?: number;
   readonly taxAmount?: number;
   readonly totalAmount?: number;
@@ -20,6 +21,7 @@ export class InvoiceMapper {
   readonly createdAt: Date;
   readonly client: ClientLightMapper;
   readonly order: { id: string, orderNumber: string };
+  readonly payments?: PaymentEntity[];
 
   constructor(partial: Partial<InvoiceMapper>) {
     Object.assign(this, partial);
@@ -43,6 +45,7 @@ export class InvoiceMapper {
       createdAt: entity.createdAt,
       client: entity.client && ClientLightMapper.map(entity.client),
       order: entity.order && {id: entity.order.id, orderNumber: entity.order.orderNumber},
+      payments: entity.payments,
     });
   }
 

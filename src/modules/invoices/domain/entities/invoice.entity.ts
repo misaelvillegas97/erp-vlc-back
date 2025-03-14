@@ -7,7 +7,7 @@ import { UserEntity }                                               from '@modul
 import { CreditNoteEntity }                                         from '@modules/invoices/domain/entities/credit-note.entity';
 import { PaymentEntity }                                            from '@modules/invoices/domain/entities/payment.entity';
 
-@Entity({name: 'orders_invoice'})
+@Entity({name: 'invoices'})
 @Unique([ 'invoiceNumber' ])
 export class InvoiceEntity extends AbstractEntity {
   @Column({nullable: false, name: 'invoice_number'})
@@ -29,8 +29,8 @@ export class InvoiceEntity extends AbstractEntity {
   @Column({type: 'date', nullable: true, name: 'due_date'})
   dueDate?: string;
 
-  @Column({type: 'date', nullable: true, name: 'payment_date'})
-  paymentDate?: string;
+  @Column({type: 'timestamp', nullable: true, name: 'payment_date'})
+  paymentDate?: Date;
 
   @Column({nullable: false, name: 'net_amount'})
   netAmount: number;

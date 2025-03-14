@@ -18,12 +18,13 @@ import { UsersService }      from '@modules/users/users.service';
 import { CreateExternalOrderDto }   from './domain/dtos/create-external-order.dto';
 import { OrderStatusEnum }          from './domain/enums/order-status.enum';
 import { OrderEntity }              from './domain/entities/order.entity';
-import { ProductRequestEntity }     from './domain/entities/product-request.entity';
+import { OrderProductEntity }       from './domain/entities/order-product.entity';
 import { OrdersObservationsEntity } from './domain/entities/orders-observations.entity';
 import { CreateInvoiceDto }         from './domain/dtos/create-invoice.dto';
 import { CreateOrderDto }           from './domain/dtos/create-order.dto';
 import { OrderQueryDto }            from './domain/dtos/order-query.dto';
 import { OrdersOverview }           from './domain/interfaces/dashboard-overview.interface';
+import { DeliveryHistoryService }   from './services/delivery-history.service';
 
 @Injectable()
 export class OrderService {
@@ -33,7 +34,8 @@ export class OrderService {
     @Inject(REQUEST) private readonly request: Request,
     @InjectDataSource() private dataSource: DataSource,
     @InjectRepository(OrderEntity) private orderRepository: Repository<OrderEntity>,
-    @InjectRepository(ProductRequestEntity) private orderProductRepository: Repository<ProductRequestEntity>,
+    @InjectRepository(OrderProductEntity) private orderProductRepository: Repository<OrderProductEntity>,
+    private readonly deliveryHistoryService: DeliveryHistoryService,
     private readonly invoicesService: InvoicesService,
     private readonly productsService: ProductsService,
     private readonly userService: UsersService,
@@ -88,14 +90,18 @@ export class OrderService {
     order.products = await Promise.all(order.products.map((product) => ({
       ...product,
       product: new ProductEntity({id: product.id})
-    } as ProductRequestEntity)));
+    } as OrderProductEntity)));
 
-    return this.orderRepository.save(this.orderRepository.create({
+    const newOrder = await this.orderRepository.save(this.orderRepository.create({
       ...order,
       client: new ClientEntity({id: order.clientId}),
       orderNumber: nextOrderNumber,
       observations: order.observations && [ new OrdersObservationsEntity({observation: order.observations}) ],
     }));
+
+    await this.deliveryHistoryService.addHistory(newOrder.id, OrderStatusEnum.CREATED);
+
+    return newOrder;
   }
 
   @OnEvent('order-providers.createAll')
@@ -107,7 +113,7 @@ export class OrderService {
     for (const order of orders) {
       const existingOrder = await this.orderRepository.findOne({where: {referenceId: order.orderNumber}});
       if (!existingOrder) {
-        const nextOrderNumber = await this.generateOrderNumber();
+        const nextOrderNumber = await this.generateOrderNumber('R');
         order.products = await Promise.all(order.products.map(async (product) => {
           const productEntity = await this.productsService.findClientProducts(order.clientId, +product.providerCode);
 
@@ -119,7 +125,7 @@ export class OrderService {
           return {
             ...product,
             product: productEntity?.product && productEntity.product,
-          } as ProductRequestEntity;
+          } as OrderProductEntity;
         }));
 
         createdOrders.push(
@@ -254,6 +260,8 @@ export class OrderService {
     order.status = status;
 
     if (status === OrderStatusEnum.DELIVERED) order.deliveredDate = DateTime.now().toJSDate();
+
+    await this.deliveryHistoryService.addHistory(order.id, status);
 
     return this.orderRepository.save(order);
   }

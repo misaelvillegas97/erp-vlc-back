@@ -1,4 +1,4 @@
-import { ProductRequestEntity } from '@modules/orders/domain/entities/product-request.entity';
+import { OrderProductEntity } from '@modules/orders/domain/entities/order-product.entity';
 
 export class OrderProductMapper {
   readonly id: string;
@@ -13,7 +13,7 @@ export class OrderProductMapper {
     Object.assign(this, values);
   }
 
-  static map(entity: ProductRequestEntity): OrderProductMapper {
+  static map(entity: OrderProductEntity): OrderProductMapper {
     return new OrderProductMapper({
       id: entity.id,
       code: entity.code,
@@ -25,7 +25,7 @@ export class OrderProductMapper {
     });
   }
 
-  static mapAll(entities: ProductRequestEntity[]): OrderProductMapper[] {
+  static mapAll(entities: OrderProductEntity[]): OrderProductMapper[] {
     return entities.map(entity => this.map(entity));
   }
 }

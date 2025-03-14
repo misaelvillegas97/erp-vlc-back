@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
-import { ProductRequestEntity }                                     from './product-request.entity';
+import { OrderProductEntity }                                       from './order-product.entity';
 import { ClientEntity }                                             from '@modules/clients/domain/entities/client.entity';
 import { OrderTypeEnum }                                            from '@modules/orders/domain/enums/order-type.enum';
 import { OrderStatusEnum }                                          from '@modules/orders/domain/enums/order-status.enum';
@@ -7,6 +7,7 @@ import { InvoiceEntity }                                            from '@modul
 import { OrdersObservationsEntity }                                 from '@modules/orders/domain/entities/orders-observations.entity';
 import { DateTime }                                                 from 'luxon';
 import { AbstractEntity }                                           from '@shared/domain/entities/abstract.entity';
+import { DeliveryHistoryEntity }                                    from '@modules/orders/domain/entities/delivery-history.entity';
 
 @Entity({name: 'orders'})
 @Unique([ 'referenceId', 'client' ])
@@ -41,11 +42,14 @@ export class OrderEntity extends AbstractEntity {
   @OneToMany(() => OrdersObservationsEntity, (observation) => observation.order, {cascade: true})
   observations?: OrdersObservationsEntity[];
 
-  @OneToMany(() => ProductRequestEntity, (product) => product.order, {cascade: true})
-  products: ProductRequestEntity[];
+  @OneToMany(() => OrderProductEntity, (product) => product.order, {cascade: true})
+  products: OrderProductEntity[];
 
   @OneToMany(() => InvoiceEntity, (invoice) => invoice.order, {cascade: true})
   invoices: InvoiceEntity[];
+
+  @OneToMany(() => DeliveryHistoryEntity, (history) => history.order, {cascade: true})
+  deliveryHistory: DeliveryHistoryEntity[];
 
   @ManyToOne(() => ClientEntity, (client) => client.id, {eager: true})
   @JoinColumn({name: 'client_id'})

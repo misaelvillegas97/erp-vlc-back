@@ -17,6 +17,8 @@ import { CreditNoteEntity }                                    from '@modules/in
 import { INVOICE_ALREADY_EXISTS, INVOICE_NOT_FOUND }           from '@modules/invoices/domain/constants/error.constant';
 import { DateTime }                                            from 'luxon';
 import { isNil, isUndefined }                                  from '@nestjs/common/utils/shared.utils';
+import { CreatePaymentDto }                                    from '@modules/invoices/domain/dtos/create-payment.dto';
+import { PaymentEntity }                                       from '@modules/invoices/domain/entities/payment.entity';
 
 @Injectable()
 export class InvoicesService {
@@ -24,6 +26,7 @@ export class InvoicesService {
 
   constructor(
     @InjectRepository(InvoiceEntity) private readonly invoiceRepository: Repository<InvoiceEntity>,
+    @InjectRepository(PaymentEntity) private readonly paymentRepository: Repository<PaymentEntity>,
     @InjectRepository(CreditNoteEntity) private readonly creditNoteRepository: Repository<CreditNoteEntity>,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -33,6 +36,7 @@ export class InvoicesService {
 
     qb.leftJoinAndSelect('inv.order', 'order');
     qb.leftJoinAndSelect('inv.client', 'client');
+    qb.leftJoinAndSelect('inv.payments', 'payments');
 
     if (query?.invoiceNumber) qb.andWhere('inv.invoiceNumber = :invoiceNumber', {invoiceNumber: `${ query.invoiceNumber }`});
     if (query?.clientId && Array.isArray(query.clientId)) qb.andWhere('inv.client.id IN (:...clientId)', {clientId: query.clientId});
@@ -67,11 +71,12 @@ export class InvoicesService {
       where: {id: invoiceId},
       relations: [ 'order' ]
     });
+    const invalidStatuses = [ InvoiceStatusEnum.RE_INVOICED, InvoiceStatusEnum.RECEIVED_WITHOUT_OBSERVATIONS, InvoiceStatusEnum.RECEIVED_WITH_OBSERVATIONS ];
 
     if (!invoice) throw new UnprocessableEntityException({code: 'INVOICE_NOT_FOUND'});
 
-    if (invoice.status === InvoiceStatusEnum.RE_INVOICED) throw new UnprocessableEntityException({code: 'INVOICE_RE_INVOICED'});
-    if (invoice.isPaid) throw new UnprocessableEntityException({code: 'INVOICE_ALREADY_PAID'});
+    if (invalidStatuses.includes(invoice.status))
+      throw new UnprocessableEntityException({code: 'INVOICE_IN_FINAL_STATUS'});
 
     const previousStatus = invoice.status;
     const previousDelivered = [
@@ -86,12 +91,6 @@ export class InvoicesService {
     // Only update status if it's different from the current one
     if (previousStatus !== statusUpdateDto.status) {
       invoice.status = statusUpdateDto.status;
-    }
-
-    // Only update payment date if the invoice is being marked as PAID and it doesn't have a payment date
-    if (newDelivered && statusUpdateDto.isPaid && !invoice.paymentDate) {
-      invoice.isPaid = true;
-      invoice.paymentDate = statusUpdateDto.paymentDate || DateTime.now().toISODate();
     }
 
     // If there are observations, update them and emit an event
@@ -309,5 +308,36 @@ export class InvoicesService {
       invoicesByDeliveryAssignment,
       outstandingAmountByDate,
     };
+  }
+
+  async addPayment(invoiceId: string, createPaymentDto: CreatePaymentDto) {
+    const invoice = await this.invoiceRepository.findOne({
+      where: {id: invoiceId},
+      relations: [ 'order' ]
+    });
+
+    if (!invoice) throw new UnprocessableEntityException({code: INVOICE_NOT_FOUND});
+    if (invoice.isPaid) throw new UnprocessableEntityException({code: 'INVOICE_ALREADY_PAID'});
+    if (invoice.status === InvoiceStatusEnum.RE_INVOICED) throw new UnprocessableEntityException({code: 'INVOICE_RE_INVOICED'});
+    if (!invoice.isActive) throw new UnprocessableEntityException({code: 'INVOICE_NOT_ACTIVE'});
+
+    // Find the total amount of payments for this invoice
+    const totalPayments = invoice.payments.reduce((acc, payment) => acc + payment.amount, 0);
+
+    // Check if the payment amount exceeds the total amount of the invoice
+    if (totalPayments + createPaymentDto.amount > invoice.totalAmount)
+      throw new UnprocessableEntityException({code: 'PAYMENT_EXCEEDS_TOTAL_AMOUNT', pendingAmount: invoice.totalAmount - totalPayments});
+
+    const payment = this.paymentRepository.create({
+      ...createPaymentDto,
+      invoice,
+    });
+
+    if (invoice.totalAmount === totalPayments + createPaymentDto.amount) {
+      invoice.isPaid = true;
+      invoice.paymentDate = createPaymentDto.paymentDate || DateTime.now().toJSDate();
+    }
+
+    return this.paymentRepository.save(payment);
   }
 }
