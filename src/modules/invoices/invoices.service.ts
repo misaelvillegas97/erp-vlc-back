@@ -62,6 +62,10 @@ export class InvoicesService {
     return qb.getMany();
   }
 
+  async findOne(invoiceId: string): Promise<InvoiceEntity> {
+    return this.invoiceRepository.findOne({where: {id: invoiceId}, relations: [ 'order', 'order.products', 'client', 'payments' ]});
+  }
+
   async findByInvoiceNumber(invoiceNumber: number): Promise<InvoiceEntity> {
     return this.invoiceRepository.findOne({where: {invoiceNumber}, relations: [ 'order' ]});
   }
@@ -313,7 +317,7 @@ export class InvoicesService {
   async addPayment(invoiceId: string, createPaymentDto: CreatePaymentDto) {
     const invoice = await this.invoiceRepository.findOne({
       where: {id: invoiceId},
-      relations: [ 'order' ]
+      relations: [ 'order', 'payments' ]
     });
 
     if (!invoice) throw new UnprocessableEntityException({code: INVOICE_NOT_FOUND});
@@ -323,6 +327,7 @@ export class InvoicesService {
 
     // Find the total amount of payments for this invoice
     const totalPayments = invoice.payments.reduce((acc, payment) => acc + payment.amount, 0);
+    createPaymentDto.paymentDate = createPaymentDto.paymentDate || DateTime.now().toJSDate();
 
     // Check if the payment amount exceeds the total amount of the invoice
     if (totalPayments + createPaymentDto.amount > invoice.totalAmount)
@@ -335,7 +340,7 @@ export class InvoicesService {
 
     if (invoice.totalAmount === totalPayments + createPaymentDto.amount) {
       invoice.isPaid = true;
-      invoice.paymentDate = createPaymentDto.paymentDate || DateTime.now().toJSDate();
+      invoice.paymentDate = createPaymentDto.paymentDate;
     }
 
     return this.paymentRepository.save(payment);

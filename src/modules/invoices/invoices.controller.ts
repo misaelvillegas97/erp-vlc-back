@@ -23,6 +23,13 @@ export class InvoicesController {
     return this.invoicesService.invoicesOverview();
   }
 
+  @Get(':invoiceId')
+  async findOne(@Param('invoiceId') invoiceId: string) {
+    const invoice = await this.invoicesService.findOne(invoiceId);
+
+    return InvoiceMapper.map(invoice);
+  }
+
   @Put(':invoiceId/status')
   async updateStatus(@Param('invoiceId') invoiceId: string, @Body() body: StatusUpdateDto) {
     const invoice = await this.invoicesService.updateStatus(invoiceId, body);

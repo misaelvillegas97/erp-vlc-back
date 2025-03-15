@@ -1,8 +1,9 @@
-import { InvoiceEntity }     from '@modules/invoices/domain/entities/invoice.entity';
-import { InvoiceStatusEnum } from '@modules/orders/domain/enums/invoice-status.enum';
-import { UserLightMapper }   from '@modules/users/domain/mappers/user-light.mapper';
-import { ClientLightMapper } from '@modules/clients/domain/mappers/client-light.mapper';
-import { PaymentEntity }     from '@modules/invoices/domain/entities/payment.entity';
+import { InvoiceEntity }      from '@modules/invoices/domain/entities/invoice.entity';
+import { InvoiceStatusEnum }  from '@modules/orders/domain/enums/invoice-status.enum';
+import { UserLightMapper }    from '@modules/users/domain/mappers/user-light.mapper';
+import { ClientLightMapper }  from '@modules/clients/domain/mappers/client-light.mapper';
+import { PaymentEntity }      from '@modules/invoices/domain/entities/payment.entity';
+import { OrderProductMapper } from '@modules/orders/domain/mappers/order-product.mapper';
 
 export class InvoiceMapper {
   readonly id: string;
@@ -20,7 +21,7 @@ export class InvoiceMapper {
   readonly observations?: string;
   readonly createdAt: Date;
   readonly client: ClientLightMapper;
-  readonly order: { id: string, orderNumber: string };
+  readonly order: { id: string, orderNumber: string, products: OrderProductMapper[] };
   readonly payments?: PaymentEntity[];
 
   constructor(partial: Partial<InvoiceMapper>) {
@@ -44,7 +45,11 @@ export class InvoiceMapper {
       observations: entity.observations,
       createdAt: entity.createdAt,
       client: entity.client && ClientLightMapper.map(entity.client),
-      order: entity.order && {id: entity.order.id, orderNumber: entity.order.orderNumber},
+      order: entity.order && {
+        id: entity.order.id,
+        orderNumber: entity.order.orderNumber,
+        products: entity.order?.products && OrderProductMapper.mapAll(entity.order.products)
+      },
       payments: entity.payments,
     });
   }

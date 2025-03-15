@@ -8,7 +8,6 @@ import { InvoiceMapper }      from '@modules/orders/domain/mappers/invoice.mappe
 export class OrderMapper {
   readonly id: string;
   readonly orderNumber: string;
-  readonly businessName: string;
   readonly type: OrderTypeEnum;
   readonly status: OrderStatusEnum;
   readonly deliveryLocation: string;
@@ -25,13 +24,12 @@ export class OrderMapper {
     Object.assign(this, partial);
   }
 
-  static map(entity: OrderEntity): OrderMapper {
+  static map(entity: OrderEntity, {skipInvoices}: { skipInvoices: boolean } = defaultOptions): OrderMapper {
     const totalAmount = entity.products.reduce((acc, product) => acc + (product.quantity * product.unitaryPrice), 0);
 
     return new OrderMapper({
       id: entity.id,
       orderNumber: entity.orderNumber,
-      businessName: entity.client.businessName,
       type: entity.type,
       status: entity.status,
       deliveryLocation: entity.deliveryLocation,
@@ -40,7 +38,7 @@ export class OrderMapper {
       emissionDate: entity.emissionDate,
       observations: entity.observations,
       products: OrderProductMapper.mapAll(entity.products),
-      invoices: entity.invoices && InvoiceMapper.mapAll(entity.invoices),
+      invoices: (entity.invoices && !skipInvoices) && InvoiceMapper.mapAll(entity.invoices),
       client: ClientLightMapper.map(entity.client),
       totalAmount,
     });
@@ -50,3 +48,5 @@ export class OrderMapper {
     return entities.map((entity) => this.map(entity));
   }
 }
+
+const defaultOptions = {skipInvoices: false};

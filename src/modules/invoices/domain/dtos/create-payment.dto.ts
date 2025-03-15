@@ -1,7 +1,9 @@
-import { PaymentEntity }                               from '@modules/invoices/domain/entities/payment.entity';
-import { IsDate, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { PaymentEntity }                                       from '@modules/invoices/domain/entities/payment.entity';
+import { IsDate, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { PaymentMethodEnum }                                   from '@modules/invoices/domain/enums/payment-method.enum';
 
 export class CreatePaymentDto implements Partial<PaymentEntity> {
+  @IsOptional()
   @IsDate()
   paymentDate: Date;
 
@@ -10,8 +12,8 @@ export class CreatePaymentDto implements Partial<PaymentEntity> {
   amount: number;
 
   @IsOptional()
-  @IsString()
-  method?: string;
+  @IsEnum(PaymentMethodEnum)
+  method?: PaymentMethodEnum;
 
   @IsOptional()
   @IsString()
