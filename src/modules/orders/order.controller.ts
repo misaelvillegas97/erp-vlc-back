@@ -1,17 +1,19 @@
-import { Body, Controller, Get, Inject, NotFoundException, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { REQUEST }                                                                              from '@nestjs/core';
-import { OrderStatusEnum }                                                                      from './domain/enums/order-status.enum';
-import { OrderMapper }                                                                          from './domain/mappers/order.mapper';
-import { CreateInvoiceDto }                                                                     from './domain/dtos/create-invoice.dto';
-import { OrderQueryDto }                                                                        from './domain/dtos/order-query.dto';
-import { OrderService }                                                                         from './order.service';
-import { Request }                                                                              from 'express';
-import { AuthGuard }                                                                            from '@nestjs/passport';
-import { CreateOrderDto }                                                                       from '@modules/orders/domain/dtos/create-order.dto';
+import { Body, Controller, Get, Inject, Logger, NotFoundException, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { REQUEST }                                                                                      from '@nestjs/core';
+import { OrderStatusEnum }                                                                              from './domain/enums/order-status.enum';
+import { OrderMapper }                                                                                  from './domain/mappers/order.mapper';
+import { CreateInvoiceDto }                                                                             from './domain/dtos/create-invoice.dto';
+import { OrderQueryDto }                                                                                from './domain/dtos/order-query.dto';
+import { OrderService }                                                                                 from './order.service';
+import { Request }                                                                                      from 'express';
+import { AuthGuard }                                                                                    from '@nestjs/passport';
+import { CreateOrderDto }                                                                               from '@modules/orders/domain/dtos/create-order.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('orders')
 export class OrderController {
+  readonly #logger = new Logger(OrderController.name);
+
   constructor(
     @Inject(REQUEST) private readonly request: Request,
     private readonly orderService: OrderService,

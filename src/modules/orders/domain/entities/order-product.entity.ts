@@ -32,6 +32,9 @@ export class OrderProductEntity {
   @Column({nullable: true, type: 'json', name: 'additional_info'})
   additionalInfo?: Record<string, any>;
 
+  @Column({name: 'order_id', type: 'uuid'})
+  orderId: string;
+
   @ManyToOne(() => OrderEntity, (orderRequest) => orderRequest.products)
   @JoinColumn({name: 'order_id'})
   order: OrderEntity;

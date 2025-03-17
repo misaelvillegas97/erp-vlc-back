@@ -44,10 +44,9 @@ export class OrderService {
 
   async findAll(query: OrderQueryDto): Promise<OrderEntity[]> {
     const qb = this.orderRepository.createQueryBuilder('order');
+
     qb.leftJoinAndSelect('order.client', 'client');
-    qb.leftJoinAndSelect('order.products', 'products');
-    qb.leftJoinAndSelect('order.invoices', 'invoices');
-    qb.leftJoinAndSelect('order.observations', 'observations');
+    qb.leftJoinAndSelect('order.invoices', 'invoices', 'invoices.isActive = true');
 
     if (query.orderNumber)
       qb.where('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
@@ -76,9 +75,23 @@ export class OrderService {
     if (query.invoice)
       qb.andWhere('invoices.invoiceNumber = :invoice', {invoice: `${ query.invoice }`});
 
+    qb.groupBy('order.id');
+    qb.addGroupBy('client.id');
+    qb.addGroupBy('invoices.id');
+
     qb.orderBy('order.orderNumber', 'DESC');
 
-    return qb.getMany();
+    qb.limit(10);
+
+    const orders = await qb.getMany();
+    const orderIds = orders.map((order) => order.id);
+    const products = await this.orderProductRepository.find({where: {order: In(orderIds)}});
+
+    orders.forEach((order) => {
+      order.products = products.filter((product) => product.orderId === order.id);
+    });
+
+    return orders;
   }
 
   async findOne(id: string): Promise<OrderEntity> {

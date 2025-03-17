@@ -25,7 +25,13 @@ export class OrderMapper {
   }
 
   static map(entity: OrderEntity, {skipInvoices}: { skipInvoices: boolean } = defaultOptions): OrderMapper {
-    const totalAmount = entity.products.reduce((acc, product) => acc + (product.quantity * product.unitaryPrice), 0);
+    let totalAmount = 0;
+
+    if (entity.products && !entity['totalAmount']) {
+      totalAmount = entity.products.reduce((acc, product) => acc + (product.quantity * product.unitaryPrice), 0);
+    } else if (entity['totalAmount']) {
+      totalAmount = entity['totalAmount'];
+    }
 
     return new OrderMapper({
       id: entity.id,
@@ -37,7 +43,7 @@ export class OrderMapper {
       deliveredDate: entity.deliveredDate,
       emissionDate: entity.emissionDate,
       observations: entity.observations,
-      products: OrderProductMapper.mapAll(entity.products),
+      products: entity.products && OrderProductMapper.mapAll(entity.products),
       invoices: (entity.invoices && !skipInvoices) && InvoiceMapper.mapAll(entity.invoices),
       client: ClientLightMapper.map(entity.client),
       totalAmount,
@@ -46,6 +52,13 @@ export class OrderMapper {
 
   static mapAll(entities: OrderEntity[]): OrderMapper[] {
     return entities.map((entity) => this.map(entity));
+  }
+
+  static mapFromRawQuery(entity: any): OrderMapper {
+    return new OrderMapper({
+      id: entity.order_id,
+      orderNumber: entity.order_number,
+    });
   }
 }
 
