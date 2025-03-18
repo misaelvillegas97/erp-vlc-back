@@ -1,18 +1,19 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
-import { OrderProductEntity }                                       from './order-product.entity';
-import { ClientEntity }                                             from '@modules/clients/domain/entities/client.entity';
-import { OrderTypeEnum }                                            from '@modules/orders/domain/enums/order-type.enum';
-import { OrderStatusEnum }                                          from '@modules/orders/domain/enums/order-status.enum';
-import { InvoiceEntity }                                            from '@modules/invoices/domain/entities/invoice.entity';
-import { OrdersObservationsEntity }                                 from '@modules/orders/domain/entities/orders-observations.entity';
-import { DateTime }                                                 from 'luxon';
-import { AbstractEntity }                                           from '@shared/domain/entities/abstract.entity';
-import { DeliveryHistoryEntity }                                    from '@modules/orders/domain/entities/delivery-history.entity';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
+import { OrderProductEntity }                                              from './order-product.entity';
+import { ClientEntity }                                                    from '@modules/clients/domain/entities/client.entity';
+import { OrderTypeEnum }                                                   from '@modules/orders/domain/enums/order-type.enum';
+import { OrderStatusEnum }                                                 from '@modules/orders/domain/enums/order-status.enum';
+import { InvoiceEntity }                                                   from '@modules/invoices/domain/entities/invoice.entity';
+import { OrdersObservationsEntity }                                        from '@modules/orders/domain/entities/orders-observations.entity';
+import { DateTime }                                                        from 'luxon';
+import { AbstractEntity }                                                  from '@shared/domain/entities/abstract.entity';
+import { DeliveryHistoryEntity }                                           from '@modules/orders/domain/entities/delivery-history.entity';
 
 @Entity({name: 'orders'})
 @Unique([ 'referenceId', 'client' ])
 export class OrderEntity extends AbstractEntity {
   @Column({unique: true, name: 'order_number'})
+  @Index()
   orderNumber: string;
 
   @Column({nullable: true, name: 'reference_id'})

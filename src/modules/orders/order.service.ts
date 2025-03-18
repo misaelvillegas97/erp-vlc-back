@@ -25,6 +25,8 @@ import { CreateOrderDto }           from './domain/dtos/create-order.dto';
 import { OrderQueryDto }            from './domain/dtos/order-query.dto';
 import { OrdersOverview }           from './domain/interfaces/dashboard-overview.interface';
 import { DeliveryHistoryService }   from './services/delivery-history.service';
+import { IPaginationOptions }       from '@shared/utils/types/pagination-options';
+import { PaginationDto }            from '@shared/utils/dto/pagination.dto';
 
 @Injectable()
 export class OrderService {
@@ -42,11 +44,12 @@ export class OrderService {
     private readonly eventEmitter: EventEmitter2
   ) {}
 
-  async findAll(query: OrderQueryDto): Promise<OrderEntity[]> {
+  async findAll(query: OrderQueryDto, {page, limit}: IPaginationOptions): Promise<PaginationDto<OrderEntity>> {
     const qb = this.orderRepository.createQueryBuilder('order');
 
     qb.leftJoinAndSelect('order.client', 'client');
     qb.leftJoinAndSelect('order.invoices', 'invoices', 'invoices.isActive = true');
+    qb.leftJoinAndSelect('order.products', 'products');
 
     if (query.orderNumber)
       qb.where('order.orderNumber ilike :orderNumber', {orderNumber: `%${ query.orderNumber }%`});
@@ -69,29 +72,34 @@ export class OrderService {
     if (query.emissionDate)
       qb.andWhere('order.emissionDate = :emissionDate', {emissionDate: query.emissionDate});
 
-    if (query.amount)
-      qb.andWhere('order.amount = :amount', {amount: query.amount});
-
     if (query.invoice)
       qb.andWhere('invoices.invoiceNumber = :invoice', {invoice: `${ query.invoice }`});
 
     qb.groupBy('order.id');
     qb.addGroupBy('client.id');
     qb.addGroupBy('invoices.id');
+    qb.addGroupBy('products.id');
+
+    if (query.amount)
+      qb.having('SUM(products.unitaryPrice * products.quantity) = :amount', {amount: query.amount});
+
+    const countQb = qb.clone();
+    countQb.skip(undefined).take(undefined);
+    const rawCount = await countQb.getRawMany();
+    let total = rawCount.length;
 
     qb.orderBy('order.orderNumber', 'DESC');
+    qb.take(limit);
+    qb.skip((page - 1) * limit);
+    qb.cache(30_000);
 
-    qb.limit(10);
+    const [ orders, count ] = await qb.getManyAndCount();
 
-    const orders = await qb.getMany();
-    const orderIds = orders.map((order) => order.id);
-    const products = await this.orderProductRepository.find({where: {order: In(orderIds)}});
+    if (count !== 0 && total > count) {
+      total = count;
+    }
 
-    orders.forEach((order) => {
-      order.products = products.filter((product) => product.orderId === order.id);
-    });
-
-    return orders;
+    return new PaginationDto({total, page, limit, items: orders});
   }
 
   async findOne(id: string): Promise<OrderEntity> {

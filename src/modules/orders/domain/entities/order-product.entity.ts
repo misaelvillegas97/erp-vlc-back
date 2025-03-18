@@ -1,7 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
-import { OrderEntity }                                          from './order.entity';
-import { v4 }                                                   from 'uuid';
-import { ProductEntity }                                        from '@modules/products/domain/entities/product.entity';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { OrderEntity }                                                 from './order.entity';
+import { v4 }                                                          from 'uuid';
+import { ProductEntity }                                               from '@modules/products/domain/entities/product.entity';
 
 @Entity('orders_products')
 export class OrderProductEntity {
@@ -21,9 +21,11 @@ export class OrderProductEntity {
   description: string;
 
   @Column()
+  @Index()
   quantity: number;
 
   @Column('decimal', {name: 'unitary_price'})
+  @Index()
   unitaryPrice: number;
 
   @Column({name: 'total_price'})

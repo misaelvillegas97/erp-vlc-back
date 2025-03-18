@@ -1,8 +1,10 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { OrderTypeEnum }                from '@modules/orders/domain/enums/order-type.enum';
-import { OrderStatusEnum }              from '@modules/orders/domain/enums/order-status.enum';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { OrderTypeEnum }                          from '@modules/orders/domain/enums/order-type.enum';
+import { OrderStatusEnum }                        from '@modules/orders/domain/enums/order-status.enum';
+import { Transform }                              from 'class-transformer';
+import { ApiPropertyOptional }                    from '@nestjs/swagger';
 
-export class OrderQueryDto {
+export class FilterOrderDto {
   @IsOptional()
   @IsString()
   orderNumber?: string;
@@ -38,4 +40,18 @@ export class OrderQueryDto {
   @IsOptional()
   @IsString()
   invoice?: number;
+}
+
+export class OrderQueryDto extends FilterOrderDto {
+  @ApiPropertyOptional()
+  @Transform(({value}) => (value ? Number(value) : 1))
+  @IsNumber()
+  @IsOptional()
+  page?: number;
+
+  @ApiPropertyOptional()
+  @Transform(({value}) => (value ? Number(value) : 10))
+  @IsNumber()
+  @IsOptional()
+  limit?: number;
 }

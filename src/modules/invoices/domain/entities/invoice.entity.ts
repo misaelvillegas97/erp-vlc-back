@@ -1,16 +1,17 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
-import { InvoiceStatusEnum }                                        from '@modules/orders/domain/enums/invoice-status.enum';
-import { AbstractEntity }                                           from '@shared/domain/entities/abstract.entity';
-import { OrderEntity }                                              from '@modules/orders/domain/entities/order.entity';
-import { ClientEntity }                                             from '@modules/clients/domain/entities/client.entity';
-import { UserEntity }                                               from '@modules/users/domain/entities/user.entity';
-import { CreditNoteEntity }                                         from '@modules/invoices/domain/entities/credit-note.entity';
-import { PaymentEntity }                                            from '@modules/invoices/domain/entities/payment.entity';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
+import { InvoiceStatusEnum }                                               from '@modules/orders/domain/enums/invoice-status.enum';
+import { AbstractEntity }                                                  from '@shared/domain/entities/abstract.entity';
+import { OrderEntity }                                                     from '@modules/orders/domain/entities/order.entity';
+import { ClientEntity }                                                    from '@modules/clients/domain/entities/client.entity';
+import { UserEntity }                                                      from '@modules/users/domain/entities/user.entity';
+import { CreditNoteEntity }                                                from '@modules/invoices/domain/entities/credit-note.entity';
+import { PaymentEntity }                                                   from '@modules/invoices/domain/entities/payment.entity';
 
 @Entity({name: 'invoices'})
 @Unique([ 'invoiceNumber' ])
 export class InvoiceEntity extends AbstractEntity {
   @Column({nullable: false, name: 'invoice_number'})
+  @Index()
   invoiceNumber: number;
 
   @Column({

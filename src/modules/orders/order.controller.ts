@@ -21,9 +21,16 @@ export class OrderController {
 
   @Get()
   async findAll(@Query() query: OrderQueryDto) {
-    const orders = await this.orderService.findAll(query);
+    const page = query?.page ?? 1;
+    let limit = query?.limit ?? 10;
+    if (limit > 50) limit = 50;
 
-    return OrderMapper.mapAll(orders);
+    const orders = await this.orderService.findAll(query, {page, limit});
+
+    return {
+      ...orders,
+      items: OrderMapper.mapAll(orders.items),
+    };
   }
 
   @Get('dashboard/overview')
