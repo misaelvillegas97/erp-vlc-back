@@ -44,6 +44,7 @@ import { EventEmitterModule }     from '@nestjs/event-emitter';
 import { AppController }          from './app.controller';
 import { SupplierInvoicesModule } from '@modules/supplier-invoices/supplier-invoices.module';
 import { NotificationsModule }    from '@modules/notifications/notifications.module';
+import { SupplierModule }         from '@modules/supplier/supplier.module';
 
 @Module({
   imports: [
@@ -120,6 +121,7 @@ import { NotificationsModule }    from '@modules/notifications/notifications.mod
     SeederModule,
     IntegrationsModule,
     InvoicesModule,
+    SupplierModule,
     SupplierInvoicesModule,
     OrdersModule,
     ProductsModule,

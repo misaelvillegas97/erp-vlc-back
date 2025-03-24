@@ -147,6 +147,8 @@ export class InvoicesService {
     });
 
     if (!invoice) throw new UnprocessableEntityException({code: INVOICE_NOT_FOUND});
+    if (invoice.status === InvoiceStatusEnum.RE_INVOICED)
+      throw new UnprocessableEntityException({code: 'INVOICE_ALREADY_RE_INVOICED'});
 
     invoice.status = InvoiceStatusEnum.RE_INVOICED;
     invoice.isActive = false;
@@ -236,7 +238,7 @@ export class InvoicesService {
                ELSE '60+'
                END AS bucket,
              COUNT(*) as total
-      FROM orders_invoice
+      FROM invoices
       WHERE "due_date" IS NOT NULL
       AND is_paid = false
       GROUP BY bucket

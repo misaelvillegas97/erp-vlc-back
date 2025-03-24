@@ -53,7 +53,7 @@ export class SupplierInvoicesService {
       const totalPayments = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
       return {
         invoiceNumber: invoice.invoiceNumber,
-        supplierName: invoice.supplierName,
+        supplierName: invoice.supplier.fantasyName,
         amount: invoice.amount,
         totalPayments,
         balance: invoice.amount - totalPayments,

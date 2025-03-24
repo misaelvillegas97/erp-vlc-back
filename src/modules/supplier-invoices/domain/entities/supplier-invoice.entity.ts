@@ -1,13 +1,11 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { SupplierPaymentEntity }                             from './supplier-payment.entity';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { SupplierPaymentEntity }                                        from './supplier-payment.entity';
+import { SupplierEntity }                                               from '@modules/supplier/domain/entities/supplier.entity';
 
 @Entity('supplier_invoices')
 export class SupplierInvoiceEntity {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Column({nullable: false})
-  supplierName: string;
 
   @Column({nullable: false})
   invoiceNumber: string;
@@ -26,4 +24,7 @@ export class SupplierInvoiceEntity {
 
   @OneToMany(() => SupplierPaymentEntity, payment => payment.invoice)
   payments: SupplierPaymentEntity[];
+
+  @ManyToOne(() => SupplierEntity, supplier => supplier.invoices)
+  supplier: SupplierEntity;
 }
