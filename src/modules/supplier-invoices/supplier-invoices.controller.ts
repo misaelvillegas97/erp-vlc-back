@@ -23,27 +23,27 @@ export class SupplierInvoicesController {
   }
 
   @Get(':id')
-  async getInvoiceById(@Param('id') id: number): Promise<SupplierInvoiceEntity> {
+  async getInvoiceById(@Param('id') id: string): Promise<SupplierInvoiceEntity> {
     return this.supplierInvoicesService.getInvoiceById(id);
   }
 
   @Put(':id')
-  async updateInvoice(@Param('id') id: number, @Body() updateData: Partial<SupplierInvoiceEntity>): Promise<SupplierInvoiceEntity> {
+  async updateInvoice(@Param('id') id: string, @Body() updateData: Partial<SupplierInvoiceEntity>): Promise<SupplierInvoiceEntity> {
     return this.supplierInvoicesService.updateInvoice(id, updateData);
   }
 
   @Delete(':id')
-  async deleteInvoice(@Param('id') id: number): Promise<void> {
+  async deleteInvoice(@Param('id') id: string): Promise<void> {
     return this.supplierInvoicesService.deleteInvoice(id);
   }
 
   @Post(':id/payments')
-  async schedulePayment(@Param('id') invoiceId: number, @Body() paymentData: Partial<SupplierPaymentEntity>): Promise<SupplierPaymentEntity> {
+  async schedulePayment(@Param('id') invoiceId: string, @Body() paymentData: Partial<SupplierPaymentEntity>): Promise<SupplierPaymentEntity> {
     return this.supplierInvoicesService.schedulePayment(invoiceId, paymentData);
   }
 
   @Get(':id/payments')
-  async getPaymentsByInvoiceId(@Param('id') invoiceId: number): Promise<SupplierPaymentEntity[]> {
+  async getPaymentsByInvoiceId(@Param('id') invoiceId: string): Promise<SupplierPaymentEntity[]> {
     return this.supplierInvoicesService.getPaymentsByInvoiceId(invoiceId);
   }
 }
