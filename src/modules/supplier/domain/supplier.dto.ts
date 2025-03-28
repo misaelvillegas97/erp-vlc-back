@@ -21,14 +21,6 @@ export class CreateSupplierDto {
   @IsEnum(SupplierTypeEnum)
   type: SupplierTypeEnum;
 
-  @IsEnum(SupplierTaxCategoryEnum)
-  taxCategory: SupplierTaxCategoryEnum;
-
-  @IsOptional()
-  @IsString()
-  @Length(1, 6)
-  siiCode?: string;
-
   @IsOptional()
   @IsString()
   economicActivity?: string;
@@ -36,10 +28,6 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsString()
   address?: string;
-
-  @IsOptional()
-  @IsString()
-  commune?: string;
 
   @IsOptional()
   @IsString()
@@ -89,25 +77,12 @@ export class UpdateSupplierDto {
   type?: SupplierTypeEnum;
 
   @IsOptional()
-  @IsEnum(SupplierTaxCategoryEnum)
-  taxCategory?: SupplierTaxCategoryEnum;
-
-  @IsOptional()
-  @IsString()
-  @Length(1, 6)
-  siiCode?: string;
-
-  @IsOptional()
   @IsString()
   economicActivity?: string;
 
   @IsOptional()
   @IsString()
   address?: string;
-
-  @IsOptional()
-  @IsString()
-  commune?: string;
 
   @IsOptional()
   @IsString()

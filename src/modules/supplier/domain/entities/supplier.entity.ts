@@ -1,6 +1,5 @@
 import { Column, Entity, OneToMany } from 'typeorm';
 import { SupplierTypeEnum }          from '@modules/supplier/domain/enums/supplier-type.enum';
-import { SupplierTaxCategoryEnum }   from '@modules/supplier/domain/enums/supplier-tax-category.enum';
 import { SupplierInvoiceEntity }     from '@modules/supplier-invoices/domain/entities/supplier-invoice.entity';
 import { AbstractEntity }            from '@shared/domain/entities/abstract.entity';
 
@@ -23,16 +22,6 @@ export class SupplierEntity extends AbstractEntity {
   })
   type: SupplierTypeEnum;
 
-  @Column({
-    type: 'enum',
-    enum: SupplierTaxCategoryEnum,
-    default: SupplierTaxCategoryEnum.PRIMERA_CATEGORIA
-  })
-  taxCategory: SupplierTaxCategoryEnum;
-
-  @Column({type: 'varchar', length: 6, nullable: true})
-  siiCode: string;
-
   @Column({type: 'varchar', length: 100, nullable: true})
   economicActivity: string;
 
@@ -40,15 +29,12 @@ export class SupplierEntity extends AbstractEntity {
   address: string;
 
   @Column({type: 'varchar', length: 100, nullable: true})
-  commune: string;
-
-  @Column({type: 'varchar', length: 100, nullable: true})
   city: string;
 
   @Column({type: 'varchar', length: 20, nullable: true})
   phone: string;
 
-  @Column({type: 'varchar', length: 100, nullable: true})
+  @Column({type: 'varchar', length: 100})
   email: string;
 
   @Column({type: 'varchar', length: 100, nullable: true})

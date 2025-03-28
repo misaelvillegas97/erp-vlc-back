@@ -20,20 +20,20 @@ export class SupplierInvoicesService {
     return this.supplierInvoiceRepository.find({relations: [ 'payments' ]});
   }
 
-  async getInvoiceById(id: number): Promise<SupplierInvoiceEntity> {
+  async getInvoiceById(id: string): Promise<SupplierInvoiceEntity> {
     return this.supplierInvoiceRepository.findOne({where: {id}, relations: [ 'payments' ]});
   }
 
-  async updateInvoice(id: number, updateData: Partial<SupplierInvoiceEntity>): Promise<SupplierInvoiceEntity> {
+  async updateInvoice(id: string, updateData: Partial<SupplierInvoiceEntity>): Promise<SupplierInvoiceEntity> {
     await this.supplierInvoiceRepository.update(id, updateData);
     return this.getInvoiceById(id);
   }
 
-  async deleteInvoice(id: number): Promise<void> {
+  async deleteInvoice(id: string): Promise<void> {
     await this.supplierInvoiceRepository.delete(id);
   }
 
-  async schedulePayment(invoiceId: number, paymentData: Partial<SupplierPaymentEntity>): Promise<SupplierPaymentEntity> {
+  async schedulePayment(invoiceId: string, paymentData: Partial<SupplierPaymentEntity>): Promise<SupplierPaymentEntity> {
     const invoice = await this.getInvoiceById(invoiceId);
     if (!invoice) {
       throw new Error('Invoice not found');
@@ -42,7 +42,7 @@ export class SupplierInvoicesService {
     return this.supplierPaymentRepository.save(payment);
   }
 
-  async getPaymentsByInvoiceId(invoiceId: number): Promise<SupplierPaymentEntity[]> {
+  async getPaymentsByInvoiceId(invoiceId: string): Promise<SupplierPaymentEntity[]> {
     return this.supplierPaymentRepository.find({where: {invoice: {id: invoiceId}}});
   }
 
@@ -54,9 +54,9 @@ export class SupplierInvoicesService {
       return {
         invoiceNumber: invoice.invoiceNumber,
         supplierName: invoice.supplier.fantasyName,
-        amount: invoice.amount,
+        amount: invoice.grossAmount,
         totalPayments,
-        balance: invoice.amount - totalPayments,
+        balance: invoice.grossAmount - totalPayments,
         dueDate: invoice.dueDate,
       };
     });

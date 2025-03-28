@@ -1,14 +1,16 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { SupplierPaymentEntity }                                        from './supplier-payment.entity';
-import { SupplierEntity }                                               from '@modules/supplier/domain/entities/supplier.entity';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { SupplierPaymentEntity }                from './supplier-payment.entity';
+import { SupplierEntity }                       from '@modules/supplier/domain/entities/supplier.entity';
+import { SupplierInvoiceStatusEnum }            from '@modules/supplier-invoices/domain/enums/invoice-status.enum';
+import { AbstractEntity }                       from '@shared/domain/entities/abstract.entity';
 
-@Entity('supplier_invoices')
-export class SupplierInvoiceEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+@Entity('supplier_invoices', {orderBy: {issueDate: 'DESC'}})
+export class SupplierInvoiceEntity extends AbstractEntity {
   @Column({nullable: false})
   invoiceNumber: string;
+
+  @Column({type: 'enum', enum: SupplierInvoiceStatusEnum, default: SupplierInvoiceStatusEnum.ISSUED})
+  status: SupplierInvoiceStatusEnum;
 
   @Column({type: 'date', nullable: false})
   issueDate: Date;
@@ -16,8 +18,17 @@ export class SupplierInvoiceEntity {
   @Column({type: 'date', nullable: false})
   dueDate: Date;
 
-  @Column({type: 'decimal', precision: 10, scale: 2, nullable: false})
-  amount: number;
+  @Column({type: 'decimal', precision: 10, scale: 2, nullable: false, name: 'net_amount'})
+  netAmount: number;
+
+  @Column({type: 'decimal', precision: 10, scale: 2, nullable: false, name: 'tax_amount'})
+  taxAmount: number;
+
+  @Column({type: 'decimal', precision: 10, scale: 2, nullable: false, name: 'gross_amount'})
+  grossAmount: number;
+
+  @Column({type: 'boolean', default: false})
+  isPaid: boolean;
 
   @Column({nullable: true})
   description?: string;
