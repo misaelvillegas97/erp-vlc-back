@@ -1,8 +1,8 @@
-import { Injectable }            from '@nestjs/common';
-import { InjectRepository }      from '@nestjs/typeorm';
-import { Repository }            from 'typeorm';
-import { SupplierInvoiceEntity } from './domain/entities/supplier-invoice.entity';
-import { SupplierPaymentEntity } from './domain/entities/supplier-payment.entity';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository }              from '@nestjs/typeorm';
+import { Repository }                    from 'typeorm';
+import { SupplierInvoiceEntity }         from './domain/entities/supplier-invoice.entity';
+import { SupplierPaymentEntity }         from './domain/entities/supplier-payment.entity';
 
 @Injectable()
 export class SupplierInvoicesService {
@@ -35,9 +35,8 @@ export class SupplierInvoicesService {
 
   async schedulePayment(invoiceId: string, paymentData: Partial<SupplierPaymentEntity>): Promise<SupplierPaymentEntity> {
     const invoice = await this.getInvoiceById(invoiceId);
-    if (!invoice) {
-      throw new Error('Invoice not found');
-    }
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
     const payment = this.supplierPaymentRepository.create({...paymentData, invoice});
     return this.supplierPaymentRepository.save(payment);
   }
