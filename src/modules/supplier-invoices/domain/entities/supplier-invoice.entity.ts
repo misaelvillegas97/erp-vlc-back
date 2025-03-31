@@ -3,6 +3,7 @@ import { SupplierPaymentEntity }                from './supplier-payment.entity'
 import { SupplierEntity }                       from '@modules/supplier/domain/entities/supplier.entity';
 import { SupplierInvoiceStatusEnum }            from '@modules/supplier-invoices/domain/enums/invoice-status.enum';
 import { AbstractEntity }                       from '@shared/domain/entities/abstract.entity';
+import { ExpenseTypeEntity }                    from '@modules/types/domain/entities/expense-type.entity';
 
 @Entity('supplier_invoices', {orderBy: {issueDate: 'DESC'}})
 export class SupplierInvoiceEntity extends AbstractEntity {
@@ -38,4 +39,7 @@ export class SupplierInvoiceEntity extends AbstractEntity {
 
   @ManyToOne(() => SupplierEntity, supplier => supplier.invoices)
   supplier: SupplierEntity;
+
+  @ManyToOne(() => ExpenseTypeEntity, expenseType => expenseType.id)
+  expenseType: ExpenseTypeEntity;
 }

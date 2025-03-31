@@ -45,6 +45,7 @@ import { AppController }          from './app.controller';
 import { SupplierInvoicesModule } from '@modules/supplier-invoices/supplier-invoices.module';
 import { NotificationsModule }    from '@modules/notifications/notifications.module';
 import { SupplierModule }         from '@modules/supplier/supplier.module';
+import { TypesModule }            from '@modules/types/types.module';
 
 @Module({
   imports: [
@@ -126,7 +127,8 @@ import { SupplierModule }         from '@modules/supplier/supplier.module';
     OrdersModule,
     ProductsModule,
     ClientsModule,
-    NotificationsModule
+    NotificationsModule,
+    TypesModule
   ],
   controllers: [ AppController ]
 })
