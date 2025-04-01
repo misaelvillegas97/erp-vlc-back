@@ -1,15 +1,15 @@
-import { Module }                from '@nestjs/common';
-import { TypeOrmModule }         from '@nestjs/typeorm';
-import { ExpenseTypeEntity }     from '@modules/types/domain/entities/expense-type.entity';
-import { ExpenseTypeService }    from '@modules/types/services/expense-type.service';
-import { ExpenseTypeController } from '@modules/types/controllers/expense-type.controller';
+import { Module }                 from '@nestjs/common';
+import { TypeOrmModule }          from '@nestjs/typeorm';
+import { ExpenseTypesEntity }     from '@modules/types/domain/entities/expense-types.entity';
+import { ExpenseTypesService }    from '@modules/types/services/expense-types.service';
+import { ExpenseTypesController } from '@modules/types/controllers/expense-types.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ ExpenseTypeEntity ])
+    TypeOrmModule.forFeature([ ExpenseTypesEntity ])
   ],
-  controllers: [ ExpenseTypeController ],
-  providers: [ ExpenseTypeService ],
+  controllers: [ ExpenseTypesController ],
+  providers: [ ExpenseTypesService ],
   exports: []
 })
 export class TypesModule {}

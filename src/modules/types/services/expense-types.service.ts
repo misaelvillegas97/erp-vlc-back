@@ -1,13 +1,13 @@
 import { Injectable }           from '@nestjs/common';
 import { InjectRepository }     from '@nestjs/typeorm';
-import { ExpenseTypeEntity }    from '@modules/types/domain/entities/expense-type.entity';
+import { ExpenseTypesEntity }   from '@modules/types/domain/entities/expense-types.entity';
 import { Repository }           from 'typeorm';
 import { CreateExpenseTypeDto } from '@modules/types/domain/dtos/create-expense-type.dto';
 
 @Injectable()
-export class ExpenseTypeService {
+export class ExpenseTypesService {
   constructor(
-    @InjectRepository(ExpenseTypeEntity) private expensesTypeRepository: Repository<ExpenseTypeEntity>,
+    @InjectRepository(ExpenseTypesEntity) private expensesTypeRepository: Repository<ExpenseTypesEntity>,
   ) {}
 
   async create(dto: CreateExpenseTypeDto) {
