@@ -13,7 +13,8 @@ export class SupplierMapper {
       type: supplier.type,
       isActive: supplier.isActive,
       phone: supplier.phone,
-      email: supplier.email
+      email: supplier.email,
+      paymentTermDays: supplier.paymentTermDays,
     };
   }
 
