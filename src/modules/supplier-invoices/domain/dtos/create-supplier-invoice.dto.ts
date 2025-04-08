@@ -1,15 +1,27 @@
-import { IsDate, IsEnum, IsNumber, IsNumberString, IsOptional, IsString } from 'class-validator';
-import { SupplierInvoiceStatusEnum }                                      from '@modules/supplier-invoices/domain/enums/invoice-status.enum';
+import { IsBoolean, IsEnum, IsISO8601, IsNumber, IsNumberString, IsOptional, IsString, IsUUID } from 'class-validator';
+import { SupplierInvoiceStatusEnum }                                                            from '@modules/supplier-invoices/domain/enums/invoice-status.enum';
 
 export class CreateSupplierInvoiceDto {
   @IsNumberString()
   invoiceNumber: string;
 
+  @IsUUID()
+  supplierId: string;
+
   @IsEnum(SupplierInvoiceStatusEnum)
   status: SupplierInvoiceStatusEnum;
 
-  @IsDate()
-  issueDate: Date;
+  @IsUUID()
+  expenseTypeId: string;
+
+  @IsBoolean()
+  isExempt: boolean;
+
+  @IsISO8601()
+  issueDate: string;
+
+  @IsISO8601()
+  dueDate: string;
 
   @IsNumber()
   netAmount: number;

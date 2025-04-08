@@ -14,10 +14,10 @@ export class SupplierInvoiceEntity extends AbstractEntity {
   status: SupplierInvoiceStatusEnum;
 
   @Column({type: 'date', nullable: false})
-  issueDate: Date;
+  issueDate: string;
 
   @Column({type: 'date', nullable: false})
-  dueDate: Date;
+  dueDate: string;
 
   @Column({type: 'decimal', precision: 10, scale: 2, nullable: false, name: 'net_amount'})
   netAmount: number;
@@ -27,6 +27,9 @@ export class SupplierInvoiceEntity extends AbstractEntity {
 
   @Column({type: 'decimal', precision: 10, scale: 2, nullable: false, name: 'gross_amount'})
   grossAmount: number;
+
+  @Column({type: 'boolean', default: false})
+  isExempt: boolean;
 
   @Column({type: 'boolean', default: false})
   isPaid: boolean;
