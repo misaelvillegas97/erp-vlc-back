@@ -3,6 +3,7 @@ import { InjectRepository }              from '@nestjs/typeorm';
 import { Repository }                    from 'typeorm';
 import { SupplierInvoiceEntity }         from './domain/entities/supplier-invoice.entity';
 import { SupplierPaymentEntity }         from './domain/entities/supplier-payment.entity';
+import { CreateSupplierInvoiceDto }      from '@modules/supplier-invoices/domain/dtos/create-supplier-invoice.dto';
 
 @Injectable()
 export class SupplierInvoicesService {
@@ -11,13 +12,21 @@ export class SupplierInvoicesService {
     @InjectRepository(SupplierPaymentEntity) private readonly supplierPaymentRepository: Repository<SupplierPaymentEntity>
   ) {}
 
-  async createInvoice(invoiceData: Partial<SupplierInvoiceEntity>): Promise<SupplierInvoiceEntity> {
-    const invoice = this.supplierInvoiceRepository.create(invoiceData);
-    return this.supplierInvoiceRepository.save(invoice);
+  async createInvoice(invoiceData: CreateSupplierInvoiceDto): Promise<SupplierInvoiceEntity> {
+    try {
+      const invoice = this.supplierInvoiceRepository.create({
+        ...invoiceData,
+        supplier: {id: invoiceData.supplierId},
+        expenseType: {id: invoiceData.expenseTypeId},
+      });
+      return await this.supplierInvoiceRepository.save(invoice);
+    } catch (error) {
+      throw new Error(`Error creating invoice: ${ error.message }`);
+    }
   }
 
   async getInvoices(): Promise<SupplierInvoiceEntity[]> {
-    return this.supplierInvoiceRepository.find({relations: [ 'payments' ]});
+    return this.supplierInvoiceRepository.find({relations: [ 'payments', 'supplier', 'expenseType' ]});
   }
 
   async getInvoiceById(id: string): Promise<SupplierInvoiceEntity> {

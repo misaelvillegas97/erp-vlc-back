@@ -2,13 +2,14 @@ import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common'
 import { SupplierInvoicesService }                         from './supplier-invoices.service';
 import { SupplierInvoiceEntity }                           from './domain/entities/supplier-invoice.entity';
 import { SupplierPaymentEntity }                           from '@modules/supplier-invoices/domain/entities/supplier-payment.entity';
+import { CreateSupplierInvoiceDto }                        from '@modules/supplier-invoices/domain/dtos/create-supplier-invoice.dto';
 
 @Controller('supplier-invoices')
 export class SupplierInvoicesController {
   constructor(private readonly supplierInvoicesService: SupplierInvoicesService) {}
 
   @Post()
-  async createInvoice(@Body() invoiceData: Partial<SupplierInvoiceEntity>): Promise<SupplierInvoiceEntity> {
+  async createInvoice(@Body() invoiceData: CreateSupplierInvoiceDto): Promise<SupplierInvoiceEntity> {
     return this.supplierInvoicesService.createInvoice(invoiceData);
   }
 

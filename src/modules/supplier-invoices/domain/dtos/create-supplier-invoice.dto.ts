@@ -1,8 +1,8 @@
-import { IsBoolean, IsEnum, IsISO8601, IsNumber, IsNumberString, IsOptional, IsString, IsUUID } from 'class-validator';
-import { SupplierInvoiceStatusEnum }                                                            from '@modules/supplier-invoices/domain/enums/invoice-status.enum';
+import { IsBoolean, IsEnum, IsISO8601, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { SupplierInvoiceStatusEnum }                                            from '@modules/supplier-invoices/domain/enums/invoice-status.enum';
 
 export class CreateSupplierInvoiceDto {
-  @IsNumberString()
+  @IsString()
   invoiceNumber: string;
 
   @IsUUID()
