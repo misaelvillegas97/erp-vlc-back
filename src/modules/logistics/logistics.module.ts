@@ -1,7 +1,6 @@
 import { Module }                       from '@nestjs/common';
 import { TypeOrmModule }                from '@nestjs/typeorm';
 import { VehicleEntity }                from './domain/entities/vehicle.entity';
-import { DriverEntity }                 from './domain/entities/driver.entity';
 import { VehicleSessionEntity }         from './domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity } from './domain/entities/vehicle-session-location.entity';
 import { VehiclesController }           from './controllers/vehicles.controller';
@@ -12,16 +11,23 @@ import { DriversService }               from './services/drivers.service';
 import { SessionsService }              from './services/sessions.service';
 import { SessionSchedulerService }      from './schedulers/session-scheduler.service';
 import { FilesModule }                  from '../files/files.module';
+import { UserEntity }                   from '@modules/users/domain/entities/user.entity';
+import { DriverLicenseEntity }          from '@modules/users/domain/entities/driver-license.entity';
+import { UsersModule }                  from '@modules/users/users.module';
+import { RoleUserEntity }               from '@modules/roles/domain/entities/role-user.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       VehicleEntity,
-      DriverEntity,
       VehicleSessionEntity,
-      VehicleSessionLocationEntity
+      VehicleSessionLocationEntity,
+      UserEntity,
+      DriverLicenseEntity,
+      RoleUserEntity
     ]),
-    FilesModule
+    FilesModule,
+    UsersModule
   ],
   controllers: [
     VehiclesController,

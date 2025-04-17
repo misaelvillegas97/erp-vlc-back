@@ -1,11 +1,10 @@
 import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository }                                                    from '@nestjs/typeorm';
-import { Repository, ILike, FindOptionsWhere }                                 from 'typeorm';
+import { Between, FindOptionsWhere, ILike, IsNull, Not, Raw, Repository }      from 'typeorm';
 import { VehicleEntity, VehicleStatus }                                        from '../domain/entities/vehicle.entity';
 import { CreateVehicleDto }                                                    from '../domain/dto/create-vehicle.dto';
 import { UpdateVehicleDto }                                                    from '../domain/dto/update-vehicle.dto';
 import { QueryVehicleDto }                                                     from '../domain/dto/query-vehicle.dto';
-import { FilesService }                                                        from '@modules/files/files.service';
 import { plainToInstance }                                                     from 'class-transformer';
 
 @Injectable()
@@ -15,7 +14,7 @@ export class VehiclesService {
   constructor(
     @InjectRepository(VehicleEntity)
     private readonly vehicleRepository: Repository<VehicleEntity>,
-    private readonly filesService: FilesService
+    // private readonly filesService: FilesService
   ) {}
 
   async findAll(query: QueryVehicleDto): Promise<[ VehicleEntity[], number ]> {
@@ -36,6 +35,14 @@ export class VehiclesService {
       where.brand = ILike(`%${ query.brand }%`);
     }
 
+    if (query.fuelType) {
+      where.fuelType = query.fuelType;
+    }
+
+    if (query.departmentId) {
+      where.departmentId = query.departmentId;
+    }
+
     if (query.search) {
       const search = `%${ query.search }%`;
       return this.vehicleRepository.findAndCount({
@@ -43,7 +50,8 @@ export class VehiclesService {
           {brand: ILike(search)},
           {model: ILike(search)},
           {licensePlate: ILike(search)},
-          {vin: ILike(search)}
+          {vin: ILike(search)},
+          {color: ILike(search)}
         ],
         take,
         skip,
@@ -59,15 +67,18 @@ export class VehiclesService {
     });
   }
 
-  async findAllAvailable(): Promise<VehicleEntity[]> {
-    return this.vehicleRepository.find({
+  async findAllAvailable(): Promise<[ VehicleEntity[], number ]> {
+    return this.vehicleRepository.findAndCount({
       where: {status: VehicleStatus.AVAILABLE},
       order: {brand: 'ASC', model: 'ASC'}
     });
   }
 
   async findById(id: string): Promise<VehicleEntity> {
-    const vehicle = await this.vehicleRepository.findOne({where: {id}});
+    const vehicle = await this.vehicleRepository.findOne({
+      where: {id},
+      relations: [ 'currentSession' ]
+    });
     if (!vehicle) {
       throw new NotFoundException(`Vehicle with ID ${ id } not found`);
     }
@@ -77,9 +88,16 @@ export class VehiclesService {
   async create(createVehicleDto: CreateVehicleDto): Promise<VehicleEntity> {
     const vehicle = plainToInstance(VehicleEntity, createVehicleDto);
 
-    // Process images if provided
-    if (createVehicleDto.imageIds && createVehicleDto.imageIds.length > 0) {
-      await this.processImages(vehicle, createVehicleDto.imageIds);
+    if (createVehicleDto.lastKnownOdometer !== undefined) {
+      vehicle.lastKnownOdometer = createVehicleDto.lastKnownOdometer;
+    }
+
+    if (createVehicleDto.photoUrl) {
+      vehicle.photoUrl = createVehicleDto.photoUrl;
+    }
+
+    if (createVehicleDto.additionalPhotoUrls) {
+      vehicle.additionalPhotoUrls = createVehicleDto.additionalPhotoUrls;
     }
 
     return this.vehicleRepository.save(vehicle);
@@ -88,12 +106,18 @@ export class VehiclesService {
   async update(id: string, updateVehicleDto: UpdateVehicleDto): Promise<VehicleEntity> {
     const vehicle = await this.findById(id);
 
-    // Update the vehicle with new data
     Object.assign(vehicle, updateVehicleDto);
 
-    // Process images if provided
-    if (updateVehicleDto.imageIds) {
-      await this.processImages(vehicle, updateVehicleDto.imageIds);
+    if (updateVehicleDto.lastKnownOdometer !== undefined) {
+      vehicle.lastKnownOdometer = updateVehicleDto.lastKnownOdometer;
+    }
+
+    if (updateVehicleDto.photoUrl !== undefined) {
+      vehicle.photoUrl = updateVehicleDto.photoUrl;
+    }
+
+    if (updateVehicleDto.additionalPhotoUrls !== undefined) {
+      vehicle.additionalPhotoUrls = updateVehicleDto.additionalPhotoUrls;
     }
 
     return this.vehicleRepository.save(vehicle);
@@ -108,35 +132,49 @@ export class VehiclesService {
   async updateOdometer(id: string, odometer: number): Promise<VehicleEntity> {
     const vehicle = await this.findById(id);
 
-    if (odometer < vehicle.currentOdometer) {
+    if (odometer < vehicle.lastKnownOdometer) {
       throw new UnprocessableEntityException(
         'New odometer reading cannot be less than current reading'
       );
     }
 
-    vehicle.currentOdometer = odometer;
+    vehicle.lastKnownOdometer = odometer;
     return this.vehicleRepository.save(vehicle);
+  }
+
+  async updateCurrentSession(id: string, sessionId: string | null): Promise<VehicleEntity> {
+    const vehicle = await this.findById(id);
+    vehicle.currentSessionId = sessionId;
+
+    if (sessionId) {
+      vehicle.status = VehicleStatus.IN_USE;
+    } else if (vehicle.status === VehicleStatus.IN_USE) {
+      vehicle.status = VehicleStatus.AVAILABLE;
+    }
+
+    return this.vehicleRepository.save(vehicle);
+  }
+
+  async checkMaintenanceStatus(): Promise<VehicleEntity[]> {
+    const today = new Date();
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    return this.vehicleRepository.find({
+      where: [
+        {nextMaintenanceDate: Between(today, nextMonth)},
+        {
+          lastKnownOdometer: Raw(alias => `${ alias } >= next_maintenance_km - 500`),
+          nextMaintenanceKm: Not(IsNull())
+        },
+        {insuranceExpiry: Between(today, nextMonth)},
+        {technicalInspectionExpiry: Between(today, nextMonth)}
+      ]
+    });
   }
 
   async delete(id: string): Promise<void> {
     const vehicle = await this.findById(id);
     await this.vehicleRepository.remove(vehicle);
-  }
-
-  private async processImages(vehicle: VehicleEntity, imageIds: string[]): Promise<void> {
-    const images = [];
-
-    for (const imageId of imageIds) {
-      try {
-        const fileInfo = await this.filesService.findById(imageId);
-        if (fileInfo) {
-          images.push({id: imageId, path: fileInfo.path});
-        }
-      } catch (error) {
-        this.logger.error(`Error processing image ${ imageId }: ${ error.message }`);
-      }
-    }
-
-    vehicle.images = images;
   }
 }

@@ -22,6 +22,8 @@ import { v4 }                     from 'uuid';
 import { EntityRelationalHelper } from '@shared/utils/relational-entity-helper';
 import { AuthProvidersEnum }      from '@core/auth/auth-providers.enum';
 import { RoleUserEntity }         from '@modules/roles/domain/entities/role-user.entity';
+import { DriverLicenseEntity }    from './driver-license.entity';
+import { VehicleSessionEntity }   from '@modules/logistics/domain/entities/vehicle-session.entity';
 
 @Entity('user')
 export class UserEntity extends EntityRelationalHelper {
@@ -90,9 +92,67 @@ export class UserEntity extends EntityRelationalHelper {
   @DeleteDateColumn()
   deletedAt: Date;
 
+  @ApiProperty({type: String, required: false})
+  @Column({type: String, nullable: true})
+  @Expose({groups: [ 'me', 'admin' ]})
+  documentId?: string | null;
+
+  @ApiProperty({type: String, required: false})
+  @Column({type: String, nullable: true})
+  @Expose({groups: [ 'me', 'admin' ]})
+  phoneNumber?: string | null;
+
+  @ApiProperty({type: String, required: false})
+  @Column({type: String, nullable: true})
+  @Expose({groups: [ 'me', 'admin', 'driver' ]})
+  address?: string | null;
+
+  @ApiProperty({type: String, required: false})
+  @Column({type: String, nullable: true})
+  @Expose({groups: [ 'me', 'admin', 'driver' ]})
+  emergencyContactName?: string | null;
+
+  @ApiProperty({type: String, required: false})
+  @Column({type: String, nullable: true})
+  @Expose({groups: [ 'me', 'admin', 'driver' ]})
+  emergencyContactPhone?: string | null;
+
+  @ApiProperty({type: String, required: false})
+  @Column({type: String, nullable: true})
+  @Expose({groups: [ 'me', 'admin' ]})
+  notes?: string | null;
+
+  @ApiProperty({type: () => DriverLicenseEntity, required: false})
+  @OneToOne(() => DriverLicenseEntity, driverLicense => driverLicense.user, {
+    nullable: true,
+    cascade: true,
+    eager: true
+  })
+  driverLicense?: DriverLicenseEntity | null;
+
+  @OneToMany(() => VehicleSessionEntity, session => session.driver)
+  vehicleSessions?: VehicleSessionEntity[];
+
   @AfterLoad()
   public loadPreviousPassword(): void {
     this.previousPassword = this.password;
+  }
+
+  /**
+   * Verifica si el usuario tiene el rol de conductor
+   */
+  public isDriver(): boolean {
+    if (!this.roles || this.roles.length === 0) return false;
+    return this.roles.some(role => role.role?.name === 'driver');
+  }
+
+  /**
+   * Verifica si el usuario tiene una licencia de conducir válida
+   */
+  public hasValidDriverLicense(): boolean {
+    if (!this.driverLicense) return false;
+    const now = new Date();
+    return now >= this.driverLicense.licenseValidFrom && now <= this.driverLicense.licenseValidTo;
   }
 
   constructor(values?: Partial<UserEntity>) {

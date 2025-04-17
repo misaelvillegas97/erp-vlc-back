@@ -1,21 +1,36 @@
-import { Column, Entity, OneToMany } from 'typeorm';
-import { AbstractEntity }            from '@shared/domain/entities/abstract.entity';
-import { VehicleSessionEntity }      from './vehicle-session.entity';
-import { FileEntity }                from '@modules/files/domain/entities/file.entity';
+import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne } from 'typeorm';
+import { AbstractEntity }                                         from '@shared/domain/entities/abstract.entity';
+import { VehicleSessionEntity }                                   from './vehicle-session.entity';
 
 export enum VehicleStatus {
-  AVAILABLE = 'available',
-  IN_USE = 'in_use',
-  MAINTENANCE = 'maintenance'
+  AVAILABLE = 'AVAILABLE',     // Disponible para uso
+  IN_USE = 'IN_USE',           // Actualmente en uso
+  MAINTENANCE = 'MAINTENANCE', // En mantenimiento
+  REPAIR = 'REPAIR',           // En reparación
+  OUT_OF_SERVICE = 'OUT_OF_SERVICE', // Fuera de servicio
+  RESERVED = 'RESERVED'        // Reservado
 }
 
 export enum VehicleType {
-  SEDAN = 'sedan',
-  SUV = 'suv',
-  PICKUP = 'pickup',
-  VAN = 'van',
-  TRUCK = 'truck',
-  OTHER = 'other'
+  SEDAN = 'SEDAN',
+  HATCHBACK = 'HATCHBACK',
+  SUV = 'SUV',
+  PICKUP = 'PICKUP',
+  VAN = 'VAN',
+  TRUCK = 'TRUCK',
+  BUS = 'BUS',
+  MOTORCYCLE = 'MOTORCYCLE',
+  OTHER = 'OTHER'
+}
+
+export enum FuelType {
+  GASOLINE = 'GASOLINE',
+  DIESEL = 'DIESEL',
+  ELECTRIC = 'ELECTRIC',
+  HYBRID = 'HYBRID',
+  LPG = 'LPG',
+  CNG = 'CNG',
+  OTHER = 'OTHER'
 }
 
 @Entity('vehicle')
@@ -29,18 +44,13 @@ export class VehicleEntity extends AbstractEntity {
   @Column()
   year: number;
 
-  @Column()
+  @Column({name: 'license_plate'})
+  @Index({unique: true})
   licensePlate: string;
 
   @Column({nullable: true})
+  @Index({unique: true})
   vin: string;
-
-  @Column({
-    type: 'enum',
-    enum: VehicleStatus,
-    default: VehicleStatus.AVAILABLE
-  })
-  status: VehicleStatus;
 
   @Column({
     type: 'enum',
@@ -49,27 +59,74 @@ export class VehicleEntity extends AbstractEntity {
   })
   type: VehicleType;
 
-  @Column({type: 'float'})
-  currentOdometer: number;
-
-  @Column({nullable: true})
-  lastMaintenanceDate: Date;
-
-  @Column({nullable: true})
-  nextMaintenanceDate: Date;
-
-  @Column({nullable: true})
-  maintenanceNotes: string;
-
   @Column({nullable: true})
   color: string;
 
-  @Column({nullable: true})
-  fuelType: string;
+  @Column({
+    name: 'fuel_type',
+    type: 'enum',
+    enum: FuelType,
+    default: FuelType.GASOLINE
+  })
+  fuelType: FuelType;
+
+  @Column({
+    name: 'tank_capacity',
+    type: 'decimal',
+    precision: 6,
+    scale: 2,
+    nullable: true
+  })
+  tankCapacity: number;
+
+  @Column({type: 'float', name: 'current_odometer'})
+  lastKnownOdometer: number;
+
+  @Column({
+    type: 'enum',
+    enum: VehicleStatus,
+    default: VehicleStatus.AVAILABLE
+  })
+  @Index()
+  status: VehicleStatus;
+
+  @Column({name: 'current_session_id', nullable: true})
+  currentSessionId: string;
+
+  @OneToOne(() => VehicleSessionEntity, {nullable: true})
+  @JoinColumn({name: 'current_session_id'})
+  currentSession: VehicleSessionEntity;
+
+  @Column({name: 'department_id', nullable: true})
+  departmentId: string;
+
+  @Column({nullable: true, name: 'last_maintenance_date'})
+  lastMaintenanceDate: Date;
+
+  @Column({nullable: true, name: 'next_maintenance_date'})
+  nextMaintenanceDate: Date;
+
+  @Column({nullable: true, name: 'next_maintenance_km'})
+  nextMaintenanceKm: number;
+
+  @Column({nullable: true, name: 'purchase_date'})
+  purchaseDate: Date;
+
+  @Column({nullable: true, name: 'insurance_expiry'})
+  insuranceExpiry: Date;
+
+  @Column({nullable: true, name: 'technical_inspection_expiry'})
+  technicalInspectionExpiry: Date;
+
+  @Column({nullable: true, type: 'text'})
+  notes: string;
 
   @OneToMany(() => VehicleSessionEntity, session => session.vehicle)
   sessions: VehicleSessionEntity[];
 
-  @Column('simple-json', {nullable: true})
-  images: { id: string, path: string }[];
+  @Column('simple-json', {nullable: true, name: 'photo_url'})
+  photoUrl: string;
+
+  @Column('simple-json', {nullable: true, name: 'additional_photo_urls'})
+  additionalPhotoUrls: string[];
 }

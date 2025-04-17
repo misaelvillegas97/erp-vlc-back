@@ -1,6 +1,6 @@
-import { ApiProperty }                  from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { VehicleStatus, VehicleType }   from '../entities/vehicle.entity';
+import { ApiProperty }                          from '@nestjs/swagger';
+import { IsEnum, IsOptional, IsString }         from 'class-validator';
+import { FuelType, VehicleStatus, VehicleType } from '../entities/vehicle.entity';
 
 export class QueryVehicleDto {
   @ApiProperty({required: false})
@@ -30,4 +30,14 @@ export class QueryVehicleDto {
   @ApiProperty({required: false, default: 10})
   @IsOptional()
   limit?: number = 10;
+
+  @ApiProperty({required: false})
+  @IsOptional()
+  @IsEnum(FuelType)
+  fuelType?: FuelType;
+
+  @ApiProperty({required: false})
+  @IsOptional()
+  @IsString()
+  departmentId?: string;
 }

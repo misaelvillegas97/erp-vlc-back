@@ -1,6 +1,6 @@
 import { ApiProperty }                                       from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { DriverLicenseType }                                 from '../entities/driver.entity';
+import { DriverLicenseType }                                 from '@modules/users/domain/entities/driver-license.entity';
 
 export class CreateDriverDto {
   @ApiProperty()

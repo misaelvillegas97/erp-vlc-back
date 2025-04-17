@@ -32,8 +32,9 @@ export class VehiclesController {
   @ApiResponse({status: 200, description: 'Returns list of available vehicles'})
   @Get('available')
   @HttpCode(HttpStatus.OK)
-  findAvailable(): Promise<VehicleEntity[]> {
-    return this.vehiclesService.findAllAvailable();
+  async findAvailable(): Promise<{ total: number; items: VehicleEntity[] }> {
+    const [ items, total ] = await this.vehiclesService.findAllAvailable();
+    return {total, items};
   }
 
   @ApiOperation({summary: 'Get a single vehicle by ID'})

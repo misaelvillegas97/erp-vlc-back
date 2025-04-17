@@ -1,8 +1,8 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { AbstractEntity }                                   from '@shared/domain/entities/abstract.entity';
 import { VehicleEntity }                                    from './vehicle.entity';
-import { DriverEntity }                                     from './driver.entity';
 import { VehicleSessionLocationEntity }                     from './vehicle-session-location.entity';
+import { UserEntity }                                       from '@modules/users/domain/entities/user.entity';
 
 export enum VehicleSessionStatus {
   ACTIVE = 'active',
@@ -17,26 +17,26 @@ export class VehicleSessionEntity extends AbstractEntity {
   @JoinColumn({name: 'vehicle_id'})
   vehicle: VehicleEntity;
 
-  @Column()
+  @Column({name: 'vehicle_id'})
   vehicleId: string;
 
-  @ManyToOne(() => DriverEntity, driver => driver.sessions)
+  @ManyToOne(() => UserEntity, user => user.vehicleSessions)
   @JoinColumn({name: 'driver_id'})
-  driver: DriverEntity;
+  driver: UserEntity;
 
-  @Column()
+  @Column({name: 'driver_id'})
   driverId: string;
 
-  @Column()
+  @Column({name: 'start_time'})
   startTime: Date;
 
-  @Column({nullable: true})
+  @Column({nullable: true, name: 'end_time'})
   endTime: Date;
 
-  @Column({type: 'float'})
+  @Column({type: 'float', name: 'initial_odometer'})
   initialOdometer: number;
 
-  @Column({nullable: true, type: 'float'})
+  @Column({nullable: true, type: 'float', name: 'final_odometer'})
   finalOdometer: number;
 
   @Column({

@@ -133,21 +133,20 @@ export class SessionsService {
       throw new UnprocessableEntityException(`Vehicle is not available for use`);
     }
 
-    // Get driver
+    // Get driver (user with driver role)
     const driver = await this.driversService.findById(startSessionDto.driverId);
 
-    // Check if driver license is still valid
-    const now = new Date();
-    if (driver.licenseValidTo < now) {
+    // Check if driver has a valid license
+    if (!await this.driversService.hasValidLicense(driver.id)) {
       throw new UnprocessableEntityException(
-        `Driver's license expired on ${ driver.licenseValidTo.toISOString().split('T')[0] }`
+        `Driver's license has expired or is not valid`
       );
     }
 
     // Check if odometer reading is valid
-    if (startSessionDto.initialOdometer < vehicle.currentOdometer) {
+    if (startSessionDto.initialOdometer < vehicle.lastKnownOdometer) {
       throw new UnprocessableEntityException(
-        `Initial odometer reading (${ startSessionDto.initialOdometer }) cannot be less than vehicle's current odometer (${ vehicle.currentOdometer })`
+        `Initial odometer reading (${ startSessionDto.initialOdometer }) cannot be less than vehicle's current odometer (${ vehicle.lastKnownOdometer })`
       );
     }
 
@@ -179,7 +178,7 @@ export class SessionsService {
     await this.vehiclesService.updateStatus(vehicle.id, VehicleStatus.IN_USE);
 
     // Update vehicle's current odometer
-    if (startSessionDto.initialOdometer > vehicle.currentOdometer) {
+    if (startSessionDto.initialOdometer > vehicle.lastKnownOdometer) {
       await this.vehiclesService.updateOdometer(vehicle.id, startSessionDto.initialOdometer);
     }
 
@@ -306,10 +305,10 @@ export class SessionsService {
     location.isFinalLocation = isFinal;
 
     // Store location as standard GeoJSON in the json column
-    // location.geolocationJson = {
-    //   type: "Point",
-    //   coordinates: [locationData.longitude, locationData.latitude]
-    // };
+    location.geolocationJson = {
+      type: 'Point',
+      coordinates: [ locationData.longitude, locationData.latitude ]
+    };
 
     return this.locationRepository.save(location);
   }

@@ -1,6 +1,6 @@
-import { Column, Entity, JoinColumn, ManyToOne, Index } from 'typeorm';
-import { AbstractEntity }                               from '@shared/domain/entities/abstract.entity';
-import { VehicleSessionEntity }                         from './vehicle-session.entity';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { AbstractEntity }                        from '@shared/domain/entities/abstract.entity';
+import { VehicleSessionEntity }                  from './vehicle-session.entity';
 
 @Entity('vehicle_session_location')
 export class VehicleSessionLocationEntity extends AbstractEntity {
@@ -8,7 +8,7 @@ export class VehicleSessionLocationEntity extends AbstractEntity {
   @JoinColumn({name: 'session_id'})
   session: VehicleSessionEntity;
 
-  @Column()
+  @Column({name: 'session_id'})
   sessionId: string;
 
   @Column('float')
@@ -35,10 +35,10 @@ export class VehicleSessionLocationEntity extends AbstractEntity {
   @Column({nullable: true})
   address: string;
 
-  @Column({default: false})
+  @Column({default: false, name: 'is_start_location'})
   isInitialLocation: boolean;
 
-  @Column({default: false})
+  @Column({default: false, name: 'is_end_location'})
   isFinalLocation: boolean;
 
   // We're not using PostGIS extension, so we'll create indexes on lat/lon directly

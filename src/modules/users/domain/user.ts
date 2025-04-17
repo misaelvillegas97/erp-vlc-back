@@ -2,10 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { Exclude, Expose } from 'class-transformer';
 
-import { FileType }       from '../../files/domain/file';
-import { Role }           from '../../roles/domain/role';
-import { Status }         from '../../statuses/domain/status';
-import { RoleUserEntity } from '@modules/roles/domain/entities/role-user.entity';
+import { FileType }             from '../../files/domain/file';
+import { Role }                 from '../../roles/domain/role';
+import { Status }               from '../../statuses/domain/status';
+import { RoleUserEntity }       from '@modules/roles/domain/entities/role-user.entity';
+import { DriverLicenseEntity }  from '@modules/users/domain/entities/driver-license.entity';
+import { VehicleSessionEntity } from '@modules/logistics/domain/entities/vehicle-session.entity';
 
 export class User {
   @ApiProperty({type: String})
@@ -57,4 +59,28 @@ export class User {
 
   @ApiProperty()
   deletedAt: Date;
+
+  @ApiProperty()
+  documentId?: string | null;
+
+  @ApiProperty()
+  phoneNumber?: string | null;
+
+  @ApiProperty()
+  address?: string | null;
+
+  @ApiProperty()
+  emergencyContactName?: string | null;
+
+  @ApiProperty()
+  emergencyContactPhone?: string | null;
+
+  @ApiProperty()
+  notes?: string | null;
+
+  @ApiProperty({type: () => DriverLicenseEntity})
+  driverLicense?: DriverLicenseEntity | null;
+
+  @ApiProperty({type: () => VehicleSessionEntity})
+  vehicleSession?: VehicleSessionEntity | null;
 }
