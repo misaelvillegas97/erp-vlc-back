@@ -1,14 +1,12 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { AbstractEntity }                                   from '@shared/domain/entities/abstract.entity';
 
 @Entity('feature_toggles')
-export class FeatureToggleEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class FeatureToggleEntity extends AbstractEntity {
   @Column({type: 'varchar', length: 255, unique: true})
   name: string;
 
-  @Column({type: 'varchar', length: 255})
+  @Column({type: 'varchar', length: 255, name: 'display_name'})
   displayName: string;
 
   @Column({type: 'text', nullable: true})
@@ -23,9 +21,14 @@ export class FeatureToggleEntity {
   @Column({type: 'json', nullable: true})
   metadata: Record<string, any>;
 
-  @Column({type: 'timestamp', default: () => 'CURRENT_TIMESTAMP'})
-  createdAt: Date;
+  // Parent-child relationship
+  @Column({type: 'uuid', nullable: true, name: 'parent_id'})
+  parentId: string;
 
-  @Column({type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP'})
-  updatedAt: Date;
+  @ManyToOne(() => FeatureToggleEntity, feature => feature.children, {onDelete: 'CASCADE'})
+  @JoinColumn({name: 'parent_id'})
+  parent: FeatureToggleEntity;
+
+  @OneToMany(() => FeatureToggleEntity, feature => feature.parent)
+  children: FeatureToggleEntity[];
 }

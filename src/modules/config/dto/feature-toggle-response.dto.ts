@@ -7,6 +7,9 @@ export class FeatureToggleResponseDto extends BaseDto {
   enabled: boolean;
   category?: string;
   metadata?: Record<string, any>;
+  parentId?: string;
+  parent?: FeatureToggleResponseDto;
+  children?: FeatureToggleResponseDto[];
   createdAt: Date;
   updatedAt: Date;
 }
