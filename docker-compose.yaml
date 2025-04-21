@@ -7,9 +7,9 @@ services:
     volumes:
       - boilerplate-db:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: ${DATABASE_USERNAME}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME=postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD=postgres}
+      POSTGRES_DB: ${DATABASE_NAME=erp-orders}
 
   maildev:
     image: maildev/maildev:latest
