@@ -1,10 +1,12 @@
-import { FileEntity }   from '@modules/files/domain/entities/file.entity';
-import { FileMapper }   from '@modules/files/domain/mappers/file.mapper';
-import { RoleEntity }   from '@modules/roles/domain/entities/role.entity';
-import { StatusEntity } from '@modules/statuses/domain/entities/status.entity';
-import { User }         from '../user';
-import { UserEntity }   from '../entities/user.entity';
-import { isUUID }       from 'class-validator';
+import { FileEntity }          from '@modules/files/domain/entities/file.entity';
+import { FileMapper }          from '@modules/files/domain/mappers/file.mapper';
+import { RoleEntity }          from '@modules/roles/domain/entities/role.entity';
+import { StatusEntity }        from '@modules/statuses/domain/entities/status.entity';
+import { User }                from '../user';
+import { UserEntity }          from '../entities/user.entity';
+import { isUUID }              from 'class-validator';
+import { DriverLicenseEntity } from '@modules/users/domain/entities/driver-license.entity';
+import { RoleUserEntity }      from '@modules/roles/domain/entities/role-user.entity';
 
 export class UserMapper {
   static toDomain(raw: UserEntity): User {
@@ -59,6 +61,30 @@ export class UserMapper {
     if (domainEntity.id && isUUID(domainEntity.id)) {
       persistenceEntity.id = domainEntity.id;
     }
+
+    if (domainEntity.role) {
+      const role = new RoleEntity();
+      role.id = Number(domainEntity.role.id);
+
+      const roleUser = new RoleUserEntity({
+        role: role
+      });
+
+      if (!persistenceEntity.roles) persistenceEntity.roles = [];
+
+      persistenceEntity.roles.push(roleUser);
+    }
+
+    if (domainEntity.driverLicense) {
+      const driverLicense = new DriverLicenseEntity();
+      driverLicense.licenseType = domainEntity.driverLicense.licenseType;
+      driverLicense.licenseValidFrom = domainEntity.driverLicense.licenseValidFrom;
+      driverLicense.licenseValidTo = domainEntity.driverLicense.licenseValidTo;
+      driverLicense.restrictions = domainEntity.driverLicense.restrictions;
+      driverLicense.issuingAuthority = domainEntity.driverLicense.issuingAuthority;
+      driverLicense.userId = domainEntity.id;
+    }
+
     persistenceEntity.email = domainEntity.email;
     persistenceEntity.password = domainEntity.password;
     persistenceEntity.previousPassword = domainEntity.previousPassword;
@@ -69,6 +95,8 @@ export class UserMapper {
     persistenceEntity.photo = photo;
     persistenceEntity.role = role;
     persistenceEntity.status = status;
+    persistenceEntity.documentId = domainEntity.documentId;
+    persistenceEntity.driverLicense = domainEntity.driverLicense;
     persistenceEntity.createdAt = domainEntity.createdAt;
     persistenceEntity.updatedAt = domainEntity.updatedAt;
     persistenceEntity.deletedAt = domainEntity.deletedAt;

@@ -32,6 +32,8 @@ export class DriversService {
       select: [ 'userId' ]
     });
 
+    console.log('Driver Role Users:', driverRoleUsers);
+
     const driverUserIds = driverRoleUsers.map(ru => ru.userId);
     if (driverUserIds.length === 0) {
       return [ [], 0 ];

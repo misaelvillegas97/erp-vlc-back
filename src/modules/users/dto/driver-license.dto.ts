@@ -4,11 +4,6 @@ import { Type }                                             from 'class-transfor
 import { DriverLicenseType }                                from '../domain/entities/driver-license.entity';
 
 export class DriverLicenseDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  licenseNumber: string;
-
   @ApiProperty({enum: DriverLicenseType})
   @IsEnum(DriverLicenseType)
   @IsNotEmpty()

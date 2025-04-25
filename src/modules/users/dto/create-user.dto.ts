@@ -86,10 +86,5 @@ export class CreateUserDto {
   @IsNotEmpty({message: 'La información de licencia es obligatoria para conductores'})
   driverLicense?: DriverLicenseDto;
 
-  // Campo auxiliar para validación (no se persiste)
-  @ApiPropertyOptional({description: 'Indica si el usuario es un conductor'})
-  @IsOptional()
-  isDriver?: boolean;
-
   hash?: string | null;
 }

@@ -8,6 +8,7 @@ import { TwitterConfig }  from '@core/auth-twitter/config/twitter-config.type';
 import { FileConfig }     from '@modules/files/config/file-config.type';
 import { MailConfig }     from '@modules/mail/config/mail-config.type';
 import { IProvider }      from '@core/config/interfaces/provider.interface';
+import { GpsConfig }      from '@core/config/interfaces/gps.interface';
 
 export type AllConfigType = {
   ac: { apikey: string };
@@ -20,6 +21,7 @@ export type AllConfigType = {
   facebook: FacebookConfig;
   file: FileConfig;
   google: GoogleConfig;
+  gps: GpsConfig;
   mail: MailConfig;
   twitter: TwitterConfig;
 };

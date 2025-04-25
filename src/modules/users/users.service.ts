@@ -40,15 +40,8 @@ export class UsersService {
       }
     }
 
-    let hasDriverRole = false;
-
-    // Verificar si se está asignando el rol de conductor
-    if (createUserDto.role && createUserDto.role.id === RoleEnum.driver) {
-      hasDriverRole = true;
-    }
-
     // Si es conductor, validar que tenga los datos obligatorios
-    if (hasDriverRole || createUserDto.isDriver) {
+    if (createUserDto.role.id === RoleEnum.driver) {
       if (!createUserDto.documentId) {
         throw new UnprocessableEntityException({
           status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -83,18 +76,19 @@ export class UsersService {
       ? await bcrypt.hash(createUserDto.password, 10)
       : undefined;
 
-    const createdUser = await this.usersRepository.create({
+    const user = {
       ...createUserDto,
       email: createUserDto.email?.toLowerCase(),
-      role: {
-        id: createUserDto.role?.id || RoleEnum.user,
-      },
-      status: {
-        id: createUserDto.status?.id || StatusEnum.active,
-      },
+      status: {id: createUserDto.status?.id || StatusEnum.active},
       password: passwordHash,
       provider: createUserDto.provider || AuthProvidersEnum.email,
-    } as User);
+    } as User;
+
+    console.log('user', user);
+
+    const createdUser = await this.usersRepository.create(user);
+
+    console.log('createdUser', createdUser);
 
     return createdUser;
   }
@@ -114,15 +108,8 @@ export class UsersService {
       });
     }
 
-    let hasDriverRole = false;
-
-    // Verificar si se está asignando el rol de conductor
-    if (updateUserDto.role && updateUserDto.role.id === RoleEnum.driver) {
-      hasDriverRole = true;
-    }
-
     // Si es conductor, validar que tenga los datos obligatorios
-    if (hasDriverRole || updateUserDto.isDriver) {
+    if (updateUserDto.role.id === RoleEnum.driver) {
       if (!updateUserDto.documentId && !existingUser.documentId) {
         throw new UnprocessableEntityException({
           status: HttpStatus.UNPROCESSABLE_ENTITY,

@@ -24,9 +24,6 @@ export class VehicleSessionLocationEntity extends AbstractEntity {
   speed: number;
 
   @Column({nullable: true, type: 'float'})
-  heading: number;
-
-  @Column({nullable: true, type: 'float'})
   accuracy: number;
 
   @Column()

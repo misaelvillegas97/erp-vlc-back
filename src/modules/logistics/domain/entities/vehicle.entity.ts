@@ -1,6 +1,7 @@
 import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 import { AbstractEntity }                                         from '@shared/domain/entities/abstract.entity';
 import { VehicleSessionEntity }                                   from './vehicle-session.entity';
+import { GpsEntity }                                              from '@modules/logistics/domain/entities/gps.entity';
 
 export enum VehicleStatus {
   AVAILABLE = 'AVAILABLE',     // Disponible para uso
@@ -123,6 +124,9 @@ export class VehicleEntity extends AbstractEntity {
 
   @OneToMany(() => VehicleSessionEntity, session => session.vehicle)
   sessions: VehicleSessionEntity[];
+
+  @OneToMany(() => GpsEntity, gps => gps.vehicle)
+  gps: GpsEntity[];
 
   @Column('simple-json', {nullable: true, name: 'photo_url'})
   photoUrl: string;

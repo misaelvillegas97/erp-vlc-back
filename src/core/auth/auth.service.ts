@@ -160,9 +160,7 @@ export class AuthService {
   async register(dto: AuthRegisterLoginDto): Promise<void> {
     const user = await this.usersService.create({
       ...dto,
-      email: dto.email,
-      role: {id: RoleEnum.user},
-      status: {id: StatusEnum.inactive},
+      status: {id: StatusEnum.active},
     });
 
     const hash = await this.jwtService.signAsync(

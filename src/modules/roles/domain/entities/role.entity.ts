@@ -1,7 +1,8 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
-import { ApiProperty }                   from '@nestjs/swagger';
+import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import { ApiProperty }                              from '@nestjs/swagger';
 
 import { EntityRelationalHelper } from '@shared/utils/relational-entity-helper';
+import { RoleUserEntity }         from '@modules/roles/domain/entities/role-user.entity';
 
 @Entity({name: 'role'})
 export class RoleEntity extends EntityRelationalHelper {
@@ -15,6 +16,9 @@ export class RoleEntity extends EntityRelationalHelper {
   })
   @Column()
   name?: string;
+
+  @OneToMany(() => RoleUserEntity, (roleUser) => roleUser.role, {cascade: true})
+  users: RoleUserEntity[];
 
   constructor(partial?: Partial<RoleEntity>) {
     super();

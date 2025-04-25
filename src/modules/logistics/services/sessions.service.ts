@@ -130,18 +130,16 @@ export class SessionsService {
     // Get vehicle and check availability
     const vehicle = await this.vehiclesService.findById(startSessionDto.vehicleId);
     if (vehicle.status !== VehicleStatus.AVAILABLE) {
-      throw new UnprocessableEntityException(`Vehicle is not available for use`);
+      throw new UnprocessableEntityException({code: 'VEHICLE_NOT_AVAILABLE'});
     }
 
     // Get driver (user with driver role)
     const driver = await this.driversService.findById(startSessionDto.driverId);
 
-    // Check if driver has a valid license
-    if (!await this.driversService.hasValidLicense(driver.id)) {
-      throw new UnprocessableEntityException(
-        `Driver's license has expired or is not valid`
-      );
-    }
+    // Check if driver has a valid license; Activate when populate it is required
+    // if (!await this.driversService.hasValidLicense(driver.id)) {
+    //   throw new UnprocessableEntityException({code: 'DRIVER_LICENSE_INVALID'});
+    // }
 
     // Check if odometer reading is valid
     if (startSessionDto.initialOdometer < vehicle.lastKnownOdometer) {
@@ -297,7 +295,6 @@ export class SessionsService {
     location.longitude = locationData.longitude;
     location.altitude = locationData.altitude;
     location.speed = locationData.speed;
-    location.heading = locationData.heading;
     location.accuracy = locationData.accuracy;
     location.address = locationData.address;
     location.timestamp = new Date();

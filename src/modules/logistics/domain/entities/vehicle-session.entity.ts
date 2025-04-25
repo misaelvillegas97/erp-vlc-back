@@ -3,6 +3,7 @@ import { AbstractEntity }                                   from '@shared/domain
 import { VehicleEntity }                                    from './vehicle.entity';
 import { VehicleSessionLocationEntity }                     from './vehicle-session-location.entity';
 import { UserEntity }                                       from '@modules/users/domain/entities/user.entity';
+import { GpsEntity }                                        from '@modules/logistics/domain/entities/gps.entity';
 
 export enum VehicleSessionStatus {
   ACTIVE = 'active',
@@ -60,6 +61,11 @@ export class VehicleSessionEntity extends AbstractEntity {
     eager: true
   })
   locations: VehicleSessionLocationEntity[];
+
+  @OneToMany(() => GpsEntity, gps => gps.vehicle, {
+    cascade: true
+  })
+  gps?: GpsEntity[];
 
   @Column('simple-json', {nullable: true})
   images: { id: string, path: string }[];

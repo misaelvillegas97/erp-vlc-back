@@ -73,8 +73,8 @@ export class UserEntity extends EntityRelationalHelper {
   @ManyToOne(() => RoleEntity, {eager: true,})
   role?: RoleEntity | null;
 
-  @OneToMany(() => RoleUserEntity, role => role.user)
-  roles?: RoleUserEntity[];
+  @OneToMany(() => RoleUserEntity, (roleUser) => roleUser.user, {cascade: true})
+  roles: RoleUserEntity[];
 
   @ApiProperty({type: () => StatusEntity,})
   @ManyToOne(() => StatusEntity, {eager: true,})
@@ -94,7 +94,6 @@ export class UserEntity extends EntityRelationalHelper {
 
   @ApiProperty({type: String, required: false})
   @Column({type: String, nullable: true})
-  @Expose({groups: [ 'me', 'admin' ]})
   documentId?: string | null;
 
   @ApiProperty({type: String, required: false})
