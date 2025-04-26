@@ -16,14 +16,15 @@ import { RoleEntity }   from '@modules/roles/domain/entities/role.entity';
 import { StatusEntity } from '@modules/statuses/domain/entities/status.entity';
 import { FileEntity }   from '@modules/files/domain/entities/file.entity';
 
-import { Exclude, Expose }        from 'class-transformer';
-import { ApiProperty }            from '@nestjs/swagger';
-import { v4 }                     from 'uuid';
-import { EntityRelationalHelper } from '@shared/utils/relational-entity-helper';
-import { AuthProvidersEnum }      from '@core/auth/auth-providers.enum';
-import { RoleUserEntity }         from '@modules/roles/domain/entities/role-user.entity';
-import { DriverLicenseEntity }    from './driver-license.entity';
-import { VehicleSessionEntity }   from '@modules/logistics/domain/entities/vehicle-session.entity';
+import { Exclude, Expose }                        from 'class-transformer';
+import { ApiProperty }                            from '@nestjs/swagger';
+import { v4 }                                     from 'uuid';
+import { EntityRelationalHelper }                 from '@shared/utils/relational-entity-helper';
+import { AuthProvidersEnum }                      from '@core/auth/auth-providers.enum';
+import { RoleUserEntity }                         from '@modules/roles/domain/entities/role-user.entity';
+import { DriverLicenseEntity, DriverLicenseType } from './driver-license.entity';
+import { VehicleSessionEntity }                   from '@modules/logistics/domain/entities/vehicle-session.entity';
+import { DateTime }                               from 'luxon';
 
 @Entity('user')
 export class UserEntity extends EntityRelationalHelper {
@@ -121,13 +122,13 @@ export class UserEntity extends EntityRelationalHelper {
   @Expose({groups: [ 'me', 'admin' ]})
   notes?: string | null;
 
-  @ApiProperty({type: () => DriverLicenseEntity, required: false})
-  @OneToOne(() => DriverLicenseEntity, driverLicense => driverLicense.user, {
+  @ApiProperty({type: () => Array<DriverLicenseEntity>, required: false})
+  @OneToMany(() => DriverLicenseEntity, driverLicense => driverLicense.user, {
     nullable: true,
     cascade: true,
     eager: true
   })
-  driverLicense?: DriverLicenseEntity | null;
+  driverLicense?: DriverLicenseEntity[] | null;
 
   @OneToMany(() => VehicleSessionEntity, session => session.driver)
   vehicleSessions?: VehicleSessionEntity[];
@@ -148,10 +149,15 @@ export class UserEntity extends EntityRelationalHelper {
   /**
    * Verifica si el usuario tiene una licencia de conducir válida
    */
-  public hasValidDriverLicense(): boolean {
-    if (!this.driverLicense) return false;
-    const now = new Date();
-    return now >= this.driverLicense.licenseValidFrom && now <= this.driverLicense.licenseValidTo;
+  public hasValidDriverLicense(licenseType: DriverLicenseType): boolean {
+    if (!this.driverLicense || this.driverLicense.length === 0) return false;
+
+    const license = this.driverLicense.find(license => license.licenseType === licenseType);
+
+    if (!license) return false;
+
+    const now = DateTime.now().toISODate();
+    return license.licenseValidFrom <= now && license.licenseValidTo >= now;
   }
 
   constructor(values?: Partial<UserEntity>) {

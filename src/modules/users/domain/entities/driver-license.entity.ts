@@ -27,11 +27,11 @@ export class DriverLicenseEntity extends AbstractEntity {
   })
   licenseType: DriverLicenseType;
 
-  @Column({name: 'license_valid_from'})
-  licenseValidFrom: Date;
+  @Column({name: 'license_valid_from', type: 'date'})
+  licenseValidFrom: string;
 
-  @Column({name: 'license_valid_to'})
-  licenseValidTo: Date;
+  @Column({name: 'license_valid_to', type: 'date'})
+  licenseValidTo: string;
 
   @Column({nullable: true})
   restrictions: string;

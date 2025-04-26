@@ -1,6 +1,6 @@
-import { ApiProperty }                                       from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { DriverLicenseType }                                 from '@modules/users/domain/entities/driver-license.entity';
+import { ApiProperty }                                                  from '@nestjs/swagger';
+import { IsEmail, IsEnum, IsISO8601, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { DriverLicenseType }                                            from '@modules/users/domain/entities/driver-license.entity';
 
 export class CreateDriverDto {
   @ApiProperty()
@@ -30,11 +30,13 @@ export class CreateDriverDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  licenseValidFrom: Date;
+  @IsISO8601()
+  licenseValidFrom: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  licenseValidTo: Date;
+  @IsISO8601()
+  licenseValidTo: string;
 
   @ApiProperty({required: false})
   @IsOptional()

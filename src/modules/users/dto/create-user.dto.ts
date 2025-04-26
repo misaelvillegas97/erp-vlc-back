@@ -78,13 +78,13 @@ export class CreateUserDto {
   notes?: string;
 
   // Información de licencia de conducir (obligatoria para conductores)
-  @ApiPropertyOptional({type: DriverLicenseDto, description: 'Información de licencia de conducir (obligatoria para conductores)'})
+  @ApiPropertyOptional({type: Array<DriverLicenseDto>, description: 'Información de licencia de conducir (obligatoria para conductores)'})
   @IsOptional()
   @ValidateIf((o) => o.isDriver === true)
-  @ValidateNested()
-  @Type(() => DriverLicenseDto)
+  @ValidateNested({each: true})
+  @Type(() => Array<DriverLicenseDto>)
   @IsNotEmpty({message: 'La información de licencia es obligatoria para conductores'})
-  driverLicense?: DriverLicenseDto;
+  driverLicense?: Array<DriverLicenseDto>;
 
   hash?: string | null;
 }

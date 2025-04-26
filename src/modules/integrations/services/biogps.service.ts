@@ -31,8 +31,11 @@ export class BiogpsService {
     }
 
     try {
-      this.logger.log('Fetching GPS data from Biogps API');
+      this.logger.log('Fetching GPS data from BioGPS API');
+      const startTime = Date.now();
       const response = await axios.get<BiogpsRawGroup[]>(`${ this.apiUrl }?user_api_hash=${ this.apiHash }`);
+      const endTime = Date.now();
+      this.logger.log(`Fetched GPS data in ${ (endTime - startTime) }ms`);
 
       if (!response.data || !Array.isArray(response.data)) {
         this.logger.warn('Invalid response from Biogps API');

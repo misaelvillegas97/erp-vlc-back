@@ -80,11 +80,11 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   notes?: string;
 
   // Información de licencia de conducir (para usuarios con rol de conductor)
-  @ApiPropertyOptional({type: DriverLicenseDto, description: 'Información de licencia de conducir (obligatoria para conductores)'})
+  @ApiPropertyOptional({type: Array<DriverLicenseDto>, description: 'Información de licencia de conducir (obligatoria para conductores)'})
   @IsOptional()
-  @ValidateNested()
-  @Type(() => DriverLicenseDto)
-  driverLicense?: DriverLicenseDto;
+  @ValidateNested({each: true})
+  @Type(() => Array<DriverLicenseDto>)
+  driverLicense?: Array<DriverLicenseDto>;
 
   hash?: string | null;
 }

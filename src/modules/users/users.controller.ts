@@ -24,6 +24,7 @@ import { QueryUserDto }                                               from './dt
 import { UpdateUserDto }                                              from './dto/update-user.dto';
 import { User }                                                       from './domain/user';
 import { UsersService }                                               from './users.service';
+import { DriverLicenseDto }                                           from '@modules/users/dto/driver-license.dto';
 
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -103,5 +104,9 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: User['id']): Promise<void> {
     return this.usersService.remove(id);
+  }
+
+  createDriverLicense(@Param('id') id: User['id'], @Body() driverLicenseDto: DriverLicenseDto): Promise<any> {
+    return this.usersService.createDriverLicense(id, driverLicenseDto);
   }
 }

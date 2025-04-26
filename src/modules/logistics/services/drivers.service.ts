@@ -1,11 +1,12 @@
-import { Injectable, Logger, NotFoundException }   from '@nestjs/common';
-import { InjectRepository }                        from '@nestjs/typeorm';
-import { FindOptionsWhere, ILike, In, Repository } from 'typeorm';
-import { UserEntity }                              from '@modules/users/domain/entities/user.entity';
-import { DriverLicenseEntity }                     from '@modules/users/domain/entities/driver-license.entity';
-import { RoleUserEntity }                          from '@modules/roles/domain/entities/role-user.entity';
-import { RoleEnum }                                from '@modules/roles/roles.enum';
-import { QueryDriverDto }                          from '../domain/dto/query-driver.dto';
+import { Injectable, Logger, NotFoundException }             from '@nestjs/common';
+import { InjectRepository }                                  from '@nestjs/typeorm';
+import { FindOptionsWhere, ILike, In, MoreThan, Repository } from 'typeorm';
+import { UserEntity }                                        from '@modules/users/domain/entities/user.entity';
+import { DriverLicenseEntity }                               from '@modules/users/domain/entities/driver-license.entity';
+import { RoleUserEntity }                                    from '@modules/roles/domain/entities/role-user.entity';
+import { RoleEnum }                                          from '@modules/roles/roles.enum';
+import { QueryDriverDto }                                    from '../domain/dto/query-driver.dto';
+import { DateTime }                                          from 'luxon';
 
 @Injectable()
 export class DriversService {
@@ -103,14 +104,13 @@ export class DriversService {
     }
 
     // Obtener la fecha actual
-    const now = new Date();
+    const now = DateTime.now().toISODate();
 
     // Buscar licencias válidas
     const validLicenses = await this.driverLicenseRepository.find({
       where: {
         userId: In(driverUserIds),
-        licenseValidFrom: In(driverUserIds),
-        licenseValidTo: In(driverUserIds) // TypeORM aplicará la condición <= automáticamente
+        licenseValidTo: MoreThan(now),
       },
       select: [ 'userId' ]
     });
@@ -160,7 +160,7 @@ export class DriversService {
    * Verifica si un conductor tiene una licencia válida
    */
   async hasValidLicense(userId: string): Promise<boolean> {
-    const now = new Date();
+    const now = DateTime.now().toISODate();
 
     const driverLicense = await this.driverLicenseRepository.findOne({
       where: {userId}

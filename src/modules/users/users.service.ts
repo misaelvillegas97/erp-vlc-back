@@ -16,6 +16,8 @@ import { StatusEnum }                 from '../statuses/domain/enum/statuses.enu
 import { InjectRepository }           from '@nestjs/typeorm';
 import { DriverLicenseEntity }        from './domain/entities/driver-license.entity';
 import { Repository }                 from 'typeorm';
+import { DriverLicenseDto }           from '@modules/users/dto/driver-license.dto';
+import { DateTime }                   from 'luxon';
 
 @Injectable()
 export class UsersService {
@@ -59,16 +61,17 @@ export class UsersService {
           },
         });
       }
-
-      // Verificar que la licencia del conductor no esté vencida
-      const licenseValidTo = new Date(createUserDto.driverLicense.licenseValidTo);
-      if (licenseValidTo < new Date()) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            licenseValidTo: 'driverLicenseExpired',
-          },
-        });
+      for (const driverLicense of createUserDto.driverLicense) {
+        // Verificar que la licencia del conductor no esté vencida
+        const licenseValidTo = DateTime.fromISO(driverLicense.licenseValidTo).startOf('day');
+        if (licenseValidTo < DateTime.now().startOf('day')) {
+          throw new UnprocessableEntityException({
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            errors: {
+              licenseValidTo: 'driverLicenseExpired',
+            },
+          });
+        }
       }
     }
 
@@ -131,9 +134,9 @@ export class UsersService {
       }
 
       // Verificar que la licencia del conductor no esté vencida (si se proporciona)
-      if (updateUserDto.driverLicense?.licenseValidTo) {
-        const licenseValidTo = updateUserDto.driverLicense.licenseValidTo;
-        if (licenseValidTo < new Date()) {
+      for (const driverLicense of updateUserDto.driverLicense || []) {
+        const licenseValidTo = driverLicense.licenseValidTo;
+        if (licenseValidTo < DateTime.now().toISODate()) {
           throw new UnprocessableEntityException({
             status: HttpStatus.UNPROCESSABLE_ENTITY,
             errors: {
@@ -189,6 +192,27 @@ export class UsersService {
     provider: User['provider'];
   }): Promise<NullableType<User>> {
     return this.usersRepository.findBySocialIdAndProvider({socialId, provider});
+  }
+
+  createDriverLicense(id: string, driverLicenseDto: DriverLicenseDto) {
+    if (!driverLicenseDto.licenseValidTo) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {licenseValidTo: 'licenseValidToRequired'},
+      });
+    }
+
+    if (!driverLicenseDto.licenseType) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {licenseType: 'licenseTypeRequired'},
+      });
+    }
+
+    return this.driverLicenseRepository.save({
+      ...driverLicenseDto,
+      user: {id},
+    });
   }
 
   async remove(id: User['id']): Promise<void> {

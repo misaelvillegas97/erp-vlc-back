@@ -78,8 +78,8 @@ export class User {
   @ApiProperty()
   notes?: string | null;
 
-  @ApiProperty({type: () => DriverLicenseEntity})
-  driverLicense?: DriverLicenseEntity | null;
+  @ApiProperty({type: () => Array<DriverLicenseEntity>})
+  driverLicense?: DriverLicenseEntity[] | null;
 
   @ApiProperty({type: () => VehicleSessionEntity})
   vehicleSession?: VehicleSessionEntity | null;

@@ -23,6 +23,8 @@ export class UserMapper {
     domainEntity.role = raw.role;
     domainEntity.roles = raw.roles;
     domainEntity.status = raw.status;
+    domainEntity.documentId = raw.documentId;
+    domainEntity.driverLicense = raw.driverLicense;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
@@ -76,13 +78,18 @@ export class UserMapper {
     }
 
     if (domainEntity.driverLicense) {
-      const driverLicense = new DriverLicenseEntity();
-      driverLicense.licenseType = domainEntity.driverLicense.licenseType;
-      driverLicense.licenseValidFrom = domainEntity.driverLicense.licenseValidFrom;
-      driverLicense.licenseValidTo = domainEntity.driverLicense.licenseValidTo;
-      driverLicense.restrictions = domainEntity.driverLicense.restrictions;
-      driverLicense.issuingAuthority = domainEntity.driverLicense.issuingAuthority;
-      driverLicense.userId = domainEntity.id;
+      if (!persistenceEntity.driverLicense) persistenceEntity.driverLicense = [];
+
+      for (const driverLicense of domainEntity.driverLicense) {
+        const driverLicenseEntity = new DriverLicenseEntity();
+        driverLicenseEntity.licenseType = driverLicense.licenseType;
+        driverLicenseEntity.licenseValidFrom = driverLicense.licenseValidFrom;
+        driverLicenseEntity.licenseValidTo = driverLicense.licenseValidTo;
+        driverLicenseEntity.restrictions = driverLicense.restrictions;
+        driverLicenseEntity.issuingAuthority = driverLicense.issuingAuthority;
+        driverLicenseEntity.userId = domainEntity.id;
+        persistenceEntity.driverLicense.push(driverLicenseEntity);
+      }
     }
 
     persistenceEntity.email = domainEntity.email;
