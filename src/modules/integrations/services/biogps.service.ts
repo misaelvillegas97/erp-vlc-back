@@ -48,7 +48,7 @@ export class BiogpsService {
       // Emit events for each GPS
       this.emitGpsEvents(gpsData);
 
-      this.logger.log(`Processed ${ gpsData.length } GPS records`);
+      this.logger.log(`Fetched and parsed ${ gpsData.length } GPS records`);
       return gpsData;
     } catch (error) {
       this.logger.error(`Error fetching GPS data: ${ error.message }`, error.stack);

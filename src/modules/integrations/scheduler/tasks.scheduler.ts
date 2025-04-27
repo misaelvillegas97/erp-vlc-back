@@ -86,17 +86,6 @@ export class TasksScheduler {
   // @ts-ignore
   @Cron(CronExpression.EVERY_MINUTE, {disabled: this.environment === Environment.Development})
   async checkBiogpsGPS() {
-    this.logger.log(`[BiogpsGPS] Fetching GPS`);
-
-    const beginningTimestamp = new Date().getTime();
-    const gpsData = await this.biogpsService.run();
-    const endingTimestamp = new Date().getTime();
-
-    this.logger.log(`[BiogpsGPS] GPS fetched in ${ endingTimestamp - beginningTimestamp }ms`);
-
-    if (!gpsData || gpsData.length === 0) {
-      this.logger.log('[BiogpsGPS] No GPS data found');
-      return;
-    }
+    await this.biogpsService.run();
   }
 }

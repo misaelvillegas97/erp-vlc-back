@@ -80,17 +80,24 @@ export class GpsService {
 
     // Check if the vehicle exists
     const vehicle = await this.vehicleRepository.findOne({where: {licensePlate: gpsData.licensePlate}});
-    // if (!vehicle) {
-    //   this.logger.warn(`Vehicle not found for license plate: ${ gpsData.licensePlate }`);
-    //   return;
-    // }
+    if (!vehicle) return;
+
+    this.logger.debug(`Vehicle found: ${ vehicle.id } - ${ vehicle.licensePlate }`);
 
     // Check if the vehicle session exists
-    const vehicleSession = await this.vehicleSessionRepository.findOne({where: {vehicle, status: VehicleSessionStatus.ACTIVE}});
-    // if (!vehicleSession) {
-    //   this.logger.warn(`Vehicle session not found for vehicle: ${ gpsData.licensePlate }`);
-    //   return;
-    // }
+    const vehicleSession = await this.vehicleSessionRepository.findOne({
+      where: {
+        vehicleId: vehicle.id,
+        status: VehicleSessionStatus.ACTIVE
+      },
+      relations: [ 'vehicle' ]
+    });
+    if (!vehicleSession) {
+      this.logger.warn(`Vehicle session not found for vehicle: ${ gpsData.licensePlate }`);
+      return;
+    }
+
+    this.logger.debug(`Vehicle session found: ${ vehicleSession.id } - ${ vehicleSession.vehicle.licensePlate }`);
 
     // Check if the timestamp already registered the vehicle GPS
     const existingGps = await this.gpsRepository.findOne({

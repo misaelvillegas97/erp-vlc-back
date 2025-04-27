@@ -1,9 +1,9 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
-import { AbstractEntity }                                   from '@shared/domain/entities/abstract.entity';
-import { VehicleEntity }                                    from './vehicle.entity';
-import { VehicleSessionLocationEntity }                     from './vehicle-session-location.entity';
-import { UserEntity }                                       from '@modules/users/domain/entities/user.entity';
-import { GpsEntity }                                        from '@modules/logistics/domain/entities/gps.entity';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { AbstractEntity }                                          from '@shared/domain/entities/abstract.entity';
+import { VehicleEntity }                                           from './vehicle.entity';
+import { VehicleSessionLocationEntity }                            from './vehicle-session-location.entity';
+import { UserEntity }                                              from '@modules/users/domain/entities/user.entity';
+import { GpsEntity }                                               from '@modules/logistics/domain/entities/gps.entity';
 
 export enum VehicleSessionStatus {
   ACTIVE = 'ACTIVE',
@@ -16,6 +16,7 @@ export enum VehicleSessionStatus {
 export class VehicleSessionEntity extends AbstractEntity {
   @ManyToOne(() => VehicleEntity, vehicle => vehicle.sessions)
   @JoinColumn({name: 'vehicle_id'})
+  @Index()
   vehicle: VehicleEntity;
 
   @Column({name: 'vehicle_id'})
