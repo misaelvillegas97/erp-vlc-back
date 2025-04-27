@@ -161,12 +161,12 @@ export class SessionsService {
     const savedSession = await this.sessionRepository.save(session);
 
     // Record initial location if provided
-    if (startSessionDto.initialLatitude && startSessionDto.initialLongitude) {
+    if (startSessionDto.initialLocation) {
       await this.recordLocation(
         savedSession.id,
         {
-          latitude: startSessionDto.initialLatitude,
-          longitude: startSessionDto.initialLongitude
+          latitude: startSessionDto.initialLocation.latitude,
+          longitude: startSessionDto.initialLocation.longitude
         },
         true
       );

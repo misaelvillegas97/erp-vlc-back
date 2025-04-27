@@ -6,10 +6,10 @@ import { UserEntity }                                       from '@modules/users
 import { GpsEntity }                                        from '@modules/logistics/domain/entities/gps.entity';
 
 export enum VehicleSessionStatus {
-  ACTIVE = 'active',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-  EXPIRED = 'expired'
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED'
 }
 
 @Entity('vehicle_session')

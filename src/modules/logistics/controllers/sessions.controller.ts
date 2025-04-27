@@ -88,7 +88,7 @@ export class SessionsController {
 
   @ApiOperation({summary: 'Start a new vehicle session'})
   @ApiResponse({status: 201, description: 'Vehicle session has been started successfully'})
-  @Post('start')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   startSession(@Body() startSessionDto: StartSessionDto): Promise<VehicleSessionEntity> {
     return this.sessionsService.startSession(startSessionDto);

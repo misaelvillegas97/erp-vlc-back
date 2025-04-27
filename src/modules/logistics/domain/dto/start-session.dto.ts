@@ -23,13 +23,22 @@ export class StartSessionDto {
   @IsString()
   purpose?: string;
 
-  @ApiProperty({required: false})
+  // Initial location with latitude, longitude, accuracy, and timestamp
+  @ApiProperty({
+    type: 'object',
+    properties: {
+      latitude: {type: 'number'},
+      longitude: {type: 'number'},
+      accuracy: {type: 'number'},
+      timestamp: {type: 'number'}
+    }
+  })
   @IsOptional()
-  @IsNumber()
-  initialLatitude?: number;
-
-  @ApiProperty({required: false})
-  @IsOptional()
-  @IsNumber()
-  initialLongitude?: number;
+  @IsNotEmpty()
+  initialLocation?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    timestamp: number;
+  };
 }
