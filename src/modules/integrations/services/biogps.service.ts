@@ -31,11 +31,11 @@ export class BiogpsService {
     }
 
     try {
-      this.logger.log('Fetching GPS data from BioGPS API');
+      this.logger.debug('Fetching GPS data from BioGPS API');
       const startTime = Date.now();
       const response = await axios.get<BiogpsRawGroup[]>(`${ this.apiUrl }?user_api_hash=${ this.apiHash }`);
       const endTime = Date.now();
-      this.logger.log(`Fetched GPS data in ${ (endTime - startTime) }ms`);
+      this.logger.debug(`Fetched GPS data in ${ (endTime - startTime) }ms`);
 
       if (!response.data || !Array.isArray(response.data)) {
         this.logger.warn('Invalid response from Biogps API');
@@ -48,7 +48,7 @@ export class BiogpsService {
       // Emit events for each GPS
       this.emitGpsEvents(gpsData);
 
-      this.logger.log(`Fetched and parsed ${ gpsData.length } GPS records`);
+      this.logger.debug(`Fetched and parsed ${ gpsData.length } GPS records`);
       return gpsData;
     } catch (error) {
       this.logger.error(`Error fetching GPS data: ${ error.message }`, error.stack);
@@ -60,9 +60,6 @@ export class BiogpsService {
    * Emit events for each GPS
    */
   private emitGpsEvents(gpsData: GenericGPS[]): void {
-    gpsData.forEach(gps => {
-      this.logger.debug(`Emitting GPS event for vehicle: ${ gps.licensePlate }`);
-      this.eventEmitter.emit('gps.updated', gps);
-    });
+    gpsData.forEach(gps => this.eventEmitter.emit('gps.updated', gps));
   }
 }

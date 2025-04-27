@@ -76,13 +76,9 @@ export class GpsService {
    */
   @OnEvent('gps.updated')
   async handleGpsUpdatedEvent(gpsData: GenericGPS) {
-    this.logger.debug(`Received GPS update for vehicle: ${ gpsData.licensePlate }`);
-
     // Check if the vehicle exists
     const vehicle = await this.vehicleRepository.findOne({where: {licensePlate: gpsData.licensePlate}});
     if (!vehicle) return;
-
-    this.logger.debug(`Vehicle found: ${ vehicle.id } - ${ vehicle.licensePlate }`);
 
     // Check if the vehicle session exists
     const vehicleSession = await this.vehicleSessionRepository.findOne({
@@ -92,12 +88,7 @@ export class GpsService {
       },
       relations: [ 'vehicle' ]
     });
-    if (!vehicleSession) {
-      this.logger.warn(`Vehicle session not found for vehicle: ${ gpsData.licensePlate }`);
-      return;
-    }
-
-    this.logger.debug(`Vehicle session found: ${ vehicleSession.id } - ${ vehicleSession.vehicle.licensePlate }`);
+    if (!vehicleSession) return;
 
     // Check if the timestamp already registered the vehicle GPS
     const existingGps = await this.gpsRepository.findOne({
