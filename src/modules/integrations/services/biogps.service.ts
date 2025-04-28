@@ -24,16 +24,17 @@ export class BiogpsService {
   /**
    * Fetch GPS data from Biogps API and process it
    */
-  async run(): Promise<GenericGPS[]> {
-    if (!this.apiUrl || !this.apiHash) {
+  async run(apiUrl: string = this.apiUrl, apiHash: string = this.apiHash): Promise<GenericGPS[]> {
+    if (!apiUrl || !apiHash) {
       this.logger.warn('Biogps API URL or Hash is not configured');
       return [];
     }
 
     try {
+      console.log(); // Just to separate logs
       this.logger.debug('Fetching GPS data from BioGPS API');
       const startTime = Date.now();
-      const response = await axios.get<BiogpsRawGroup[]>(`${ this.apiUrl }?user_api_hash=${ this.apiHash }`);
+      const response = await axios.get<BiogpsRawGroup[]>(`${ apiUrl }?user_api_hash=${ apiHash }`);
       const endTime = Date.now();
       this.logger.debug(`Fetched GPS data in ${ (endTime - startTime) }ms`);
 

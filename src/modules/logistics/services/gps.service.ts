@@ -26,8 +26,8 @@ export class GpsService {
       const gpsEntity = this.gpsRepository.create({
         licensePlate: gpsData.licensePlate,
         status: gpsData.status,
-        lat: gpsData.currentLocation.lat,
-        lng: gpsData.currentLocation.lng,
+        latitude: gpsData.currentLocation.lat,
+        longitude: gpsData.currentLocation.lng,
         timestamp: gpsData.currentLocation.timestamp,
         lastLocations: gpsData.lastLocations,
         speed: gpsData.speed,

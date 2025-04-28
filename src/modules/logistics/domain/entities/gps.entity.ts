@@ -12,10 +12,10 @@ export class GpsEntity extends AbstractEntity {
   status: string;
 
   @Column({type: 'float', nullable: false})
-  lat: number;
+  latitude: number;
 
   @Column({type: 'float', nullable: false})
-  lng: number;
+  longitude: number;
 
   @Column({type: 'bigint', nullable: false})
   timestamp: number;

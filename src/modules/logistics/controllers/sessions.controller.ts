@@ -8,6 +8,7 @@ import { UpdateLocationDto }                                                    
 import { QuerySessionDto }                                                            from '../domain/dto/query-session.dto';
 import { VehicleSessionEntity }                                                       from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                                               from '../domain/entities/vehicle-session-location.entity';
+import { SessionMapper }                                                              from '@modules/logistics/domain/mappers/session.mapper';
 
 @ApiTags('Logistics - Vehicle Sessions')
 @UseGuards(AuthGuard('jwt'))
@@ -48,14 +49,14 @@ export class SessionsController {
   @ApiResponse({status: 200, description: 'Returns list of historical vehicle sessions'})
   @Get('history')
   @HttpCode(HttpStatus.OK)
-  async findHistory(@Query() query: QuerySessionDto): Promise<{ total: number; items: VehicleSessionEntity[] }> {
+  async findHistory(@Query() query: QuerySessionDto): Promise<{ total: number; items: SessionMapper[] }> {
     // Set status filter to exclude active sessions for history
     const historyQuery = {
       ...query,
       status: undefined // Will be handled in the service
     };
     const [ items, total ] = await this.sessionsService.findAll(historyQuery);
-    return {total, items};
+    return {total, items: SessionMapper.toDomainAll(items)};
   }
 
   @ApiOperation({summary: 'Get a single vehicle session by ID'})

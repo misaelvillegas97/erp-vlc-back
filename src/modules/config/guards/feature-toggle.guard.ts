@@ -1,13 +1,13 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector }                                                     from '@nestjs/core';
-import { ConfigService }                                                 from '../config.service';
+import { AppConfigService }                                              from '../app-config.service';
 import { FEATURE_TOGGLE_KEY }                                            from '../decorators/feature-toggle.decorator';
 
 @Injectable()
 export class FeatureToggleGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    private configService: ConfigService,
+    private configService: AppConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

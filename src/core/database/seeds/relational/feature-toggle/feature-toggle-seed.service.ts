@@ -1,7 +1,8 @@
-import { Injectable }          from '@nestjs/common';
-import { InjectRepository }    from '@nestjs/typeorm';
-import { Repository }          from 'typeorm';
-import { FeatureToggleEntity } from '@modules/config/domain/entities/feature-toggle.entity';
+import { Injectable }            from '@nestjs/common';
+import { InjectRepository }      from '@nestjs/typeorm';
+import { Repository }            from 'typeorm';
+import { FeatureToggleEntity }   from '@modules/config/domain/entities/feature-toggle.entity';
+import { RequiredMetadataModel } from '@modules/config/domain/required-metadata.model';
 
 @Injectable()
 export class FeatureToggleSeedService {
@@ -81,11 +82,11 @@ export class FeatureToggleSeedService {
       },
       // API access
       {
-        name: 'api-access',
-        displayName: 'API Access',
-        description: 'Enable/disable API access features',
+        name: 'scrapping',
+        displayName: 'Scrapping API Access',
+        description: 'Enable/disable access to the scrapping API',
         enabled: true,
-        category: 'api',
+        category: 'scrapping',
       }
     ];
 
@@ -112,18 +113,18 @@ export class FeatureToggleSeedService {
           apiKey: 'demo-key',
           endpoint: 'https://api.biogps.example.com/v1'
         },
-      },
-      {
-        name: 'gpstracker-provider',
-        displayName: 'GPS Tracker Provider',
-        description: 'Enable/disable GPSTracker location provider',
-        enabled: false, // Disabled by default
-        category: 'logistics',
-        parentName: 'gps-updates',
-        metadata: {
-          apiKey: 'test-key',
-          endpoint: 'https://api.gpstracker.example.com/v2'
-        },
+        requiredMetadata: [
+          {
+            name: 'endpoint',
+            description: 'API endpoint for BioGPS',
+            type: 'string',
+          },
+          {
+            name: 'apiKey',
+            description: 'API key for BioGPS authentication',
+            type: 'string',
+          }
+        ] as RequiredMetadataModel[]
       },
 
       // Accounting Module Children
@@ -230,21 +231,21 @@ export class FeatureToggleSeedService {
 
       // API Children
       {
-        name: 'customer-api',
-        displayName: 'Customer API Access',
-        description: 'Enable/disable API access for customers',
+        name: 'cencosud',
+        displayName: 'Cencosud B2B Scrapping',
+        description: 'Enable/disable Cencosud B2B scrapping web platform',
         enabled: true,
-        category: 'api',
-        parentName: 'api-access',
+        category: 'scrapping',
+        parentName: 'scrapping',
       },
       {
-        name: 'partner-api',
-        displayName: 'Partner API Access',
-        description: 'Enable/disable API access for business partners',
-        enabled: false, // Restricted by default
-        category: 'api',
-        parentName: 'api-access',
-      },
+        name: 'comercio-net',
+        displayName: 'ComercioNet Scrapping',
+        description: 'Enable/disable ComercioNet scrapping web platform',
+        enabled: true,
+        category: 'scrapping',
+        parentName: 'scrapping',
+      }
     ];
 
     // Create children with their parent relationships

@@ -9,6 +9,7 @@ import { OrderRequestDto }    from '../domain/dto/order-request.dto';
 import { EventEmitter2 }      from '@nestjs/event-emitter';
 import { Environment }        from '@core/config/app.config';
 import { ConfigService }      from '@nestjs/config';
+import { AppConfigService }   from '@modules/config/app-config.service';
 
 @Injectable()
 export class TasksScheduler {
@@ -21,6 +22,7 @@ export class TasksScheduler {
     private readonly biogpsService: BiogpsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly clientService: ClientService,
+    private readonly configService: AppConfigService,
     private readonly cs: ConfigService
   ) {
     this.environment = this.cs.get<Environment>('app.nodeEnv', {infer: true}) as Environment || Environment.Development;
@@ -86,6 +88,10 @@ export class TasksScheduler {
   // @ts-ignore
   @Cron(CronExpression.EVERY_MINUTE, {disabled: this.environment === Environment.Development})
   async checkBiogpsGPS() {
-    await this.biogpsService.run();
+    const config = await this.configService.findFeatureToggleByName('biogps-provider');
+
+    if (!config?.enabled) return;
+
+    await this.biogpsService.run(config.metadata.endpoint, config.metadata.apiHash);
   }
 }

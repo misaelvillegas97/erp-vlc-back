@@ -6,6 +6,7 @@ import { CreateVehicleDto }                                                    f
 import { UpdateVehicleDto }                                                    from '../domain/dto/update-vehicle.dto';
 import { QueryVehicleDto }                                                     from '../domain/dto/query-vehicle.dto';
 import { plainToInstance }                                                     from 'class-transformer';
+import { DateTime }                                                            from 'luxon';
 
 @Injectable()
 export class VehiclesService {
@@ -156,9 +157,8 @@ export class VehiclesService {
   }
 
   async checkMaintenanceStatus(): Promise<VehicleEntity[]> {
-    const today = new Date();
-    const nextMonth = new Date();
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const today = DateTime.now().toISODate();
+    const nextMonth = DateTime.now().plus({months: 1}).toISODate();
 
     return this.vehicleRepository.find({
       where: [

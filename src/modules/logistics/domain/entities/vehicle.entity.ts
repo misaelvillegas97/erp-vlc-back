@@ -101,23 +101,23 @@ export class VehicleEntity extends AbstractEntity {
   @Column({name: 'department_id', nullable: true})
   departmentId: string;
 
-  @Column({nullable: true, name: 'last_maintenance_date'})
-  lastMaintenanceDate: Date;
+  @Column({type: 'date', nullable: true, name: 'last_maintenance_date'})
+  lastMaintenanceDate: string;
 
-  @Column({nullable: true, name: 'next_maintenance_date'})
-  nextMaintenanceDate: Date;
+  @Column({type: 'date', nullable: true, name: 'next_maintenance_date'})
+  nextMaintenanceDate: string;
 
   @Column({nullable: true, name: 'next_maintenance_km'})
   nextMaintenanceKm: number;
 
-  @Column({nullable: true, name: 'purchase_date'})
-  purchaseDate: Date;
+  @Column({type: 'date', nullable: true, name: 'purchase_date'})
+  purchaseDate: string;
 
-  @Column({nullable: true, name: 'insurance_expiry'})
-  insuranceExpiry: Date;
+  @Column({type: 'date', nullable: true, name: 'insurance_expiry'})
+  insuranceExpiry: string;
 
-  @Column({nullable: true, name: 'technical_inspection_expiry'})
-  technicalInspectionExpiry: Date;
+  @Column({type: 'date', nullable: true, name: 'technical_inspection_expiry'})
+  technicalInspectionExpiry: string;
 
   @Column({nullable: true, type: 'text'})
   notes: string;

@@ -63,7 +63,7 @@ export class VehicleSessionEntity extends AbstractEntity {
   })
   locations: VehicleSessionLocationEntity[];
 
-  @OneToMany(() => GpsEntity, gps => gps.vehicle, {
+  @OneToMany(() => GpsEntity, gps => gps.vehicleSession, {
     cascade: true
   })
   gps?: GpsEntity[];

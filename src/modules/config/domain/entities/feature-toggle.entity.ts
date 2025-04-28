@@ -1,5 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { AbstractEntity }                                   from '@shared/domain/entities/abstract.entity';
+import { RequiredMetadataModel }                            from '@modules/config/domain/required-metadata.model';
 
 @Entity('feature_toggles')
 export class FeatureToggleEntity extends AbstractEntity {
@@ -20,6 +21,9 @@ export class FeatureToggleEntity extends AbstractEntity {
 
   @Column({type: 'json', nullable: true})
   metadata: Record<string, any>;
+
+  @Column({type: 'json', nullable: true, name: 'required_metadata'})
+  requiredMetadata: RequiredMetadataModel[];
 
   // Parent-child relationship
   @Column({type: 'uuid', nullable: true, name: 'parent_id'})

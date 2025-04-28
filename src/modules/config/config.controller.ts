@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags }                       from '@nestjs/swagger';
-import { ConfigService }                                                      from './config.service';
+import { AppConfigService }                                                   from './app-config.service';
 import { CreateFeatureToggleDto }                                             from './dto/create-feature-toggle.dto';
 import { UpdateFeatureToggleDto }                                             from './dto/update-feature-toggle.dto';
 import { FeatureToggleResponseDto }                                           from './dto/feature-toggle-response.dto';
@@ -12,7 +12,7 @@ import { AuthGuard }                                                          fr
 @Controller('config/features')
 @UseGuards(AuthGuard('jwt'))
 export class ConfigController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: AppConfigService) {}
 
   @Post()
   @ApiOperation({summary: 'Create a new feature toggle'})

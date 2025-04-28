@@ -1,0 +1,67 @@
+import { FuelType, VehicleEntity, VehicleStatus, VehicleType } from '@modules/logistics/domain/entities/vehicle.entity';
+
+export class VehicleMapper {
+  id: string;
+  brand: string;
+  model: string;
+  year: number;
+  licensePlate: string;
+  vin: string;
+  type: VehicleType;
+  color: string;
+  fuelType: FuelType;
+  tankCapacity: number;
+  lastKnownOdometer: number;
+  status: VehicleStatus;
+  currentSessionId: string;
+  departmentId: string;
+  lastMaintenanceDate: string;
+  nextMaintenanceDate: string;
+  nextMaintenanceKm: number;
+  purchaseDate: string;
+  insuranceExpiry: string;
+  technicalInspectionExpiry: string;
+  notes: string;
+  createdAt: Date;
+
+  // Generated properties
+  displayName: string;
+
+  constructor(values: Partial<VehicleMapper>) {
+    Object.assign(this, values);
+  }
+
+  static toDomain(entity: VehicleEntity): VehicleMapper {
+    const displayName = `${ entity.licensePlate } - ${ entity.brand } ${ entity.model }`;
+
+    return new VehicleMapper({
+      id: entity.id,
+      brand: entity.brand,
+      model: entity.model,
+      year: entity.year,
+      licensePlate: entity.licensePlate,
+      vin: entity.vin,
+      type: entity.type,
+      color: entity.color,
+      fuelType: entity.fuelType,
+      tankCapacity: entity.tankCapacity,
+      lastKnownOdometer: entity.lastKnownOdometer,
+      status: entity.status,
+      currentSessionId: entity.currentSessionId,
+      departmentId: entity.departmentId,
+      lastMaintenanceDate: entity.lastMaintenanceDate,
+      nextMaintenanceDate: entity.nextMaintenanceDate,
+      nextMaintenanceKm: entity.nextMaintenanceKm,
+      purchaseDate: entity.purchaseDate,
+      insuranceExpiry: entity.insuranceExpiry,
+      technicalInspectionExpiry: entity.technicalInspectionExpiry,
+      notes: entity.notes,
+      createdAt: entity.createdAt,
+      displayName,
+    });
+  }
+
+  static toDomainAll(entities: VehicleEntity[]): VehicleMapper[] {
+    return entities.map(entity => this.toDomain(entity));
+  }
+}

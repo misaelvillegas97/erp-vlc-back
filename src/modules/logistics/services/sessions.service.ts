@@ -31,7 +31,7 @@ export class SessionsService {
     const skip = ((query.page || 1) - 1) * take;
 
     const where: FindOptionsWhere<VehicleSessionEntity> = {};
-    const relations = [ 'vehicle', 'driver' ];
+    const relations = [ 'vehicle', 'driver', 'gps' ];
 
     if (query.includeDetails) {
       relations.push('locations');
@@ -100,8 +100,10 @@ export class SessionsService {
   async findById(id: string): Promise<VehicleSessionEntity> {
     const session = await this.sessionRepository.findOne({
       where: {id},
-      relations: [ 'vehicle', 'driver', 'locations' ]
+      relations: [ 'vehicle', 'driver', 'locations', 'gps' ]
     });
+
+    console.log(session.gps);
 
     if (!session) {
       throw new NotFoundException(`Vehicle session with ID ${ id } not found`);

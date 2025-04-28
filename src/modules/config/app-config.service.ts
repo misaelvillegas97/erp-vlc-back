@@ -7,7 +7,7 @@ import { FeatureToggleEntity }           from './domain/entities/feature-toggle.
 import { ToggleFeatureDto }              from './dto/toggle-feature.dto';
 
 @Injectable()
-export class ConfigService {
+export class AppConfigService {
   constructor(
     @InjectRepository(FeatureToggleEntity)
     private featureToggleRepository: Repository<FeatureToggleEntity>,
@@ -110,13 +110,7 @@ export class ConfigService {
       options.relations = [ 'children', 'parent' ];
     }
 
-    const featureToggle = await this.featureToggleRepository.findOne(options);
-    
-    if (!featureToggle) {
-      throw new NotFoundException(`Feature toggle with name "${ name }" not found`);
-    }
-
-    return featureToggle;
+    return await this.featureToggleRepository.findOne(options);
   }
 
   /**
