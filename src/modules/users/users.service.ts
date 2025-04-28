@@ -87,11 +87,7 @@ export class UsersService {
       provider: createUserDto.provider || AuthProvidersEnum.email,
     } as User;
 
-    console.log('user', user);
-
     const createdUser = await this.usersRepository.create(user);
-
-    console.log('createdUser', createdUser);
 
     return createdUser;
   }

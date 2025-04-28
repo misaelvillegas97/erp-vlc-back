@@ -85,8 +85,7 @@ export class GpsService {
       where: {
         vehicleId: vehicle.id,
         status: VehicleSessionStatus.ACTIVE
-      },
-      relations: [ 'vehicle' ]
+      }
     });
     if (!vehicleSession) return;
 

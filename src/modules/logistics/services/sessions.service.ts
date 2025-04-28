@@ -103,8 +103,6 @@ export class SessionsService {
       relations: [ 'vehicle', 'driver', 'locations', 'gps' ]
     });
 
-    console.log(session.gps);
-
     if (!session) {
       throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
     }
