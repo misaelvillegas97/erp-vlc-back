@@ -25,6 +25,14 @@ export class CreateFeatureToggleDto {
   @IsObject()
   metadata?: Record<string, any>;
 
+  @IsObject()
+  @IsOptional()
+  requiredMetadata?: {
+    name: string;
+    description: string;
+    type: string;
+  }[];
+
   @IsOptional()
   @IsUUID()
   parentId?: string;

@@ -10,7 +10,6 @@ import { UserSeedModule }                from './user/user-seed.module';
 import databaseConfig                    from '../../config/database.config';
 import appConfig                         from '@core/config/app.config';
 import { ClientSeedModule }              from '@core/database/seeds/relational/client/client-seed.module';
-import { NavigationSeedModule }          from './navigation/navigation-seed.module';
 
 @Module({
   imports: [
@@ -18,7 +17,6 @@ import { NavigationSeedModule }          from './navigation/navigation-seed.modu
     StatusSeedModule,
     UserSeedModule,
     ClientSeedModule,
-    NavigationSeedModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [ databaseConfig, appConfig ],

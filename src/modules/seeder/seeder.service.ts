@@ -6,7 +6,6 @@ import { StatusSeedService }        from '@core/database/seeds/relational/status
 import { UserSeedService }          from '@core/database/seeds/relational/user/user-seed.service';
 import { ClientSeedService }        from '@core/database/seeds/relational/client/client-seed.service';
 import { FeatureToggleSeedService } from '@core/database/seeds/relational/feature-toggle/feature-toggle-seed.service';
-import { NavigationSeedService }    from '@core/database/seeds/relational/navigation/navigation-seed.service';
 
 @Injectable()
 export class SeederService {
@@ -16,8 +15,7 @@ export class SeederService {
     private readonly statusSeedService: StatusSeedService,
     private readonly userSeedService: UserSeedService,
     private readonly clientSeedService: ClientSeedService,
-    private readonly featureToggleSeedService: FeatureToggleSeedService,
-    private readonly navigationSeedService: NavigationSeedService,
+    private readonly featureToggleSeedService: FeatureToggleSeedService
   ) {}
 
   appInfo() {
@@ -33,7 +31,6 @@ export class SeederService {
     await this.userSeedService.run();
     await this.clientSeedService.run();
     await this.featureToggleSeedService.seed();
-    await this.navigationSeedService.seed();
   }
 
   /**

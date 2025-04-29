@@ -4,7 +4,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ClientService }      from '@modules/clients/client.service';
 import { ComercioNetService } from '../services/comercio-net.service';
 import { CencosudB2bService } from '../services/cencosud-b2b.service';
-import { BiogpsService }      from '../services/biogps.service';
 import { OrderRequestDto }    from '../domain/dto/order-request.dto';
 import { EventEmitter2 }      from '@nestjs/event-emitter';
 import { Environment }        from '@core/config/app.config';
@@ -19,7 +18,6 @@ export class TasksScheduler {
   constructor(
     private readonly comercioNetService: ComercioNetService,
     private readonly cencosudB2bService: CencosudB2bService,
-    private readonly biogpsService: BiogpsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly clientService: ClientService,
     private readonly configService: AppConfigService,
@@ -82,16 +80,5 @@ export class TasksScheduler {
     } as OrderRequestDto));
 
     this.eventEmitter.emit('order-providers.createAll', mappedOrders);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  @Cron(CronExpression.EVERY_MINUTE, {disabled: this.environment === Environment.Development})
-  async checkBiogpsGPS() {
-    const config = await this.configService.findFeatureToggleByName('biogps-provider');
-
-    if (!config?.enabled) return;
-
-    await this.biogpsService.run(config.metadata.endpoint, config.metadata.apiHash);
   }
 }
