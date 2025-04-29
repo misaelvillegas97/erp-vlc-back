@@ -24,7 +24,7 @@ export class FeatureToggleRegistryService {
     });
 
     if (existingToggle) {
-      this.logger.log(`Feature toggle '${ toggle.name }' already exists`);
+      this.logger.debug(`Feature toggle '${ toggle.name }' already exists`);
       return existingToggle;
     }
 
@@ -41,7 +41,7 @@ export class FeatureToggleRegistryService {
     }
 
     // Create the feature toggle
-    this.logger.log(`Creating feature toggle '${ toggle.name }'`);
+    this.logger.debug(`Creating feature toggle '${ toggle.name }'`);
     const featureToggle = this.featureToggleRepository.create(toggle);
     return this.featureToggleRepository.save(featureToggle);
   }

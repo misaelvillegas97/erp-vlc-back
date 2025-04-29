@@ -49,6 +49,7 @@ import { TypesModule }                     from '@modules/types/types.module';
 import { LogisticsModule }                 from '@modules/logistics/logistics.module';
 import { ConfigModule as AppConfigModule } from '@modules/config/config.module';
 import gpsConfig                           from '@core/config/gps.config';
+import { GpsModule }                       from '@modules/gps/gps.module';
 
 @Module({
   imports: [
@@ -134,7 +135,8 @@ import gpsConfig                           from '@core/config/gps.config';
     NotificationsModule,
     TypesModule,
     LogisticsModule,
-    AppConfigModule
+    AppConfigModule,
+    GpsModule
   ],
   controllers: [ AppController ]
 })

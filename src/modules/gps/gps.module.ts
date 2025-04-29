@@ -3,12 +3,15 @@ import { BiogpsService }                from '@modules/gps/services/biogps.servi
 import { FeatureToggleModule }          from '@modules/config/base/feature-toggle-module.base';
 import { FeatureToggleRegistryService } from '@modules/config/feature-toggle-registry.service';
 import { GpsFeatureTogglesProvider }    from '@modules/gps/gps-feature-toggles.provider';
+import { RunnerService }                from '@modules/gps/schedulers/runner.service';
 
 @Module({
   imports: [],
   controllers: [],
   providers: [
     BiogpsService,
+    RunnerService,
+    GpsFeatureTogglesProvider
   ],
   exports: [],
 })
