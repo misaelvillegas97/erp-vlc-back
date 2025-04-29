@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository }              from '@nestjs/typeorm';
-import { Repository }                    from 'typeorm';
+import { IsNull, Repository }            from 'typeorm';
 import { CreateFeatureToggleDto }        from './dto/create-feature-toggle.dto';
 import { UpdateFeatureToggleDto }        from './dto/update-feature-toggle.dto';
 import { FeatureToggleEntity }           from './domain/entities/feature-toggle.entity';
@@ -72,7 +72,7 @@ export class AppConfigService {
   async getFeatureHierarchy(): Promise<FeatureToggleEntity[]> {
     // Get all root level toggles (those without parent)
     return await this.featureToggleRepository.find({
-      where: {parentId: null},
+      where: {parent: IsNull()},
       relations: [ 'children', 'children.children' ],
     });
   }

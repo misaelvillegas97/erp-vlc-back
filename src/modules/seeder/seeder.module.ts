@@ -10,13 +10,16 @@ import { ClientSeedService }                from '@core/database/seeds/relationa
 import { ClientsModule }                    from '@modules/clients/clients.module';
 import { ConfigModule }                     from '@modules/config/config.module';
 import { FeatureToggleSeedService }         from '@core/database/seeds/relational/feature-toggle/feature-toggle-seed.service';
+import { NavigationSeedService }            from '@core/database/seeds/relational/navigation/navigation-seed.service';
+import { NavigationModule }                 from '@modules/navigation/navigation.module';
 
 @Module({
   imports: [
     UsersModule,
     NestConfigModule,
     ClientsModule,
-    ConfigModule
+    ConfigModule,
+    NavigationModule
   ],
   controllers: [ SeederController ],
   providers: [
@@ -25,7 +28,8 @@ import { FeatureToggleSeedService }         from '@core/database/seeds/relationa
     UserSeedService,
     SeederService,
     ClientSeedService,
-    FeatureToggleSeedService
+    FeatureToggleSeedService,
+    NavigationSeedService
   ],
 })
 export class SeederModule {}
