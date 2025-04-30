@@ -7,6 +7,7 @@ import { Browser, executablePath, Page } from 'puppeteer';
 import { Environment }                   from '@core/config/app.config';
 import { AllConfigType }                 from '@core/config/config.type';
 import { Solver }                        from '@2captcha/captcha-solver';
+import axios                             from 'axios';
 
 export interface Order {
   rowNumber: number;
@@ -38,6 +39,8 @@ export interface OrderRequest {
   receivedQty: number;
   pendingQty: number;
 }
+
+export const CENCOSUD_FEATURE_KEY = 'cencosud';
 
 @Injectable()
 export class CencosudB2bService {
@@ -103,18 +106,20 @@ export class CencosudB2bService {
     }
   }
 
-  private async loadMainPage(browser: Browser, page: Page) {
-    this.logger.log(`Loading main page. ${ this.url }`);
-    await page.goto(this.url, {waitUntil: 'networkidle0'});
-
-    // Check if was redirected to login page
-    if (page.url().includes('/auth')) {
-      this.logger.log('Redirected to login page. Logging in...');
-
-      const loggedIn = await this.login(page);
-
-      if (!loggedIn) return;
-    }
+  private readonly UIDL_FIELD_MAP = {
+    2245: 'orderNumber',
+    2247: 'businessUnit',
+    2249: 'orderType',
+    2251: 'status',
+    2253: 'deliveryLocation',
+    2255: 'emissionDate',
+    2257: 'deliveryDate',
+    2259: 'requestedAmount',
+    2261: 'inDispatchAmount',
+    2263: 'receivedAmount',
+    2265: 'pendingAmount',
+    2267: 'quantity',
+  };
 
     // Get purchase orders
     const orders = await this.getPurchaseOrders(page);

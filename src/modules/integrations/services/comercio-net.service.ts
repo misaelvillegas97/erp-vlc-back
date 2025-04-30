@@ -47,6 +47,8 @@ interface OrderDetail {
   products: Product[];
 }
 
+export const COMERCIONET_FEATURE_KEY = 'comercio-net';
+
 @Injectable()
 export class ComercioNetService {
   private readonly logger = new Logger(ComercioNetService.name);

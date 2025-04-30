@@ -13,7 +13,6 @@ import { AppConfigService }   from '@modules/config/app-config.service';
 @Injectable()
 export class TasksScheduler {
   private readonly logger = new Logger(TasksScheduler.name);
-  private readonly environment!: Environment;
 
   constructor(
     private readonly comercioNetService: ComercioNetService,
@@ -22,9 +21,7 @@ export class TasksScheduler {
     private readonly clientService: ClientService,
     private readonly configService: AppConfigService,
     private readonly cs: ConfigService
-  ) {
-    this.environment = this.cs.get<Environment>('app.nodeEnv', {infer: true}) as Environment || Environment.Development;
-  }
+  ) {}
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -35,6 +32,10 @@ export class TasksScheduler {
   }
 
   async checkComercioNet() {
+    const config = await this.configService.findFeatureToggleByName('comercio-net');
+
+    if (!config || !config.enabled) return;
+
     this.logger.log(`[WallmartB2B] Initializing task at ${ new Date().toISOString() }`);
 
     const clientEntity = await this.clientService.findByCode('WallmartB2B');
@@ -59,6 +60,10 @@ export class TasksScheduler {
   }
 
   async checkCencoB2B() {
+    const config = await this.configService.findFeatureToggleByName('cencosud');
+
+    if (!config || !config.enabled) return;
+
     this.logger.log(`[CencosudB2B] Initializing task at ${ new Date().toISOString() }`);
 
     const clientEntity = await this.clientService.findByCode('CencosudB2B');
