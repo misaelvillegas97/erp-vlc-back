@@ -36,7 +36,7 @@ export class TasksScheduler {
 
     if (!config || !config.enabled) return;
 
-    this.logger.log(`[WallmartB2B] Initializing task at ${ new Date().toISOString() }`);
+    this.logger.debug(`[WallmartB2B] Initializing task at ${ new Date().toISOString() }`);
 
     const clientEntity = await this.clientService.findByCode('WallmartB2B');
 
@@ -44,7 +44,7 @@ export class TasksScheduler {
     const orders = await this.comercioNetService.run();
     const endingTimestamp = new Date().getTime();
 
-    this.logger.log(`[WallmartB2B] Task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
+    this.logger.debug(`[WallmartB2B] Task finished at ${ new Date().toISOString() } in ${ endingTimestamp - beginningTimestamp }ms`);
 
     if (!orders) {
       this.logger.log('[WallmartB2B] No orders found');
