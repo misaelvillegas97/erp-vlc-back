@@ -19,7 +19,7 @@ export class VehiclesService {
   ) {}
 
   async findAll(query: QueryVehicleDto): Promise<[ VehicleEntity[], number ]> {
-    const take = query.limit || 10;
+    const take = query.limit || 100;
     const skip = ((query.page || 1) - 1) * take;
 
     const where: FindOptionsWhere<VehicleEntity> = {};
