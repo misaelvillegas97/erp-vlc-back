@@ -6,17 +6,23 @@ import { DriversController }  from './controllers/drivers.controller';
 import { SessionsController } from './controllers/sessions.controller';
 import { GpsController }      from './controllers/gps.controller';
 
-import { VehiclesService } from './services/vehicles.service';
-import { DriversService }  from './services/drivers.service';
-import { SessionsService } from './services/sessions.service';
-import { GpsService }      from './services/gps.service';
+import { VehiclesService }         from './services/vehicles.service';
+import { DriversService }          from './services/drivers.service';
+import { SessionsService }         from './services/sessions.service';
+import { GpsService }              from './services/gps.service';
+import { MaintenanceService }      from './services/maintenance.service';
+import { VehicleDocumentsService } from './services/vehicle-documents.service';
 
 import { SessionSchedulerService } from './schedulers/session-scheduler.service';
+import { MaintenanceScheduler }    from './schedulers/maintenance.scheduler';
 
 import { VehicleEntity }                from './domain/entities/vehicle.entity';
 import { VehicleSessionEntity }         from './domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity } from './domain/entities/vehicle-session-location.entity';
 import { GpsEntity }                    from './domain/entities/gps.entity';
+import { MaintenanceRecordEntity }      from './domain/entities/maintenance-record.entity';
+import { MaintenanceAlertEntity }       from './domain/entities/maintenance-alert.entity';
+import { VehicleDocumentEntity }        from './domain/entities/vehicle-document.entity';
 
 import { UserEntity }          from '@modules/users/domain/entities/user.entity';
 import { DriverLicenseEntity } from '@modules/users/domain/entities/driver-license.entity';
@@ -34,7 +40,10 @@ import { UsersModule } from '@modules/users/users.module';
       UserEntity,
       DriverLicenseEntity,
       RoleUserEntity,
-      GpsEntity
+      GpsEntity,
+      MaintenanceRecordEntity,
+      MaintenanceAlertEntity,
+      VehicleDocumentEntity
     ]),
     FilesModule,
     UsersModule
@@ -50,13 +59,18 @@ import { UsersModule } from '@modules/users/users.module';
     DriversService,
     SessionsService,
     SessionSchedulerService,
-    GpsService
+    GpsService,
+    MaintenanceService,
+    VehicleDocumentsService,
+    MaintenanceScheduler
   ],
   exports: [
     VehiclesService,
     DriversService,
     SessionsService,
-    GpsService
+    GpsService,
+    MaintenanceService,
+    VehicleDocumentsService
   ]
 })
 export class LogisticsModule {}

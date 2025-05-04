@@ -2,6 +2,9 @@ import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne } from 'typeorm'
 import { AbstractEntity }                                         from '@shared/domain/entities/abstract.entity';
 import { VehicleSessionEntity }                                   from './vehicle-session.entity';
 import { GpsEntity }                                              from '@modules/logistics/domain/entities/gps.entity';
+import { MaintenanceRecordEntity }                                from './maintenance-record.entity';
+import { MaintenanceAlertEntity }                                 from './maintenance-alert.entity';
+import { VehicleDocumentEntity }                                  from './vehicle-document.entity';
 
 export enum VehicleStatus {
   AVAILABLE = 'AVAILABLE',     // Disponible para uso
@@ -119,14 +122,26 @@ export class VehicleEntity extends AbstractEntity {
   @Column({type: 'date', nullable: true, name: 'technical_inspection_expiry'})
   technicalInspectionExpiry: string;
 
+  @Column({type: 'date', nullable: true, name: 'circulation_permit_expiry'})
+  circulationPermitExpiry: string;
+
   @Column({nullable: true, type: 'text'})
   notes: string;
+
+  @OneToMany(() => VehicleDocumentEntity, document => document.vehicle)
+  documents: VehicleDocumentEntity[];
 
   @OneToMany(() => VehicleSessionEntity, session => session.vehicle)
   sessions: VehicleSessionEntity[];
 
   @OneToMany(() => GpsEntity, gps => gps.vehicle)
   gps: GpsEntity[];
+
+  @OneToMany(() => MaintenanceRecordEntity, record => record.vehicle)
+  maintenanceRecords: MaintenanceRecordEntity[];
+
+  @OneToMany(() => MaintenanceAlertEntity, alert => alert.vehicle)
+  maintenanceAlerts: MaintenanceAlertEntity[];
 
   @Column('simple-json', {nullable: true, name: 'photo_url'})
   photoUrl: string;

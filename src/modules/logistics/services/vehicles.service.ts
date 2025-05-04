@@ -7,6 +7,12 @@ import { UpdateVehicleDto }                                                    f
 import { QueryVehicleDto }                                                     from '../domain/dto/query-vehicle.dto';
 import { plainToInstance }                                                     from 'class-transformer';
 import { DateTime }                                                            from 'luxon';
+import { MaintenanceService }                                                  from './maintenance.service';
+import { VehicleDocumentsService }                                             from './vehicle-documents.service';
+import { CreateVehicleDocumentDto }                                            from '../domain/dto/create-vehicle-document.dto';
+import { MaintenanceRecordMapper }                                             from '../domain/mappers/maintenance-record.mapper';
+import { MaintenanceAlertMapper }                                              from '../domain/mappers/maintenance-alert.mapper';
+import { VehicleDocumentMapper }                                               from '../domain/mappers/vehicle-document.mapper';
 
 @Injectable()
 export class VehiclesService {
@@ -15,7 +21,8 @@ export class VehiclesService {
   constructor(
     @InjectRepository(VehicleEntity)
     private readonly vehicleRepository: Repository<VehicleEntity>,
-    // private readonly filesService: FilesService
+    private readonly maintenanceService: MaintenanceService,
+    private readonly vehicleDocumentsService: VehicleDocumentsService
   ) {}
 
   async findAll(query: QueryVehicleDto): Promise<[ VehicleEntity[], number ]> {
@@ -157,6 +164,10 @@ export class VehiclesService {
   }
 
   async checkMaintenanceStatus(): Promise<VehicleEntity[]> {
+    // Generate maintenance alerts
+    await this.maintenanceService.generateMaintenanceAlerts();
+
+    // Return vehicles that need maintenance
     const today = DateTime.now().toISODate();
     const nextMonth = DateTime.now().plus({months: 1}).toISODate();
 
@@ -168,9 +179,43 @@ export class VehiclesService {
           nextMaintenanceKm: Not(IsNull())
         },
         {insuranceExpiry: Between(today, nextMonth)},
-        {technicalInspectionExpiry: Between(today, nextMonth)}
+        {technicalInspectionExpiry: Between(today, nextMonth)},
+        {circulationPermitExpiry: Between(today, nextMonth)}
       ]
     });
+  }
+
+  // Maintenance record methods
+  async getVehicleMaintenanceHistory(vehicleId: string): Promise<MaintenanceRecordMapper[]> {
+    return this.maintenanceService.getVehicleMaintenanceHistory(vehicleId);
+  }
+
+  async createMaintenanceRecord(data: any): Promise<MaintenanceRecordMapper> {
+    return this.maintenanceService.createMaintenanceRecord(data);
+  }
+
+  async getMaintenanceAlerts(vehicleId?: string): Promise<MaintenanceAlertMapper[]> {
+    if (vehicleId) {
+      return this.maintenanceService.getVehicleAlerts(vehicleId);
+    }
+    return this.maintenanceService.getActiveAlerts();
+  }
+
+  // Document management methods
+  async addVehicleDocument(vehicleId: string, documentDto: CreateVehicleDocumentDto): Promise<VehicleEntity> {
+    return this.vehicleDocumentsService.addVehicleDocument(vehicleId, documentDto);
+  }
+
+  async getVehicleDocuments(vehicleId: string): Promise<VehicleDocumentMapper[]> {
+    return this.vehicleDocumentsService.getVehicleDocuments(vehicleId);
+  }
+
+  async removeVehicleDocument(vehicleId: string, documentId: string): Promise<VehicleEntity> {
+    return this.vehicleDocumentsService.removeVehicleDocument(vehicleId, documentId);
+  }
+
+  async checkDocumentExpirations(): Promise<any[]> {
+    return this.vehicleDocumentsService.checkDocumentExpirations();
   }
 
   async delete(id: string): Promise<void> {

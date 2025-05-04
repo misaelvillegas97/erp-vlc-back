@@ -1,7 +1,7 @@
-import { HttpStatus, Module, UnprocessableEntityException, } from '@nestjs/common';
-import { randomStringGenerator }                             from '@nestjs/common/utils/random-string-generator.util';
-import { ConfigModule, ConfigService }                       from '@nestjs/config';
-import { MulterModule }                                      from '@nestjs/platform-express';
+import { forwardRef, Module }          from '@nestjs/common';
+import { randomStringGenerator }       from '@nestjs/common/utils/random-string-generator.util';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MulterModule }                from '@nestjs/platform-express';
 
 import { S3Client } from '@aws-sdk/client-s3';
 import multerS3     from 'multer-s3';
@@ -9,9 +9,11 @@ import multerS3     from 'multer-s3';
 import { FilesS3Controller } from './files.controller';
 
 import { FilesS3Service } from './files.service';
+import { FilesModule }    from '@modules/files/files.module';
 
 @Module({
   imports: [
+    forwardRef(() => FilesModule),
     MulterModule.registerAsync({
       imports: [ ConfigModule ],
       inject: [ ConfigService ],
@@ -26,24 +28,10 @@ import { FilesS3Service } from './files.service';
               infer: true,
             }),
           },
+
         });
 
         return {
-          fileFilter: (request, file, callback) => {
-            if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
-              return callback(
-                new UnprocessableEntityException({
-                  status: HttpStatus.UNPROCESSABLE_ENTITY,
-                  errors: {
-                    file: `cantUploadFileType`,
-                  },
-                }),
-                false,
-              );
-            }
-
-            callback(null, true);
-          },
           storage: multerS3({
             s3: s3,
             bucket: configService.getOrThrow('file.awsDefaultS3Bucket', {
