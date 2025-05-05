@@ -32,4 +32,8 @@ export class FileRepository {
 
     return entity ? FileMapper.toDomain(entity) : null;
   }
+
+  async delete(id: FileType['id']): Promise<void> {
+    await this.fileRepository.delete(id);
+  }
 }

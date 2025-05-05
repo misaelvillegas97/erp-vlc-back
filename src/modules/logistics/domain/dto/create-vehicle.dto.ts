@@ -140,4 +140,6 @@ export class CreateVehicleDto {
   @ApiProperty({required: false, type: [ String ], description: 'IDs de imágenes a adjuntar'})
   @IsOptional()
   imageIds?: string[];
+
+
 }

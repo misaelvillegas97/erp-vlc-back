@@ -1,9 +1,9 @@
-import { Controller, Post, UploadedFile, UseGuards, UseInterceptors, }       from '@nestjs/common';
-import { FileInterceptor }                                                   from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiTags, } from '@nestjs/swagger';
-import { AuthGuard }                                                         from '@nestjs/passport';
-import { FilesS3Service }                                                    from './files.service';
-import { FileResponseDto }                                                   from './dto/file-response.dto';
+import { Controller, Delete, Param, Post, UploadedFile, UseGuards, UseInterceptors, } from '@nestjs/common';
+import { FileInterceptor }                                                            from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiTags, }          from '@nestjs/swagger';
+import { AuthGuard }                                                                  from '@nestjs/passport';
+import { FilesS3Service }                                                             from './files.service';
+import { FileResponseDto }                                                            from './dto/file-response.dto';
 
 @ApiTags('Files')
 @Controller({
@@ -36,5 +36,12 @@ export class FilesS3Controller {
     @UploadedFile() file: Express.MulterS3.File,
   ): Promise<FileResponseDto> {
     return this.filesService.create(file);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  deleteFile(@Param('id') id: string): Promise<any> {
+    return this.filesService.delete(id);
   }
 }
