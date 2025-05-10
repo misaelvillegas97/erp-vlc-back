@@ -20,8 +20,6 @@ export class RunnerService {
 
     if (!config?.enabled) return;
 
-    this.logger.log(JSON.stringify(config, null, 2));
-
     await this.biogpsService.run(config.metadata.endpoint, config.metadata.apiKey);
   }
 }
