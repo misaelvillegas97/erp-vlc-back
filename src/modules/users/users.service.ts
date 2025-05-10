@@ -61,7 +61,7 @@ export class UsersService {
           },
         });
       }
-      for (const driverLicense of createUserDto.driverLicense) {
+      /*for (const driverLicense of createUserDto.driverLicense) {
         // Verificar que la licencia del conductor no esté vencida
         const licenseValidTo = DateTime.fromISO(driverLicense.licenseValidTo).startOf('day');
         if (licenseValidTo < DateTime.now().startOf('day')) {
@@ -72,7 +72,7 @@ export class UsersService {
             },
           });
         }
-      }
+      }*/
     }
 
     const passwordHash = createUserDto.password
