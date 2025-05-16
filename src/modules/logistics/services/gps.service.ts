@@ -76,8 +76,19 @@ export class GpsService {
    */
   @OnEvent('gps.updated')
   async handleGpsUpdatedEvent(gpsData: GenericGPS) {
+    const currentGps = await this.gpsRepository.findOne({where: {referenceId: gpsData.referenceId}});
+
+    if (currentGps) return;
+
     // Check if the vehicle exists
-    const vehicle = await this.vehicleRepository.findOne({where: {licensePlate: gpsData.licensePlate}});
+    let vehicle: VehicleEntity;
+
+    if (gpsData.vehicleId)
+      vehicle = await this.vehicleRepository.findOne({where: {id: gpsData.vehicleId}});
+
+    if (!vehicle && gpsData.licensePlate)
+      vehicle = await this.vehicleRepository.findOne({where: {licensePlate: gpsData.licensePlate}});
+
     if (!vehicle) return;
 
     // Check if the vehicle session exists

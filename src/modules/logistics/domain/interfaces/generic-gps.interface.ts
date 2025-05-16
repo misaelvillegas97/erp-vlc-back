@@ -1,5 +1,6 @@
 export interface GenericGPS {
-  licensePlate: string;
+  vehicleId?: string;
+  licensePlate?: string;
   status: string;
   currentLocation: {
     lat: number;
@@ -12,4 +13,6 @@ export interface GenericGPS {
   }>;
   speed?: number;
   totalDistance?: number;
+  referenceId?: string;
+  referenceName?: string;
 }

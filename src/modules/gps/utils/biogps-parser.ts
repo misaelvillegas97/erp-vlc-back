@@ -1,5 +1,6 @@
-import { BiogpsRawGroup } from '../domain/interfaces/biogps-raw.interface';
-import { GenericGPS }     from '@modules/logistics/domain/interfaces/generic-gps.interface';
+import { BiogpsRawGroup, BiogpsRawHistory } from '../domain/interfaces/biogps-raw.interface';
+import { GenericGPS }                       from '@modules/logistics/domain/interfaces/generic-gps.interface';
+import { DateTime }                         from 'luxon';
 
 export class BiogpsParser {
   /**
@@ -40,6 +41,35 @@ export class BiogpsParser {
         lastLocations,
         speed: item.speed,
         totalDistance: item.total_distance,
+        referenceId: item.device_data?.traccar?.latestPosition_id.toString(),
+        referenceName: 'BIOGPS',
+      };
+    });
+  }
+
+  static fromHistoryToGeneric(raw: BiogpsRawHistory[]): GenericGPS[] {
+    const allItems = raw.flatMap(group => group.items);
+    const innerItems = allItems.flatMap(item => item.items);
+
+    return innerItems.map(item => {
+      const licensePlate = item.device_id.toString();
+
+      // Chilean format: yyyy-MM-dd HH:mm:ss
+      const timestamp = DateTime.fromFormat(item.raw_time, 'yyyy-MM-dd HH:mm:ss', {zone: 'America/Santiago'}).toUTC().toMillis();
+
+      return {
+        licensePlate,
+        status: item.valid ? 'online' : 'offline',
+        currentLocation: {
+          lat: item.latitude,
+          lng: item.longitude,
+          timestamp,
+        },
+        lastLocations: [],
+        speed: item.speed,
+        totalDistance: item.distance,
+        referenceId: item.id.toString(),
+        referenceName: 'BIOGPS',
       };
     });
   }
