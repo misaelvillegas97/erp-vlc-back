@@ -13,6 +13,7 @@ import { CreateVehicleDocumentDto }                                            f
 import { MaintenanceRecordMapper }                                             from '../domain/mappers/maintenance-record.mapper';
 import { MaintenanceAlertMapper }                                              from '../domain/mappers/maintenance-alert.mapper';
 import { VehicleDocumentMapper }                                               from '../domain/mappers/vehicle-document.mapper';
+import { GPSProviderEnum }                                                     from '@modules/gps/domain/enums/provider.enum';
 
 @Injectable()
 export class VehiclesService {
@@ -221,5 +222,17 @@ export class VehiclesService {
   async delete(id: string): Promise<void> {
     const vehicle = await this.findById(id);
     await this.vehicleRepository.remove(vehicle);
+  }
+
+  async checkVehicleGpsProvider(licensePlate: string, provider: GPSProviderEnum): Promise<boolean> {
+    const vehicle = await this.vehicleRepository.findOne({
+      where: {licensePlate},
+      relations: [ 'gpsProvider' ]
+    });
+
+    if (!vehicle)
+      throw new NotFoundException(`Vehicle with license plate ${ licensePlate } not found`);
+
+    return vehicle.gpsProviders ? vehicle.gpsProviders.some(gpsProvider => gpsProvider.provider === provider) : false;
   }
 }

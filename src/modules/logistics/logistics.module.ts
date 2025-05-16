@@ -28,8 +28,9 @@ import { UserEntity }          from '@modules/users/domain/entities/user.entity'
 import { DriverLicenseEntity } from '@modules/users/domain/entities/driver-license.entity';
 import { RoleUserEntity }      from '@modules/roles/domain/entities/role-user.entity';
 
-import { FilesModule } from '../files/files.module';
-import { UsersModule } from '@modules/users/users.module';
+import { FilesModule }              from '../files/files.module';
+import { UsersModule }              from '@modules/users/users.module';
+import { VehicleGpsProviderEntity } from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { UsersModule } from '@modules/users/users.module';
       VehicleEntity,
       VehicleSessionEntity,
       VehicleSessionLocationEntity,
+      VehicleGpsProviderEntity,
       UserEntity,
       DriverLicenseEntity,
       RoleUserEntity,

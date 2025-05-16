@@ -5,6 +5,7 @@ import { GpsEntity }                                              from '@modules
 import { MaintenanceRecordEntity }                                from './maintenance-record.entity';
 import { MaintenanceAlertEntity }                                 from './maintenance-alert.entity';
 import { VehicleDocumentEntity }                                  from './vehicle-document.entity';
+import { VehicleGpsProviderEntity }                               from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
 
 export enum VehicleStatus {
   AVAILABLE = 'AVAILABLE',     // Disponible para uso
@@ -136,6 +137,9 @@ export class VehicleEntity extends AbstractEntity {
 
   @OneToMany(() => GpsEntity, gps => gps.vehicle)
   gps: GpsEntity[];
+
+  @OneToMany(() => VehicleGpsProviderEntity, provider => provider.vehicle)
+  gpsProviders: VehicleGpsProviderEntity[];
 
   @OneToMany(() => MaintenanceRecordEntity, record => record.vehicle)
   maintenanceRecords: MaintenanceRecordEntity[];

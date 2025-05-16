@@ -10,8 +10,6 @@ import { AppConfigService }                 from '@modules/config/app-config.ser
 @Injectable()
 export class BiogpsService {
   private readonly logger = new Logger(BiogpsService.name);
-  private readonly apiUrl: string;
-  private readonly apiHash: string;
 
   constructor(
     private readonly cs: ConfigService,
@@ -19,14 +17,12 @@ export class BiogpsService {
     private readonly configService: AppConfigService,
   ) {
     this.logger.log('BiogpsService initialized');
-    this.apiUrl = this.cs.get<string>('gps.biogps.apiUrl', {infer: true});
-    this.apiHash = this.cs.get<string>('gps.biogps.apiHash', {infer: true});
   }
 
   /**
    * Fetch GPS data from Biogps API and process it
    */
-  async run(apiUrl: string = this.apiUrl, apiHash: string = this.apiHash): Promise<GenericGPS[]> {
+  async run(apiUrl: string, apiHash: string): Promise<GenericGPS[]> {
     if (!apiUrl || !apiHash) {
       this.logger.warn('Biogps API URL or Hash is not configured');
       return [];
@@ -48,9 +44,6 @@ export class BiogpsService {
       // Parse the raw data to GenericGPS format
       const gpsData = BiogpsParser.toGeneric(response.data);
 
-      // Emit events for each GPS
-      this.emitGpsEvents(gpsData);
-
       this.logger.debug(`Fetched and parsed ${ gpsData.length } GPS records`);
       return gpsData;
     } catch (error) {
@@ -62,7 +55,7 @@ export class BiogpsService {
   /**
    * Fetch GPS history from Biogps API and process it
    */
-  async runHistory(apiUrl: string = this.apiUrl, apiHash: string = this.apiHash): Promise<GenericGPS[]> {
+  async runHistory(apiUrl: string, apiHash: string): Promise<GenericGPS[]> {
     if (!apiUrl || !apiHash) {
       this.logger.warn('Biogps API URL or Hash is not configured');
       return [];
@@ -84,9 +77,6 @@ export class BiogpsService {
       // Parse the raw data to GenericGPS format
       const gpsData = BiogpsParser.fromHistoryToGeneric(response.data);
 
-      // Emit events for each GPS
-      this.emitGpsEvents(gpsData);
-
       this.logger.debug(`Fetched and parsed ${ gpsData.length } GPS records`);
       return gpsData;
     } catch (error) {
@@ -95,10 +85,52 @@ export class BiogpsService {
     }
   }
 
+  async discover(apiUrl: string, apiHash: string): Promise<{ vehicles: Array<string>, provider: string }> {
+
+    try {
+      const response = await axios.get<BiogpsRawGroup[]>(`${ apiUrl }?user_api_hash=${ apiHash }`);
+
+      if (!response.data || !Array.isArray(response.data)) {
+        this.logger.warn('Invalid response from Biogps API');
+        return;
+      }
+
+      // Parse the raw data to GenericGPS format
+      const gpsData = BiogpsParser.toGeneric(response.data);
+
+      const vehiclesLicensePlates = gpsData.map(gps => gps.licensePlate);
+
+      this.emitVehicleDiscovery({
+        vehicles: vehiclesLicensePlates,
+        provider: 'biogps',
+      });
+    } catch (error) {
+      this.logger.error(`Error fetching GPS vehicle discovery: ${ error.message }`, error.stack);
+    }
+  }
+
   /**
    * Emit events for each GPS
    */
-  private emitGpsEvents(gpsData: GenericGPS[]): void {
+  emitGpsEvents(gpsData: GenericGPS[]): void {
     gpsData.forEach(gps => this.eventEmitter.emit('gps.updated', gps));
+  }
+
+  emitVehicleDiscovery({vehicles, provider}: { vehicles: Array<string>, provider: string }): void {
+    this.eventEmitter.emit('vehicle.discovery', {vehicles, provider});
+  }
+
+  private async getBiogpsConfig() {
+    const config = await this.configService.findFeatureToggleByName('biogps-provider');
+    if (!config?.enabled) {
+      this.logger.warn('Biogps provider is not enabled');
+      return null;
+    }
+
+    return {
+      apiUrl: config.metadata.endpoint,
+      apiHash: config.metadata.apiKey,
+      apiHistoryUrl: config.metadata.historyEndpoint,
+    };
   }
 }

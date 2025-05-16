@@ -20,6 +20,17 @@ export class RunnerService {
 
     if (!config?.enabled) return;
 
-    await this.biogpsService.run(config.metadata.endpoint, config.metadata.apiKey);
+    const gpsData = await this.biogpsService.run(config.metadata.endpoint, config.metadata.apiKey);
+
+    if (gpsData.length > 0) this.biogpsService.emitGpsEvents(gpsData);
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async bioGPSDiscovery() {
+    const config = await this.configService.findFeatureToggleByName('biogps-provider');
+
+    if (!config?.enabled) return;
+
+    const gpsData = await this.biogpsService.discover(config.metadata.endpoint, config.metadata.apiKey);
   }
 }
