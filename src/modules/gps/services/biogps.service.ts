@@ -6,6 +6,7 @@ import { BiogpsRawGroup, BiogpsRawHistory } from '../domain/interfaces/biogps-ra
 import { BiogpsParser }                     from '../utils/biogps-parser';
 import { GenericGPS }                       from '@modules/logistics/domain/interfaces/generic-gps.interface';
 import { AppConfigService }                 from '@modules/config/app-config.service';
+import { GPSProviderEnum }                  from '@modules/gps/domain/enums/provider.enum';
 
 @Injectable()
 export class BiogpsService {
@@ -102,7 +103,7 @@ export class BiogpsService {
 
       this.emitVehicleDiscovery({
         vehicles: vehiclesLicensePlates,
-        provider: 'biogps',
+        provider: GPSProviderEnum.BIOGPS,
       });
     } catch (error) {
       this.logger.error(`Error fetching GPS vehicle discovery: ${ error.message }`, error.stack);

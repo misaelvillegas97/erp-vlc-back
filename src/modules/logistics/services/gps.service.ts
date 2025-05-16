@@ -34,6 +34,8 @@ export class GpsService {
         totalDistance: gpsData.totalDistance,
         vehicle: vehicle || null,
         vehicleSession: session || null,
+        referenceId: gpsData.referenceId,
+        provider: gpsData.provider || null,
       });
 
       // Save the entity to the database
@@ -76,7 +78,7 @@ export class GpsService {
    */
   @OnEvent('gps.updated')
   async handleGpsUpdatedEvent(gpsData: GenericGPS) {
-    const currentGps = await this.gpsRepository.findOne({where: {referenceId: gpsData.referenceId}});
+    const currentGps = await this.gpsRepository.findOne({where: {referenceId: gpsData.referenceId, provider: gpsData.provider}});
 
     if (currentGps) return;
 

@@ -1,6 +1,7 @@
 import { BiogpsRawGroup, BiogpsRawHistory } from '../domain/interfaces/biogps-raw.interface';
 import { GenericGPS }                       from '@modules/logistics/domain/interfaces/generic-gps.interface';
 import { DateTime }                         from 'luxon';
+import { GPSProviderEnum }                  from '@modules/gps/domain/enums/provider.enum';
 
 export class BiogpsParser {
   /**
@@ -42,7 +43,7 @@ export class BiogpsParser {
         speed: item.speed,
         totalDistance: item.total_distance,
         referenceId: item.device_data?.traccar?.latestPosition_id.toString(),
-        referenceName: 'BIOGPS',
+        provider: GPSProviderEnum.BIOGPS,
       };
     });
   }
@@ -69,7 +70,7 @@ export class BiogpsParser {
         speed: item.speed,
         totalDistance: item.distance,
         referenceId: item.id.toString(),
-        referenceName: 'BIOGPS',
+        provider: GPSProviderEnum.BIOGPS,
       };
     });
   }
