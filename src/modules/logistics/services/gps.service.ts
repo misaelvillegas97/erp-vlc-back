@@ -83,10 +83,7 @@ export class GpsService {
     if (currentGps) return;
 
     // Check if the vehicle exists
-    let vehicle: VehicleEntity;
-
-    if (!vehicle && gpsData.licensePlate)
-      vehicle = await this.vehicleRepository.findOne({where: {licensePlate: gpsData.licensePlate}});
+    const vehicle: VehicleEntity = await this.vehicleRepository.findOne({where: {licensePlate: gpsData.licensePlate}});
 
     if (!vehicle) return;
 
@@ -102,6 +99,7 @@ export class GpsService {
     // Check if the timestamp already registered the vehicle GPS
     const existingGps = await this.gpsRepository.findOne({
       where: {
+        referenceId: gpsData.referenceId,
         licensePlate: gpsData.licensePlate,
         timestamp: gpsData.currentLocation.timestamp,
       },

@@ -6,7 +6,7 @@ import { GPSProviderEnum }                       from '@modules/gps/domain/enums
 
 @Entity('gps')
 export class GpsEntity extends AbstractEntity {
-  @Column({nullable: false, name: 'vehicle_id'})
+  @Column({nullable: false, name: 'license_plate'})
   licensePlate: string;
 
   @Column({nullable: false})
