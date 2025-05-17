@@ -139,7 +139,7 @@ export class VehicleEntity extends AbstractEntity {
   gps: GpsEntity[];
 
   @OneToOne(() => VehicleGpsProviderEntity, provider => provider.vehicle)
-  gpsProviders: VehicleGpsProviderEntity[];
+  gpsProvider: VehicleGpsProviderEntity;
 
   @OneToMany(() => MaintenanceRecordEntity, record => record.vehicle)
   maintenanceRecords: MaintenanceRecordEntity[];

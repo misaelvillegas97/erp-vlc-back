@@ -25,7 +25,7 @@ export class RunnerService {
     if (gpsData.length > 0) this.biogpsService.emitGpsEvents(gpsData);
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async bioGPSDiscovery() {
     const config = await this.configService.findFeatureToggleByName('biogps-provider');
 

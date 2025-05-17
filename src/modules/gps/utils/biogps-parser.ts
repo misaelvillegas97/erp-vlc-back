@@ -49,9 +49,8 @@ export class BiogpsParser {
     });
   }
 
-  static fromHistoryToGeneric(raw: BiogpsRawHistory[]): GenericGPS[] {
-    const allItems = raw.flatMap(group => group.items);
-    const innerItems = allItems.flatMap(item => item.items);
+  static fromHistoryToGeneric(raw: BiogpsRawHistory): GenericGPS[] {
+    const innerItems = raw.items.flatMap(item => item.items);
 
     return innerItems.map(item => {
       const licensePlate = item.device_id.toString();

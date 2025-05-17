@@ -234,6 +234,6 @@ export class VehiclesService {
     if (!vehicle)
       throw new NotFoundException(`Vehicle with license plate ${ licensePlate } not found`);
 
-    return vehicle.gpsProviders ? vehicle.gpsProviders.some(gpsProvider => gpsProvider.provider === provider) : false;
+    return vehicle.gpsProvider.provider === provider;
   }
 }

@@ -102,7 +102,7 @@ export class SessionsService {
   async findById(id: string): Promise<VehicleSessionEntity> {
     const session = await this.sessionRepository.findOne({
       where: {id},
-      relations: [ 'vehicle', 'driver', 'locations', 'gps' ]
+      relations: [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider' ]
     });
 
     if (!session) {
@@ -255,7 +255,7 @@ export class SessionsService {
       const historyData = await provider.getHistory(
         config.metadata.historyEndpoint || config.metadata.endpoint,
         config.metadata.apiKey,
-        session.vehicleId,
+        session.vehicle.gpsProvider.providerId,
         session.startTime,
         session.endTime
       );

@@ -70,28 +70,65 @@ export class BiogpsService implements IGpsProvider {
       const fetchStartTime = Date.now();
 
       // Build the URL with parameters
-      let url = `${ apiUrl }?user_api_hash=${ apiHash }&history=1`;
+      let url = `${ apiUrl }?lang=es&user_api_hash=${ apiHash }`;
 
-      // Add vehicle ID if provided
+      // Add device ID (vehicle ID) if provided
       if (vehicleId) {
-        url += `&vehicle_id=${ vehicleId }`;
+        url += `&device_id=${ vehicleId }`;
       }
 
       // Add time range if provided
       if (startTime && endTime) {
-        const startTimeStr = Math.floor(startTime.getTime() / 1000);
-        const endTimeStr = Math.floor(endTime.getTime() / 1000);
-        url += `&from=${ startTimeStr }&to=${ endTimeStr }`;
+        // Format dates as YYYY-MM-DD in America/Santiago timezone
+        const fromDateFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Santiago',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const toDateFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Santiago',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+
+        // Get formatted date parts
+        const fromDateParts = fromDateFormatter.formatToParts(startTime);
+        const toDateParts = toDateFormatter.formatToParts(endTime);
+
+        // Construct YYYY-MM-DD format
+        const fromDate = `${ fromDateParts.find(part => part.type === 'year').value }-${ fromDateParts.find(part => part.type === 'month').value }-${ fromDateParts.find(part => part.type === 'day').value }`;
+        const toDate = `${ toDateParts.find(part => part.type === 'year').value }-${ toDateParts.find(part => part.type === 'month').value }-${ toDateParts.find(part => part.type === 'day').value }`;
+
+        // Format times as HH:MM in America/Santiago timezone
+        const fromTimeFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Santiago',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        const toTimeFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Santiago',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+
+        // Get formatted time parts
+        const fromTimeParts = fromTimeFormatter.formatToParts(startTime);
+        const toTimeParts = toTimeFormatter.formatToParts(endTime);
+
+        // Construct HH:MM format
+        const fromTime = `${ fromTimeParts.find(part => part.type === 'hour').value }:${ fromTimeParts.find(part => part.type === 'minute').value }`;
+        const toTime = `${ toTimeParts.find(part => part.type === 'hour').value }:${ toTimeParts.find(part => part.type === 'minute').value }`;
+
+        url += `&from_date=${ fromDate }&from_time=${ fromTime }&to_date=${ toDate }&to_time=${ toTime }&snap_to_road=true`;
       }
 
-      const response = await axios.get<BiogpsRawHistory[]>(url);
+      const response = await axios.get<BiogpsRawHistory>(url);
       const fetchEndTime = Date.now();
       this.logger.debug(`Fetched GPS history in ${ (fetchEndTime - fetchStartTime) }ms`);
-
-      if (!response.data || !Array.isArray(response.data)) {
-        this.logger.warn('Invalid response from Biogps API');
-        return [];
-      }
 
       // Parse the raw data to GenericGPS format
       const gpsData = BiogpsParser.fromHistoryToGeneric(response.data);
