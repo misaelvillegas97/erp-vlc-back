@@ -1,7 +1,7 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { AbstractEntity }                        from '@shared/domain/entities/abstract.entity';
-import { GPSProviderEnum }                       from '@modules/gps/domain/enums/provider.enum';
-import { VehicleEntity }                         from '@modules/logistics/domain/entities/vehicle.entity';
+import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { AbstractEntity }                       from '@shared/domain/entities/abstract.entity';
+import { GPSProviderEnum }                      from '@modules/gps/domain/enums/provider.enum';
+import { VehicleEntity }                        from '@modules/logistics/domain/entities/vehicle.entity';
 
 @Entity({name: 'vehicle_gps_provider'})
 export class VehicleGpsProviderEntity extends AbstractEntity {
@@ -17,7 +17,7 @@ export class VehicleGpsProviderEntity extends AbstractEntity {
   })
   provider: GPSProviderEnum;
 
-  @ManyToOne(() => VehicleEntity, {nullable: false})
+  @OneToOne(() => VehicleEntity, {nullable: false})
   @JoinColumn({name: 'vehicle_id'})
   vehicle: VehicleEntity;
 }

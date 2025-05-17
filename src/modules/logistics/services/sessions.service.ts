@@ -11,6 +11,7 @@ import { VehiclesService }                                                     f
 import { DriversService }                                                      from './drivers.service';
 import { VehicleStatus }                                                       from '../domain/entities/vehicle.entity';
 import { FilesService }                                                        from '@modules/files/files.service';
+import { GpsProviderFactoryService }                                           from '@modules/gps/services/gps-provider-factory.service';
 
 @Injectable()
 export class SessionsService {
@@ -23,7 +24,8 @@ export class SessionsService {
     private readonly locationRepository: Repository<VehicleSessionLocationEntity>,
     private readonly vehiclesService: VehiclesService,
     private readonly driversService: DriversService,
-    private readonly filesService: FilesService
+    private readonly filesService: FilesService,
+    private readonly gpsProviderFactoryService: GpsProviderFactoryService
   ) {}
 
   async findAll(query: QuerySessionDto): Promise<[ VehicleSessionEntity[], number ]> {
@@ -243,6 +245,32 @@ export class SessionsService {
     // Update vehicle status and odometer
     await this.vehiclesService.updateStatus(session.vehicleId, VehicleStatus.AVAILABLE);
     await this.vehiclesService.updateOdometer(session.vehicleId, finishSessionDto.finalOdometer);
+
+    // Retrieve GPS history for the session
+    try {
+      // Get the GPS provider for this vehicle
+      const {provider, config} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
+
+      // Get the GPS history for the session
+      const historyData = await provider.getHistory(
+        config.metadata.historyEndpoint || config.metadata.endpoint,
+        config.metadata.apiKey,
+        session.vehicleId,
+        session.startTime,
+        session.endTime
+      );
+
+      // Process and emit GPS events if history data is available
+      if (historyData && historyData.length > 0) {
+        this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
+
+        // Emit events for each GPS record
+        provider.emitGpsEvents(historyData);
+      }
+    } catch (error) {
+      // Don't interrupt the main flow if there's an error retrieving GPS history
+      this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
+    }
 
     return this.findById(savedSession.id);
   }

@@ -32,6 +32,7 @@ export class BiogpsParser {
       }));
 
       return {
+        vehicleId: item.id.toString(),
         licensePlate,
         status: item.online,
         currentLocation: {

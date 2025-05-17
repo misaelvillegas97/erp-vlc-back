@@ -30,7 +30,9 @@ import { RoleUserEntity }      from '@modules/roles/domain/entities/role-user.en
 
 import { FilesModule }              from '../files/files.module';
 import { UsersModule }              from '@modules/users/users.module';
+import { GpsModule }                from '@modules/gps/gps.module';
 import { VehicleGpsProviderEntity } from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
+import { GpsHandler }               from '@modules/logistics/handlers/gps.handler';
 
 @Module({
   imports: [
@@ -48,7 +50,8 @@ import { VehicleGpsProviderEntity } from '@modules/logistics/domain/entities/veh
       VehicleDocumentEntity
     ]),
     FilesModule,
-    UsersModule
+    UsersModule,
+    GpsModule
   ],
   controllers: [
     VehiclesController,
@@ -64,7 +67,8 @@ import { VehicleGpsProviderEntity } from '@modules/logistics/domain/entities/veh
     GpsService,
     MaintenanceService,
     VehicleDocumentsService,
-    MaintenanceScheduler
+    MaintenanceScheduler,
+    GpsHandler
   ],
   exports: [
     VehiclesService,

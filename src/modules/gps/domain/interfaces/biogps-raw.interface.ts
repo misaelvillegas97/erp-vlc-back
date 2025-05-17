@@ -1,4 +1,5 @@
 export interface BiogpsRawItem {
+  id: number;
   name: string;
   online: string;
   lat: number;

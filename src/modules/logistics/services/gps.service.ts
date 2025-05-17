@@ -85,9 +85,6 @@ export class GpsService {
     // Check if the vehicle exists
     let vehicle: VehicleEntity;
 
-    if (gpsData.vehicleId)
-      vehicle = await this.vehicleRepository.findOne({where: {id: gpsData.vehicleId}});
-
     if (!vehicle && gpsData.licensePlate)
       vehicle = await this.vehicleRepository.findOne({where: {licensePlate: gpsData.licensePlate}});
 

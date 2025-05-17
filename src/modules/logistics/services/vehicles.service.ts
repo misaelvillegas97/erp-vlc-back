@@ -14,14 +14,15 @@ import { MaintenanceRecordMapper }                                             f
 import { MaintenanceAlertMapper }                                              from '../domain/mappers/maintenance-alert.mapper';
 import { VehicleDocumentMapper }                                               from '../domain/mappers/vehicle-document.mapper';
 import { GPSProviderEnum }                                                     from '@modules/gps/domain/enums/provider.enum';
+import { VehicleGpsProviderEntity }                                            from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
 
 @Injectable()
 export class VehiclesService {
   private readonly logger = new Logger(VehiclesService.name);
 
   constructor(
-    @InjectRepository(VehicleEntity)
-    private readonly vehicleRepository: Repository<VehicleEntity>,
+    @InjectRepository(VehicleEntity) private readonly vehicleRepository: Repository<VehicleEntity>,
+    @InjectRepository(VehicleGpsProviderEntity) private readonly vehicleGpsProviderRepository: Repository<VehicleGpsProviderEntity>,
     private readonly maintenanceService: MaintenanceService,
     private readonly vehicleDocumentsService: VehicleDocumentsService
   ) {}
