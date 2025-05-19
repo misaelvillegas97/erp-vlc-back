@@ -6,6 +6,7 @@ import { MaintenanceRecordEntity }                                from './mainte
 import { MaintenanceAlertEntity }                                 from './maintenance-alert.entity';
 import { VehicleDocumentEntity }                                  from './vehicle-document.entity';
 import { VehicleGpsProviderEntity }                               from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
+import { FuelRecordEntity }                                       from './fuel-record.entity';
 
 export enum VehicleStatus {
   AVAILABLE = 'AVAILABLE',     // Disponible para uso
@@ -146,6 +147,9 @@ export class VehicleEntity extends AbstractEntity {
 
   @OneToMany(() => MaintenanceAlertEntity, alert => alert.vehicle)
   maintenanceAlerts: MaintenanceAlertEntity[];
+
+  @OneToMany(() => FuelRecordEntity, fuelRecord => fuelRecord.vehicle)
+  fuelRecords: FuelRecordEntity[];
 
   @Column('simple-json', {nullable: true, name: 'photo_url'})
   photoUrl: string;
