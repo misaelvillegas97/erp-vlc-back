@@ -7,7 +7,7 @@ import { Role }                 from '../../roles/domain/role';
 import { Status }               from '../../statuses/domain/status';
 import { RoleUserEntity }       from '@modules/roles/domain/entities/role-user.entity';
 import { DriverLicenseEntity }  from '@modules/users/domain/entities/driver-license.entity';
-import { VehicleSessionEntity } from '@modules/logistics/domain/entities/vehicle-session.entity';
+import { VehicleSessionEntity } from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
 
 export class User {
   @ApiProperty({type: String})

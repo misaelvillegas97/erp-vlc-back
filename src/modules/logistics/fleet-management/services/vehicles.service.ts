@@ -14,7 +14,7 @@ import { MaintenanceRecordMapper }                                             f
 import { MaintenanceAlertMapper }                                              from '../domain/mappers/maintenance-alert.mapper';
 import { VehicleDocumentMapper }                                               from '../domain/mappers/vehicle-document.mapper';
 import { GPSProviderEnum }                                                     from '@modules/gps/domain/enums/provider.enum';
-import { VehicleGpsProviderEntity }                                            from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
+import { VehicleGpsProviderEntity }                                            from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
 
 @Injectable()
 export class VehiclesService {
@@ -84,14 +84,14 @@ export class VehiclesService {
     });
   }
 
-  async findById(id: string): Promise<VehicleEntity> {
+  async findById(id: string, throwError: boolean = true): Promise<VehicleEntity> {
     const vehicle = await this.vehicleRepository.findOne({
       where: {id},
       relations: [ 'currentSession' ]
     });
-    if (!vehicle) {
+    if (!vehicle && throwError)
       throw new NotFoundException(`Vehicle with ID ${ id } not found`);
-    }
+
     return vehicle;
   }
 

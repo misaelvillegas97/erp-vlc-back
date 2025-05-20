@@ -3,7 +3,7 @@ import { AbstractEntity }                                          from '@shared
 import { VehicleEntity }                                           from './vehicle.entity';
 import { VehicleSessionLocationEntity }                            from './vehicle-session-location.entity';
 import { UserEntity }                                              from '@modules/users/domain/entities/user.entity';
-import { GpsEntity }                                               from '@modules/logistics/domain/entities/gps.entity';
+import { GpsEntity }                                               from '@modules/gps/domain/entities/gps.entity';
 
 export enum VehicleSessionStatus {
   ACTIVE = 'ACTIVE',

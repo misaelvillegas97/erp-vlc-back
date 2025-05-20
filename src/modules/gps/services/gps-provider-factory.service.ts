@@ -5,7 +5,7 @@ import { IGpsProvider }                          from '../domain/interfaces/gps-
 import { BiogpsService }                         from './biogps.service';
 import { AppConfigService }                      from '@modules/config/app-config.service';
 import { GPSProviderEnum }                       from '../domain/enums/provider.enum';
-import { VehicleGpsProviderEntity }              from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
+import { VehicleGpsProviderEntity }              from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
 import { ModuleRef }                             from '@nestjs/core';
 
 @Injectable()

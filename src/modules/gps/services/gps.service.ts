@@ -2,10 +2,10 @@ import { Injectable, Logger }                         from '@nestjs/common';
 import { InjectRepository }                           from '@nestjs/typeorm';
 import { Repository }                                 from 'typeorm';
 import { GpsEntity }                                  from '../domain/entities/gps.entity';
-import { GenericGPS }                                 from '@modules/logistics/domain/interfaces/generic-gps.interface';
+import { GenericGPS }                                 from '@modules/gps/domain/interfaces/generic-gps.interface';
 import { OnEvent }                                    from '@nestjs/event-emitter';
-import { VehicleEntity }                              from '@modules/logistics/domain/entities/vehicle.entity';
-import { VehicleSessionEntity, VehicleSessionStatus } from '@modules/logistics/domain/entities/vehicle-session.entity';
+import { VehicleEntity }                              from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
+import { VehicleSessionEntity, VehicleSessionStatus } from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
 
 @Injectable()
 export class GpsService {

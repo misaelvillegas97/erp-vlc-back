@@ -1,4 +1,4 @@
-import { FuelType, VehicleEntity, VehicleStatus, VehicleType } from '@modules/logistics/domain/entities/vehicle.entity';
+import { FuelType, VehicleEntity, VehicleStatus, VehicleType } from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
 
 export class VehicleMapper {
   id: string;

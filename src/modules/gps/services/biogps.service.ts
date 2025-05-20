@@ -4,7 +4,7 @@ import { EventEmitter2 }                    from '@nestjs/event-emitter';
 import axios                                from 'axios';
 import { BiogpsRawGroup, BiogpsRawHistory } from '../domain/interfaces/biogps-raw.interface';
 import { BiogpsParser }                     from '../utils/biogps-parser';
-import { GenericGPS }                       from '@modules/logistics/domain/interfaces/generic-gps.interface';
+import { GenericGPS }                       from '@modules/gps/domain/interfaces/generic-gps.interface';
 import { AppConfigService }                 from '@modules/config/app-config.service';
 import { GPSProviderEnum }                  from '@modules/gps/domain/enums/provider.enum';
 import { IGpsProvider }                     from '../domain/interfaces/gps-provider.interface';

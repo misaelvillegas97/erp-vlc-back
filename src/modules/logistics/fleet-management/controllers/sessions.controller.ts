@@ -8,7 +8,7 @@ import { UpdateLocationDto }                                                    
 import { QuerySessionDto }                                                            from '../domain/dto/query-session.dto';
 import { VehicleSessionEntity }                                                       from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                                               from '../domain/entities/vehicle-session-location.entity';
-import { SessionMapper }                                                              from '@modules/logistics/domain/mappers/session.mapper';
+import { SessionMapper }                                                              from '@modules/logistics/fleet-management/domain/mappers/session.mapper';
 
 @ApiTags('Logistics - Vehicle Sessions')
 @UseGuards(AuthGuard('jwt'))

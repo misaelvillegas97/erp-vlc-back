@@ -1,31 +1,28 @@
 import { Module }        from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { VehiclesController } from './controllers/vehicles.controller';
-import { DriversController }  from './controllers/drivers.controller';
-import { SessionsController } from './controllers/sessions.controller';
-import { GpsController }      from './controllers/gps.controller';
-import { FuelController }     from './controllers/fuel.controller';
+import { VehiclesController } from './fleet-management/controllers/vehicles.controller';
+import { DriversController }  from './fleet-management/controllers/drivers.controller';
+import { SessionsController } from './fleet-management/controllers/sessions.controller';
+import { FuelController }     from './fuel-management/controllers/fuel.controller';
 
-import { VehiclesService }         from './services/vehicles.service';
-import { DriversService }          from './services/drivers.service';
-import { SessionsService }         from './services/sessions.service';
-import { GpsService }              from './services/gps.service';
-import { MaintenanceService }      from './services/maintenance.service';
-import { VehicleDocumentsService } from './services/vehicle-documents.service';
-import { FuelService }             from './services/fuel.service';
+import { VehiclesService }         from './fleet-management/services/vehicles.service';
+import { DriversService }          from './fleet-management/services/drivers.service';
+import { SessionsService }         from './fleet-management/services/sessions.service';
+import { MaintenanceService }      from './fleet-management/services/maintenance.service';
+import { VehicleDocumentsService } from './fleet-management/services/vehicle-documents.service';
+import { FuelService }             from './fuel-management/services/fuel.service';
 
-import { SessionSchedulerService } from './schedulers/session-scheduler.service';
-import { MaintenanceScheduler }    from './schedulers/maintenance.scheduler';
+import { SessionSchedulerService } from '@modules/logistics/fleet-management/schedulers/session-scheduler.service';
+import { MaintenanceScheduler }    from '@modules/logistics/fleet-management/schedulers/maintenance.scheduler';
 
-import { VehicleEntity }                from './domain/entities/vehicle.entity';
-import { VehicleSessionEntity }         from './domain/entities/vehicle-session.entity';
-import { VehicleSessionLocationEntity } from './domain/entities/vehicle-session-location.entity';
-import { GpsEntity }                    from './domain/entities/gps.entity';
-import { MaintenanceRecordEntity }      from './domain/entities/maintenance-record.entity';
-import { MaintenanceAlertEntity }       from './domain/entities/maintenance-alert.entity';
-import { VehicleDocumentEntity }        from './domain/entities/vehicle-document.entity';
-import { FuelRecordEntity }             from './domain/entities/fuel-record.entity';
+import { VehicleEntity }                from './fleet-management/domain/entities/vehicle.entity';
+import { VehicleSessionEntity }         from './fleet-management/domain/entities/vehicle-session.entity';
+import { VehicleSessionLocationEntity } from './fleet-management/domain/entities/vehicle-session-location.entity';
+import { MaintenanceRecordEntity }      from './fleet-management/domain/entities/maintenance-record.entity';
+import { MaintenanceAlertEntity }       from './fleet-management/domain/entities/maintenance-alert.entity';
+import { VehicleDocumentEntity }        from './fleet-management/domain/entities/vehicle-document.entity';
+import { FuelRecordEntity }             from './fuel-management/domain/entities/fuel-record.entity';
 
 import { UserEntity }          from '@modules/users/domain/entities/user.entity';
 import { DriverLicenseEntity } from '@modules/users/domain/entities/driver-license.entity';
@@ -33,9 +30,8 @@ import { RoleUserEntity }      from '@modules/roles/domain/entities/role-user.en
 
 import { FilesModule }              from '../files/files.module';
 import { UsersModule }              from '@modules/users/users.module';
-import { GpsModule }                from '@modules/gps/gps.module';
-import { VehicleGpsProviderEntity } from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
-import { GpsHandler }               from '@modules/logistics/handlers/gps.handler';
+import { VehicleGpsProviderEntity } from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
+import { GpsHandler }               from '@modules/logistics/fleet-management/handlers/gps.handler';
 
 @Module({
   imports: [
@@ -47,21 +43,18 @@ import { GpsHandler }               from '@modules/logistics/handlers/gps.handle
       UserEntity,
       DriverLicenseEntity,
       RoleUserEntity,
-      GpsEntity,
       MaintenanceRecordEntity,
       MaintenanceAlertEntity,
       VehicleDocumentEntity,
       FuelRecordEntity
     ]),
     FilesModule,
-    UsersModule,
-    GpsModule
+    UsersModule
   ],
   controllers: [
     VehiclesController,
     DriversController,
     SessionsController,
-    GpsController,
     FuelController
   ],
   providers: [
@@ -69,7 +62,6 @@ import { GpsHandler }               from '@modules/logistics/handlers/gps.handle
     DriversService,
     SessionsService,
     SessionSchedulerService,
-    GpsService,
     MaintenanceService,
     VehicleDocumentsService,
     FuelService,
@@ -77,10 +69,10 @@ import { GpsHandler }               from '@modules/logistics/handlers/gps.handle
     GpsHandler
   ],
   exports: [
+    TypeOrmModule,
     VehiclesService,
     DriversService,
     SessionsService,
-    GpsService,
     MaintenanceService,
     VehicleDocumentsService,
     FuelService

@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { AbstractEntity }                        from '@shared/domain/entities/abstract.entity';
-import { VehicleEntity }                         from './vehicle.entity';
+import { VehicleEntity }                         from '../../../fleet-management/domain/entities/vehicle.entity';
 import { UserEntity }                            from '@modules/users/domain/entities/user.entity';
 
 /**

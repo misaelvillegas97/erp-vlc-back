@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 import { AbstractEntity }                       from '@shared/domain/entities/abstract.entity';
 import { GPSProviderEnum }                      from '@modules/gps/domain/enums/provider.enum';
-import { VehicleEntity }                        from '@modules/logistics/domain/entities/vehicle.entity';
+import { VehicleEntity }                        from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
 
 @Entity({name: 'vehicle_gps_provider'})
 export class VehicleGpsProviderEntity extends AbstractEntity {

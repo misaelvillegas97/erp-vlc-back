@@ -1,7 +1,7 @@
-import { VehicleSessionEntity, VehicleSessionStatus } from '@modules/logistics/domain/entities/vehicle-session.entity';
+import { VehicleSessionEntity, VehicleSessionStatus } from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
 import { UserMapper }                                 from '@modules/users/domain/mappers/user.mapper';
-import { GenericGpsMapper }                           from '@modules/logistics/domain/mappers/generic-gps.mapper';
-import { VehicleMapper }                              from '@modules/logistics/domain/mappers/vehicle.mapper';
+import { GenericGpsMapper }                           from '@modules/gps/domain/mappers/generic-gps.mapper';
+import { VehicleMapper }                              from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
 import { User }                                       from '@modules/users/domain/user';
 
 export class SessionMapper {

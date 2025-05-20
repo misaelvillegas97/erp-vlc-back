@@ -23,7 +23,7 @@ import { EntityRelationalHelper }                 from '@shared/utils/relational
 import { AuthProvidersEnum }                      from '@core/auth/auth-providers.enum';
 import { RoleUserEntity }                         from '@modules/roles/domain/entities/role-user.entity';
 import { DriverLicenseEntity, DriverLicenseType } from './driver-license.entity';
-import { VehicleSessionEntity }                   from '@modules/logistics/domain/entities/vehicle-session.entity';
+import { VehicleSessionEntity }                   from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
 import { DateTime }                               from 'luxon';
 
 @Entity('user')

@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { AbstractEntity }                        from '@shared/domain/entities/abstract.entity';
-import { VehicleEntity }                         from '@modules/logistics/domain/entities/vehicle.entity';
-import { VehicleSessionEntity }                  from '@modules/logistics/domain/entities/vehicle-session.entity';
+import { VehicleEntity }                         from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
+import { VehicleSessionEntity }                  from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
 import { GPSProviderEnum }                       from '@modules/gps/domain/enums/provider.enum';
 
 @Entity('gps')

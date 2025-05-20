@@ -1,12 +1,12 @@
 import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 import { AbstractEntity }                                         from '@shared/domain/entities/abstract.entity';
 import { VehicleSessionEntity }                                   from './vehicle-session.entity';
-import { GpsEntity }                                              from '@modules/logistics/domain/entities/gps.entity';
+import { GpsEntity }                                              from '@modules/gps/domain/entities/gps.entity';
 import { MaintenanceRecordEntity }                                from './maintenance-record.entity';
 import { MaintenanceAlertEntity }                                 from './maintenance-alert.entity';
 import { VehicleDocumentEntity }                                  from './vehicle-document.entity';
-import { VehicleGpsProviderEntity }                               from '@modules/logistics/domain/entities/vehicle-gps-provider.entity';
-import { FuelRecordEntity }                                       from './fuel-record.entity';
+import { VehicleGpsProviderEntity }                               from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
+import { FuelRecordEntity }                                       from '../../../fuel-management/domain/entities/fuel-record.entity';
 
 export enum VehicleStatus {
   AVAILABLE = 'AVAILABLE',     // Disponible para uso

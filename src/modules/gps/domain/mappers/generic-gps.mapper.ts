@@ -1,4 +1,4 @@
-import { GpsEntity } from '@modules/logistics/domain/entities/gps.entity';
+import { GpsEntity } from '@modules/gps/domain/entities/gps.entity';
 
 export class GenericGpsMapper {
   readonly latitude: number;

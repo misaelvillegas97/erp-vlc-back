@@ -1,5 +1,9 @@
-import { MaintenanceRecordEntity, MaintenanceStatus, MaintenanceType } from '@modules/logistics/domain/entities/maintenance-record.entity';
-import { VehicleMapper }                                               from '@modules/logistics/domain/mappers/vehicle.mapper';
+import {
+  MaintenanceRecordEntity,
+  MaintenanceStatus,
+  MaintenanceType
+}                        from '@modules/logistics/fleet-management/domain/entities/maintenance-record.entity';
+import { VehicleMapper } from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
 
 export class MaintenanceRecordMapper {
   id: string;

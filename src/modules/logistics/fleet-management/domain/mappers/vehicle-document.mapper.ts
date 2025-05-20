@@ -1,5 +1,5 @@
-import { DocumentType, VehicleDocumentEntity } from '@modules/logistics/domain/entities/vehicle-document.entity';
-import { VehicleMapper }                       from '@modules/logistics/domain/mappers/vehicle.mapper';
+import { DocumentType, VehicleDocumentEntity } from '@modules/logistics/fleet-management/domain/entities/vehicle-document.entity';
+import { VehicleMapper }                       from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
 import { FileMapper }                          from '@modules/files/domain/mappers/file.mapper';
 import { FileType }                            from '@modules/files/domain/file';
 

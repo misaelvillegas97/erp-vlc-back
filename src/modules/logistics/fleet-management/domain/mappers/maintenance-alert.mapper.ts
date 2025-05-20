@@ -1,5 +1,9 @@
-import { AlertStatus, AlertType, MaintenanceAlertEntity } from '@modules/logistics/domain/entities/maintenance-alert.entity';
-import { VehicleMapper }                                  from '@modules/logistics/domain/mappers/vehicle.mapper';
+import {
+  AlertStatus,
+  AlertType,
+  MaintenanceAlertEntity
+} from '@modules/logistics/fleet-management/domain/entities/maintenance-alert.entity';
+import { VehicleMapper } from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
 
 export class MaintenanceAlertMapper {
   id: string;

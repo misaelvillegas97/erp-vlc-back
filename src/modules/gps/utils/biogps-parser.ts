@@ -1,5 +1,5 @@
 import { BiogpsRawGroup, BiogpsRawHistory } from '../domain/interfaces/biogps-raw.interface';
-import { GenericGPS }                       from '@modules/logistics/domain/interfaces/generic-gps.interface';
+import { GenericGPS }                       from '@modules/gps/domain/interfaces/generic-gps.interface';
 import { DateTime }                         from 'luxon';
 import { GPSProviderEnum }                  from '@modules/gps/domain/enums/provider.enum';
 

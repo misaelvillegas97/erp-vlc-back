@@ -5,7 +5,7 @@ import { FuelRecordEntity }                                from '../domain/entit
 import { CreateFuelRecordDto }                             from '../domain/dto/create-fuel-record.dto';
 import { UpdateFuelRecordDto }                             from '../domain/dto/update-fuel-record.dto';
 import { QueryFuelRecordDto }                              from '../domain/dto/query-fuel-record.dto';
-import { VehiclesService }                                 from './vehicles.service';
+import { VehiclesService }                                 from '../../fleet-management/services/vehicles.service';
 import { FuelConsumptionByPeriod, FuelConsumptionSummary } from '../domain/interfaces/fuel-consumption.interface';
 import { DateTime }                                        from 'luxon';
 
