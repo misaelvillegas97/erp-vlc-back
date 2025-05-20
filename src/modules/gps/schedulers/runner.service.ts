@@ -20,7 +20,7 @@ export class RunnerService {
 
     if (!config?.enabled) return;
 
-    const gpsData = await this.biogpsService.getCurrent(config.metadata.endpoint, config.metadata.apiKey);
+    const gpsData = await this.biogpsService.getAllCurrent(config.metadata.endpoint, config.metadata.apiKey);
 
     if (gpsData.length > 0) this.biogpsService.emitGpsEvents(gpsData);
   }

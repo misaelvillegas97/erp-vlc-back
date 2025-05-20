@@ -25,7 +25,7 @@ export class BiogpsService implements IGpsProvider {
   /**
    * Fetch GPS data from Biogps API and process it
    */
-  async getCurrent(apiUrl: string, apiHash: string): Promise<GenericGPS[]> {
+  async getAllCurrent(apiUrl: string, apiHash: string): Promise<GenericGPS[]> {
     if (!apiUrl || !apiHash) {
       this.logger.warn('Biogps API URL or Hash is not configured');
       return [];
@@ -55,10 +55,15 @@ export class BiogpsService implements IGpsProvider {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getOneCurrent(apiUrl: string, apiHash: string): Promise<GenericGPS> {
+    return undefined;
+  }
+
   /**
    * Fetch GPS history from Biogps API and process it
    */
-  async getHistory(apiUrl: string, apiHash: string, vehicleId?: string, startTime?: Date, endTime?: Date): Promise<GenericGPS[]> {
+  async getOneHistory(apiUrl: string, apiHash: string, vehicleId?: string, startTime?: Date, endTime?: Date): Promise<GenericGPS[]> {
     if (!apiUrl || !apiHash) {
       this.logger.warn('Biogps API URL or Hash is not configured');
       return [];
@@ -188,8 +193,20 @@ export class BiogpsService implements IGpsProvider {
 
     return {
       apiUrl: config.metadata.endpoint,
+      apiHash: config.metadata.apiKey
+    };
+  }
+
+  private async getBiogpsHistoryConfig() {
+    const config = await this.configService.findFeatureToggleByName('biogps-history');
+    if (!config?.enabled) {
+      this.logger.warn('Biogps history provider is not enabled');
+      return null;
+    }
+
+    return {
+      apiUrl: config.metadata.endpoint,
       apiHash: config.metadata.apiKey,
-      apiHistoryUrl: config.metadata.historyEndpoint,
     };
   }
 }

@@ -41,13 +41,26 @@ export class GpsFeatureTogglesProvider implements ModuleFeatureToggleProvider {
       {
         name: 'biogps-history',
         displayName: 'BioGPS History Tracking',
-        description: 'Enable/disable historical route logging from BioGPS',
+        description: 'Enable/disable historical get detailed history from BioGPS',
         enabled: true,
         category: 'logistics',
         parentId: null,
         metadata: {
-          retentionDays: 90
-        }
+          apiKey: 'demo-key',
+          endpoint: 'https://api.biogps.example.com/v1'
+        },
+        requiredMetadata: [
+          {
+            name: 'endpoint',
+            description: 'API history endpoint for BioGPS',
+            type: 'string',
+          },
+          {
+            name: 'apiKey',
+            description: 'API key for BioGPS authentication',
+            type: 'string',
+          }
+        ] as RequiredMetadataModel[]
       }
     ];
   }
