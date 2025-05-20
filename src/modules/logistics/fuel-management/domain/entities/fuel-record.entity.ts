@@ -15,6 +15,14 @@ export enum GasStationBrand {
   OTHER = 'OTHER'
 }
 
+export enum FuelChargeType {
+  GASOLINE = 'GASOLINE',
+  DIESEL = 'DIESEL',
+  ELECTRIC = 'ELECTRIC',
+  HYDROGEN = 'HYDROGEN',
+  GAS = 'GAS',
+}
+
 /**
  * Entity for fuel records
  * Tracks fuel consumption for vehicles
@@ -63,6 +71,14 @@ export class FuelRecordEntity extends AbstractEntity {
     nullable: true
   })
   gasStation: GasStationBrand;
+
+  @Column({
+    name: 'fuel_type',
+    type: 'enum',
+    enum: FuelChargeType,
+    nullable: true
+  })
+  fuelType: FuelChargeType;
 
   @Column({type: 'text', nullable: true})
   notes: string;
