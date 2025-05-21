@@ -16,6 +16,7 @@ export class AuthGoogleController {
     private readonly authGoogleService: AuthGoogleService,
   ) {}
 
+  @ApiOperation({ summary: 'Login with Google' })
   @ApiOkResponse({
     type: LoginResponseDto,
   })

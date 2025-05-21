@@ -1,11 +1,14 @@
 import { Controller, Get, Req } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { readdir }              from 'fs/promises';
 import { join }                 from 'path';
 import { Request }              from 'express';
 
+@ApiTags('Application')
 @Controller()
 export class AppController {
 
+  @ApiOperation({ summary: 'List screenshots' })
   @Get()
   async listScreenshots(@Req() req: Request) {
     const directoryPath = join(__dirname, '..', 'public');

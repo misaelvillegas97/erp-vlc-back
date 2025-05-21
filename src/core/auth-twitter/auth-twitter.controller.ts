@@ -16,6 +16,7 @@ export class AuthTwitterController {
     private readonly authTwitterService: AuthTwitterService,
   ) {}
 
+  @ApiOperation({ summary: 'Login with Twitter' })
   @ApiOkResponse({
     type: LoginResponseDto,
   })

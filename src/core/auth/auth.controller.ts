@@ -36,6 +36,7 @@ export class AuthController {
 
   @SerializeOptions({groups: [ 'me' ]})
   @Post('email/login')
+  @ApiOperation({ summary: 'Login with email and password' })
   @ApiOkResponse({type: LoginResponseDto})
   @HttpCode(HttpStatus.OK)
   public async login(@Body() loginDto: AuthEmailLoginDto, @Res() res: Response): Promise<void> {
@@ -60,12 +61,14 @@ export class AuthController {
   }
 
   @Post('email/register')
+  @ApiOperation({ summary: 'Register a new user' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async register(@Body() createUserDto: AuthRegisterLoginDto): Promise<void> {
     return this.service.register(createUserDto);
   }
 
   @Post('email/confirm')
+  @ApiOperation({ summary: 'Confirm user email' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async confirmEmail(
     @Body() confirmEmailDto: AuthConfirmEmailDto,
@@ -74,18 +77,21 @@ export class AuthController {
   }
 
   @Post('email/confirm/new')
+  @ApiOperation({ summary: 'Confirm new user email after update' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async confirmNewEmail(@Body() confirmEmailDto: AuthConfirmEmailDto): Promise<void> {
     return this.service.confirmNewEmail(confirmEmailDto.hash);
   }
 
   @Post('forgot/password')
+  @ApiOperation({ summary: 'Request password reset' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async forgotPassword(@Body() forgotPasswordDto: AuthForgotPasswordDto): Promise<void> {
     return this.service.forgotPassword(forgotPasswordDto.email);
   }
 
   @Post('reset/password')
+  @ApiOperation({ summary: 'Reset user password' })
   @HttpCode(HttpStatus.NO_CONTENT)
   resetPassword(@Body() resetPasswordDto: AuthResetPasswordDto): Promise<void> {
     return this.service.resetPassword(
@@ -98,6 +104,7 @@ export class AuthController {
   @SerializeOptions({groups: [ 'me' ]})
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get current user profile' })
   @ApiOkResponse({type: User})
   @HttpCode(HttpStatus.OK)
   public me(@Req() request: Request): Promise<NullableType<User>> {
@@ -105,6 +112,7 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Refresh access token' })
   @ApiOkResponse({type: RefreshResponseDto})
   @SerializeOptions({groups: [ 'me' ]})
   @Post('refresh')
@@ -137,6 +145,7 @@ export class AuthController {
 
   @ApiBearerAuth()
   @Post('logout')
+  @ApiOperation({ summary: 'Logout user' })
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.NO_CONTENT)
   public async logout(@Req() request: Request): Promise<void> {
@@ -149,6 +158,7 @@ export class AuthController {
   @SerializeOptions({groups: [ 'me' ]})
   @Patch('me')
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Update current user profile' })
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({type: User})
   public update(@Req() request: Request, @Body() userDto: AuthUpdateDto,): Promise<NullableType<User>> {
@@ -158,6 +168,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Delete('me')
   @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Delete current user account' })
   @HttpCode(HttpStatus.NO_CONTENT)
   public async delete(@Req() request: Request): Promise<void> {
     return this.service.softDelete(request.user, request.user.sessionId);

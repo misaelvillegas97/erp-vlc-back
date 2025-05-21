@@ -16,6 +16,7 @@ export class AuthFacebookController {
     private readonly authFacebookService: AuthFacebookService,
   ) {}
 
+  @ApiOperation({ summary: 'Login with Facebook' })
   @ApiOkResponse({
     type: LoginResponseDto,
   })

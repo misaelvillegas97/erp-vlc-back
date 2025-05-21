@@ -16,6 +16,7 @@ export class AuthAppleController {
     private readonly authAppleService: AuthAppleService,
   ) {}
 
+  @ApiOperation({ summary: 'Login with Apple' })
   @ApiOkResponse({
     type: LoginResponseDto,
   })
