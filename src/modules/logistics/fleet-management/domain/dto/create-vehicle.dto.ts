@@ -1,7 +1,8 @@
 import { ApiProperty }                                                                             from '@nestjs/swagger';
 import { IsDate, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl, IsUUID, MaxDate, Min } from 'class-validator';
 import { Type }                                                                                    from 'class-transformer';
-import { FuelType, VehicleStatus, VehicleType }                                                    from '../entities/vehicle.entity';
+import { VehicleStatus, VehicleType }                                                              from '../entities/vehicle.entity';
+import { FuelTypeEnum }                                                                            from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
 
 export class CreateVehicleDto {
   @ApiProperty({description: 'Marca del vehículo'})
@@ -45,13 +46,13 @@ export class CreateVehicleDto {
   color?: string;
 
   @ApiProperty({
-    enum: FuelType,
-    default: FuelType.GASOLINE,
+    enum: FuelTypeEnum,
+    default: FuelTypeEnum.GASOLINE,
     description: 'Tipo de combustible'
   })
-  @IsEnum(FuelType)
+  @IsEnum(FuelTypeEnum)
   @IsOptional()
-  fuelType?: FuelType;
+  fuelType?: FuelTypeEnum;
 
   @ApiProperty({
     required: false,

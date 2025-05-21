@@ -1,4 +1,5 @@
-import { FuelType, VehicleEntity, VehicleStatus, VehicleType } from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
+import { VehicleEntity, VehicleStatus, VehicleType } from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
+import { FuelTypeEnum }                              from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
 
 export class VehicleMapper {
   id: string;
@@ -9,7 +10,7 @@ export class VehicleMapper {
   vin: string;
   type: VehicleType;
   color: string;
-  fuelType: FuelType;
+  fuelType: FuelTypeEnum;
   tankCapacity: number;
   lastKnownOdometer: number;
   status: VehicleStatus;

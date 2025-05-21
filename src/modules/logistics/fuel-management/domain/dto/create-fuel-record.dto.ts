@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional }                                     
 import { IsDate, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Min } from 'class-validator';
 import { Type }                                                                                from 'class-transformer';
 import { GasStationBrand }                                                                     from '../entities/fuel-record.entity';
+import { FuelTypeEnum }                                                                        from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
 
 /**
  * DTO for creating a new fuel record
@@ -50,6 +51,10 @@ export class CreateFuelRecordDto {
   @IsOptional()
   @IsEnum(GasStationBrand)
   gasStation?: GasStationBrand;
+
+  @ApiPropertyOptional({description: 'Type of fuel', enum: FuelTypeEnum})
+  @IsEnum(FuelTypeEnum)
+  fuelType?: FuelTypeEnum;
 
   @ApiPropertyOptional({description: 'Additional notes', example: 'Regular maintenance fill-up'})
   @IsOptional()

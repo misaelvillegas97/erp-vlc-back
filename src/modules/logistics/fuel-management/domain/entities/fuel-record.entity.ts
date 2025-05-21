@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { AbstractEntity }                        from '@shared/domain/entities/abstract.entity';
 import { VehicleEntity }                         from '../../../fleet-management/domain/entities/vehicle.entity';
 import { UserEntity }                            from '@modules/users/domain/entities/user.entity';
+import { FuelTypeEnum }                          from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
 
 /**
  * Enum for gas station brands
@@ -13,14 +14,6 @@ export enum GasStationBrand {
   YPF = 'YPF',
   TERPEL = 'TERPEL',
   OTHER = 'OTHER'
-}
-
-export enum FuelChargeType {
-  GASOLINE = 'GASOLINE',
-  DIESEL = 'DIESEL',
-  ELECTRIC = 'ELECTRIC',
-  HYDROGEN = 'HYDROGEN',
-  GAS = 'GAS',
 }
 
 /**
@@ -75,10 +68,10 @@ export class FuelRecordEntity extends AbstractEntity {
   @Column({
     name: 'fuel_type',
     type: 'enum',
-    enum: FuelChargeType,
+    enum: FuelTypeEnum,
     nullable: true
   })
-  fuelType: FuelChargeType;
+  fuelType: FuelTypeEnum;
 
   @Column({type: 'text', nullable: true})
   notes: string;

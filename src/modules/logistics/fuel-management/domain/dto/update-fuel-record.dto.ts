@@ -2,6 +2,7 @@ import { ApiPropertyOptional }                                                  
 import { IsDate, IsEnum, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Min } from 'class-validator';
 import { Type }                                                                    from 'class-transformer';
 import { GasStationBrand }                                                         from '../entities/fuel-record.entity';
+import { FuelTypeEnum }                                                            from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
 
 /**
  * DTO for updating an existing fuel record
@@ -50,6 +51,10 @@ export class UpdateFuelRecordDto {
   @IsOptional()
   @IsEnum(GasStationBrand)
   gasStation?: GasStationBrand;
+
+  @ApiPropertyOptional({description: 'Fuel type', enum: FuelTypeEnum, example: FuelTypeEnum.DIESEL})
+  @IsEnum(FuelTypeEnum)
+  fuelType?: FuelTypeEnum;
 
   @ApiPropertyOptional({description: 'Additional notes', example: 'Regular maintenance fill-up'})
   @IsOptional()

@@ -7,6 +7,7 @@ import { MaintenanceAlertEntity }                                 from './mainte
 import { VehicleDocumentEntity }                                  from './vehicle-document.entity';
 import { VehicleGpsProviderEntity }                               from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
 import { FuelRecordEntity }                                       from '../../../fuel-management/domain/entities/fuel-record.entity';
+import { FuelTypeEnum }                                           from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
 
 export enum VehicleStatus {
   AVAILABLE = 'AVAILABLE',     // Disponible para uso
@@ -26,16 +27,6 @@ export enum VehicleType {
   TRUCK = 'TRUCK',
   BUS = 'BUS',
   MOTORCYCLE = 'MOTORCYCLE',
-  OTHER = 'OTHER'
-}
-
-export enum FuelType {
-  GASOLINE = 'GASOLINE',
-  DIESEL = 'DIESEL',
-  ELECTRIC = 'ELECTRIC',
-  HYBRID = 'HYBRID',
-  LPG = 'LPG',
-  CNG = 'CNG',
   OTHER = 'OTHER'
 }
 
@@ -71,10 +62,10 @@ export class VehicleEntity extends AbstractEntity {
   @Column({
     name: 'fuel_type',
     type: 'enum',
-    enum: FuelType,
-    default: FuelType.GASOLINE
+    enum: FuelTypeEnum,
+    default: FuelTypeEnum.GASOLINE
   })
-  fuelType: FuelType;
+  fuelType: FuelTypeEnum;
 
   @Column({
     name: 'tank_capacity',
@@ -87,6 +78,9 @@ export class VehicleEntity extends AbstractEntity {
 
   @Column({type: 'float', name: 'current_odometer'})
   lastKnownOdometer: number;
+
+  @Column({type: 'float', nullable: true, name: 'last_refueling_odometer'})
+  lastRefuelingOdometer: number;
 
   @Column({
     type: 'enum',
