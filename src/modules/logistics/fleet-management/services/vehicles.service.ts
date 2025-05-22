@@ -152,6 +152,12 @@ export class VehiclesService {
     return this.vehicleRepository.save(vehicle);
   }
 
+  async updateLastRefuelingOdometer(id: string, odometer: number): Promise<VehicleEntity> {
+    const vehicle = await this.findById(id);
+    vehicle.lastRefuelingOdometer = odometer;
+    return this.vehicleRepository.save(vehicle);
+  }
+
   async updateCurrentSession(id: string, sessionId: string | null): Promise<VehicleEntity> {
     const vehicle = await this.findById(id);
     vehicle.currentSessionId = sessionId;

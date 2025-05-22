@@ -14,18 +14,15 @@ export class VehicleHandler {
 
   @OnEvent('fuel.refilled')
   async handleFuelLevelChangedEvent(event: any) {
-    const {vehicleId, finalOdometer} = event;
+    const {vehicleId, odometer} = event;
 
     // Find the vehicle by ID
     const vehicle = await this.vehicleRepository.findOne({where: {id: vehicleId}});
 
-    if (!vehicle) {
-      console.error(`Vehicle with ID ${ vehicleId } not found.`);
-      return;
-    }
+    if (!vehicle) return;
 
     // Update the fuel level
-    vehicle.lastRefuelingOdometer = finalOdometer;
+    vehicle.lastRefuelingOdometer = odometer;
 
     // Save the updated vehicle entity
     await this.vehicleRepository.save(vehicle);

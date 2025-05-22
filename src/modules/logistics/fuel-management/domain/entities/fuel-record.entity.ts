@@ -3,6 +3,7 @@ import { AbstractEntity }                        from '@shared/domain/entities/a
 import { VehicleEntity }                         from '../../../fleet-management/domain/entities/vehicle.entity';
 import { UserEntity }                            from '@modules/users/domain/entities/user.entity';
 import { FuelTypeEnum }                          from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
+import { BigNumber }                             from 'bignumber.js';
 
 /**
  * Enum for gas station brands
@@ -83,8 +84,8 @@ export class FuelRecordEntity extends AbstractEntity {
     const distance = this.finalOdometer - this.initialOdometer;
 
     if (distance > 0 && this.liters > 0) {
-      this.efficiency = parseFloat((distance / this.liters).toFixed(2));
-      this.costPerKm = parseFloat((this.cost / distance).toFixed(2));
+      this.efficiency = parseFloat(new BigNumber(distance).dividedBy(this.liters).toFixed(2));
+      this.costPerKm = parseFloat(new BigNumber(this.cost).dividedBy(distance).toFixed(2));
     }
   }
 }

@@ -8,6 +8,7 @@ import { QueryFuelRecordDto }                              from '../domain/dto/q
 import { VehiclesService }                                 from '../../fleet-management/services/vehicles.service';
 import { FuelConsumptionByPeriod, FuelConsumptionSummary } from '../domain/interfaces/fuel-consumption.interface';
 import { DateTime }                                        from 'luxon';
+import { EventEmitter2 }                                   from '@nestjs/event-emitter';
 
 /**
  * Service for managing fuel records
@@ -19,7 +20,8 @@ export class FuelService {
   constructor(
     @InjectRepository(FuelRecordEntity)
     private readonly fuelRecordRepository: Repository<FuelRecordEntity>,
-    private readonly vehiclesService: VehiclesService
+    private readonly vehiclesService: VehiclesService,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   /**
@@ -129,6 +131,11 @@ export class FuelService {
         createFuelRecordDto.finalOdometer
       );
     }
+
+    await this.vehiclesService.updateLastRefuelingOdometer(
+      createFuelRecordDto.vehicleId,
+      createFuelRecordDto.finalOdometer
+    );
 
     return this.fuelRecordRepository.save(fuelRecord);
   }
