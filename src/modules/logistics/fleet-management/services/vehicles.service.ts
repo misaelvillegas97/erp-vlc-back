@@ -28,7 +28,7 @@ export class VehiclesService {
   ) {}
 
   async findAll(query: QueryVehicleDto): Promise<[ VehicleEntity[], number ]> {
-    const take = 100; //query.limit || 10;
+    const take = query.limit || 100;
     const skip = ((query.page || 1) - 1) * take;
 
     const where: FindOptionsWhere<VehicleEntity> = {};
@@ -53,6 +53,12 @@ export class VehiclesService {
       where.departmentId = query.departmentId;
     }
 
+    // Definir campo y orden de ordenamiento
+    let order: any = {createdAt: 'DESC'};
+    if (query.sortBy) {
+      order = {[query.sortBy]: (query.sortOrder || 'DESC').toUpperCase()};
+    }
+
     if (query.search) {
       const search = `%${ query.search }%`;
       return this.vehicleRepository.findAndCount({
@@ -65,7 +71,7 @@ export class VehiclesService {
         ],
         take,
         skip,
-        order: {createdAt: 'DESC'}
+        order
       });
     }
 
@@ -73,7 +79,7 @@ export class VehiclesService {
       where,
       take,
       skip,
-      order: {createdAt: 'DESC'}
+      order
     });
   }
 

@@ -13,6 +13,7 @@ export class VehicleMapper {
   fuelType: FuelTypeEnum;
   tankCapacity: number;
   lastKnownOdometer: number;
+  lastRefuelingOdometer: number;
   status: VehicleStatus;
   currentSessionId: string;
   departmentId: string;
@@ -47,6 +48,7 @@ export class VehicleMapper {
       fuelType: entity.fuelType,
       tankCapacity: entity.tankCapacity,
       lastKnownOdometer: entity.lastKnownOdometer,
+      lastRefuelingOdometer: entity.lastRefuelingOdometer,
       status: entity.status,
       currentSessionId: entity.currentSessionId,
       departmentId: entity.departmentId,

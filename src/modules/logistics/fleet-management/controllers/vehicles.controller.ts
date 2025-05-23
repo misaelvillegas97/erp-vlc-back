@@ -9,6 +9,7 @@ import {
   VehicleEntity,
   VehicleStatus
 }                                                                                                         from '../domain/entities/vehicle.entity';
+import { VehicleMapper }                                                                                  from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
 
 @ApiTags('Logistics - Vehicles')
 @UseGuards(AuthGuard('jwt'))
@@ -23,9 +24,9 @@ export class VehiclesController {
   @ApiResponse({status: 200, description: 'Returns list of vehicles'})
   @Get()
   @HttpCode(HttpStatus.OK)
-  async findAll(@Query() query: QueryVehicleDto): Promise<{ total: number; items: VehicleEntity[] }> {
+  async findAll(@Query() query: QueryVehicleDto): Promise<{ total: number; items: VehicleMapper[] }> {
     const [ items, total ] = await this.vehiclesService.findAll(query);
-    return {total, items};
+    return {total, items: VehicleMapper.toDomainAll(items)};
   }
 
   @ApiOperation({summary: 'Get all available vehicles'})

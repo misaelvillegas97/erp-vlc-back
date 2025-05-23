@@ -41,4 +41,14 @@ export class QueryVehicleDto {
   @IsOptional()
   @IsString()
   departmentId?: string;
+
+  @ApiProperty({required: false})
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @ApiProperty({required: false, enum: [ 'ASC', 'DESC' ], default: 'DESC'})
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'ASC' | 'DESC' = 'DESC';
 }
