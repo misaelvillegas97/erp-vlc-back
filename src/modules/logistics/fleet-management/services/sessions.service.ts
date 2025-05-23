@@ -185,10 +185,7 @@ export class SessionsService {
     return this.findById(savedSession.id);
   }
 
-  async finishSession(
-    id: string,
-    finishSessionDto: FinishSessionDto
-  ): Promise<VehicleSessionEntity> {
+  async finishSession(id: string, finishSessionDto: FinishSessionDto): Promise<VehicleSessionEntity> {
     // Get session
     const session = await this.findById(id);
 
@@ -296,10 +293,7 @@ export class SessionsService {
     return this.findById(savedSession.id);
   }
 
-  async updateLocation(
-    id: string,
-    locationDto: UpdateLocationDto
-  ): Promise<VehicleSessionLocationEntity> {
+  async updateLocation(id: string, locationDto: UpdateLocationDto): Promise<VehicleSessionLocationEntity> {
     // Get session
     const session = await this.findById(id);
 
