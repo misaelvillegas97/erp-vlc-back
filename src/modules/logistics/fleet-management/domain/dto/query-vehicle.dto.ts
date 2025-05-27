@@ -28,9 +28,9 @@ export class QueryVehicleDto {
   @IsOptional()
   page?: number = 1;
 
-  @ApiProperty({required: false, default: 10})
+  @ApiProperty({required: false, default: 100})
   @IsOptional()
-  limit?: number = 10;
+  limit?: number = 100;
 
   @ApiProperty({required: false})
   @IsOptional()
