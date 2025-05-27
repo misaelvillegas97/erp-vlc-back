@@ -1,10 +1,11 @@
 import { Module }        from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { VehiclesController } from './fleet-management/controllers/vehicles.controller';
-import { DriversController }  from './fleet-management/controllers/drivers.controller';
-import { SessionsController } from './fleet-management/controllers/sessions.controller';
-import { FuelController }     from './fuel-management/controllers/fuel.controller';
+import { VehiclesController }    from './fleet-management/controllers/vehicles.controller';
+import { DriversController }     from './fleet-management/controllers/drivers.controller';
+import { SessionsController }    from './fleet-management/controllers/sessions.controller';
+import { MaintenanceController } from './fleet-management/controllers/maintenance.controller';
+import { FuelController }        from './fuel-management/controllers/fuel.controller';
 
 import { VehiclesService }         from './fleet-management/services/vehicles.service';
 import { DriversService }          from './fleet-management/services/drivers.service';
@@ -55,6 +56,7 @@ import { GpsHandler }               from '@modules/logistics/fleet-management/ha
     VehiclesController,
     DriversController,
     SessionsController,
+    MaintenanceController,
     FuelController
   ],
   providers: [

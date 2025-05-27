@@ -1,11 +1,11 @@
 export class PaginationDto<T> {
-  page: number;
-  limit: number;
+  items: T[];
   totalElements: number;
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
-  items: T[];
+  page: number;
+  limit: number;
 
   constructor({page, limit, total, items}: { page: number; limit: number; total: number; items: T[] }) {
     this.page = page;

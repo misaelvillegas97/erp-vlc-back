@@ -1,18 +1,23 @@
-import { Injectable, Logger, NotFoundException }          from '@nestjs/common';
-import { InjectRepository }                               from '@nestjs/typeorm';
-import { Between, MoreThan, Repository }                  from 'typeorm';
-import { MaintenanceRecordEntity, MaintenanceType }       from '../domain/entities/maintenance-record.entity';
-import { AlertStatus, AlertType, MaintenanceAlertEntity } from '../domain/entities/maintenance-alert.entity';
-import { VehicleEntity }                                  from '../domain/entities/vehicle.entity';
-import { DateTime }                                       from 'luxon';
-import { MaintenanceRecordMapper }                        from '../domain/mappers/maintenance-record.mapper';
-import { MaintenanceAlertMapper }                         from '../domain/mappers/maintenance-alert.mapper';
+import { Injectable, Logger, NotFoundException }                       from '@nestjs/common';
+import { InjectDataSource, InjectRepository }                          from '@nestjs/typeorm';
+import { Between, DataSource, MoreThan, Repository }                   from 'typeorm';
+import { MaintenanceRecordEntity, MaintenanceStatus, MaintenanceType } from '../domain/entities/maintenance-record.entity';
+import { AlertStatus, AlertType, MaintenanceAlertEntity }              from '../domain/entities/maintenance-alert.entity';
+import { VehicleEntity }                                               from '../domain/entities/vehicle.entity';
+import { DateTime }                                                    from 'luxon';
+import { MaintenanceRecordMapper }                                     from '../domain/mappers/maintenance-record.mapper';
+import { MaintenanceAlertMapper }                                      from '../domain/mappers/maintenance-alert.mapper';
+import { QueryMaintenanceDto }                                         from '../domain/dto/query-maintenance.dto';
+import { IPaginationOptions }                                          from '@shared/utils/types/pagination-options';
+import { PaginationDto }                                               from '@shared/utils/dto/pagination.dto';
+import { MaintenanceStatisticsDto }                                    from '../domain/dto/maintenance-statistics.dto';
 
 @Injectable()
 export class MaintenanceService {
   private readonly logger = new Logger(MaintenanceService.name);
 
   constructor(
+    @InjectDataSource() private dataSource: DataSource,
     @InjectRepository(MaintenanceRecordEntity)
     private readonly maintenanceRepository: Repository<MaintenanceRecordEntity>,
     @InjectRepository(MaintenanceAlertEntity)
@@ -80,6 +85,65 @@ export class MaintenanceService {
     if (!record) throw new NotFoundException(`Maintenance record with ID ${ id } not found`);
 
     await this.maintenanceRepository.remove(record);
+  }
+
+  async findAllMaintenanceRecords(query: QueryMaintenanceDto, {
+    page,
+    limit
+  }: IPaginationOptions): Promise<PaginationDto<MaintenanceRecordEntity>> {
+    const qb = this.maintenanceRepository.createQueryBuilder('maintenance');
+
+    qb.leftJoinAndSelect('maintenance.vehicle', 'vehicle');
+
+    if (query.type) {
+      qb.andWhere('maintenance.type = :type', {type: query.type});
+    }
+
+    if (query.status) {
+      qb.andWhere('maintenance.status = :status', {status: query.status});
+    }
+
+    if (query.vehicleId) {
+      qb.andWhere('maintenance.vehicleId = :vehicleId', {vehicleId: query.vehicleId});
+    }
+
+    if (query.provider) {
+      qb.andWhere('maintenance.provider ilike :provider', {provider: `%${ query.provider }%`});
+    }
+
+    if (query.startDate && query.endDate) {
+      qb.andWhere('maintenance.date BETWEEN :startDate AND :endDate', {startDate: query.startDate, endDate: query.endDate});
+    } else if (query.startDate) {
+      qb.andWhere('maintenance.date >= :startDate', {startDate: query.startDate});
+    } else if (query.endDate) {
+      qb.andWhere('maintenance.date <= :endDate', {endDate: query.endDate});
+    }
+
+    if (query.search) {
+      qb.andWhere('(maintenance.description ilike :search OR maintenance.provider ilike :search OR maintenance.notes ilike :search)',
+        {search: `%${ query.search }%`});
+    }
+
+    let total = await qb.getCount();
+
+    // Define sort field and order
+    if (query.sortBy) {
+      qb.orderBy(`maintenance.${ query.sortBy }`, query.sortOrder || 'DESC');
+    } else {
+      qb.orderBy('maintenance.date', 'DESC');
+    }
+
+    qb.take(limit);
+    qb.skip((page - 1) * limit);
+    qb.cache(30_000);
+
+    const [ records, count ] = await qb.getManyAndCount();
+
+    if (count !== 0 && total > count) {
+      total = count;
+    }
+
+    return new PaginationDto({total, page, limit, items: records});
   }
 
   // Methods for managing maintenance alerts
@@ -243,5 +307,123 @@ export class MaintenanceService {
   async deleteAlert(id: string): Promise<void> {
     const alert = await this.alertRepository.findOne({where: {id}});
     await this.alertRepository.remove(alert);
+  }
+
+  async getMaintenanceStatistics(): Promise<MaintenanceStatisticsDto> {
+    const today = DateTime.now().toISODate();
+    const nextMonth = DateTime.now().plus({months: 1}).toISODate();
+
+    // Get pending maintenance records
+    const pendingMaintenanceCount = await this.maintenanceRepository.count({
+      where: {status: MaintenanceStatus.PENDING}
+    });
+
+    // Get completed maintenance records
+    const completedMaintenanceCount = await this.maintenanceRepository.count({
+      where: {status: MaintenanceStatus.COMPLETED}
+    });
+
+    // Get active alerts
+    const activeAlerts = await this.alertRepository.find({
+      where: {status: AlertStatus.ACTIVE},
+      relations: [ 'vehicle' ]
+    });
+    const activeAlertsCount = activeAlerts.length;
+
+    // Get upcoming maintenance records (due in the next month)
+    const upcomingMaintenanceCount = await this.vehicleRepository.count({
+      where: {nextMaintenanceDate: Between(today, nextMonth)}
+    });
+
+    // Get maintenance records by status
+    const statusCounts = await this.maintenanceRepository
+      .createQueryBuilder('maintenance')
+      .select('maintenance.status', 'status')
+      .addSelect('COUNT(maintenance.id)', 'count')
+      .groupBy('maintenance.status')
+      .getRawMany();
+
+    // Ensure all possible status values are included
+    const maintenanceByStatus = Object.values(MaintenanceStatus).map(status => {
+      const found = statusCounts.find(item => item.status === status);
+      return {
+        status,
+        count: found ? parseInt(found.count) : 0
+      };
+    });
+
+    // Generate next 12 months from current month
+    const currentDate = DateTime.now();
+    const next12Months = Array.from({length: 12}, (_, i) => {
+      const date = currentDate.plus({months: i});
+      return date.toFormat('yyyy-MM');
+    });
+
+    // Get maintenance records by month
+    const monthCounts = await this.maintenanceRepository
+      .createQueryBuilder('maintenance')
+      .select('TO_CHAR(maintenance.date, \'YYYY-MM\')', 'month')
+      .addSelect('COUNT(maintenance.id)', 'count')
+      .groupBy('TO_CHAR(maintenance.date, \'YYYY-MM\')')
+      .orderBy('TO_CHAR(maintenance.date, \'YYYY-MM\')', 'ASC')
+      .getRawMany();
+
+    // Ensure all next 12 months are included
+    const maintenanceByMonth = next12Months.map(month => {
+      const found = monthCounts.find(item => item.month === month);
+      return {
+        month,
+        count: found ? parseInt(found.count) : 0
+      };
+    });
+
+    // Get maintenance records by type
+    const typeCounts = await this.maintenanceRepository
+      .createQueryBuilder('maintenance')
+      .select('maintenance.type', 'type')
+      .addSelect('COUNT(maintenance.id)', 'count')
+      .groupBy('maintenance.type')
+      .getRawMany();
+
+    // Ensure all possible type values are included
+    const maintenanceByType = Object.values(MaintenanceType).map(type => {
+      const found = typeCounts.find(item => item.type === type);
+      return {
+        type,
+        count: found ? parseInt(found.count) : 0
+      };
+    });
+
+    // Get upcoming maintenance records by vehicle and month
+    const vehicleMonthCounts = await this.vehicleRepository
+      .createQueryBuilder('vehicle')
+      .select('TO_CHAR(vehicle.next_maintenance_date, \'YYYY-MM\')', 'month')
+      .addSelect('COUNT(vehicle.id)', 'vehicleCount')
+      .where('vehicle.next_maintenance_date IS NOT NULL')
+      .andWhere('vehicle.next_maintenance_date >= :today', {today})
+      .groupBy('TO_CHAR(vehicle.next_maintenance_date, \'YYYY-MM\')')
+      .orderBy('TO_CHAR(vehicle.next_maintenance_date, \'YYYY-MM\')', 'ASC')
+      .getRawMany();
+
+    // Ensure all next 12 months are included for vehicle maintenance
+    const upcomingMaintenanceByVehicle = next12Months.map(month => {
+      const found = vehicleMonthCounts.find(item => item.month === month);
+      return {
+        month,
+        vehicleCount: found ? parseInt(found.vehicleCount) : 0
+      };
+    });
+
+    return {
+      pendingMaintenanceCount,
+      completedMaintenanceCount,
+      activeAlertsCount,
+      upcomingMaintenanceCount,
+      maintenanceByStatus,
+      maintenanceByMonth,
+      maintenanceByType,
+      upcomingMaintenanceByVehicle,
+      activeAlerts: MaintenanceAlertMapper.toDomainAll(activeAlerts)
+    };
   }
 }

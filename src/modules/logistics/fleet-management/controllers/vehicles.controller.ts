@@ -33,9 +33,9 @@ export class VehiclesController {
   @ApiResponse({status: 200, description: 'Returns list of available vehicles'})
   @Get('available')
   @HttpCode(HttpStatus.OK)
-  async findAvailable(): Promise<{ total: number; items: VehicleEntity[] }> {
+  async findAvailable(): Promise<{ total: number; items: VehicleMapper[] }> {
     const [ items, total ] = await this.vehiclesService.findAllAvailable();
-    return {total, items};
+    return {total, items: items.map(vehicle => VehicleMapper.toDomain(vehicle))};
   }
 
   @ApiOperation({summary: 'Get a single vehicle by ID'})
