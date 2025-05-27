@@ -28,6 +28,8 @@ export class VehiclesService {
   ) {}
 
   async findAll(query: QueryVehicleDto): Promise<[ VehicleEntity[], number ]> {
+    console.log(!!query.available, typeof query.available);
+
     const take = query.limit || 100;
     const skip = ((query.page || 1) - 1) * take;
 
@@ -51,6 +53,13 @@ export class VehiclesService {
 
     if (query.departmentId) {
       where.departmentId = query.departmentId;
+    }
+
+    if (query.available !== undefined && typeof query.available === 'string') {
+      const isAvailable = query.available.toLowerCase() === 'true';
+      where.status = isAvailable ? VehicleStatus.AVAILABLE : Not(VehicleStatus.AVAILABLE);
+    } else if (query.available !== undefined && typeof query.available === 'boolean') {
+      where.status = query.available ? VehicleStatus.AVAILABLE : Not(VehicleStatus.AVAILABLE);
     }
 
     // Definir campo y orden de ordenamiento

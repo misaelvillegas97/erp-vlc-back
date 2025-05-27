@@ -1,7 +1,7 @@
-import { ApiProperty }                  from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { VehicleStatus, VehicleType }   from '../entities/vehicle.entity';
-import { FuelTypeEnum }                 from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
+import { ApiProperty }                                   from '@nestjs/swagger';
+import { IsBooleanString, IsEnum, IsOptional, IsString } from 'class-validator';
+import { VehicleStatus, VehicleType }                    from '../entities/vehicle.entity';
+import { FuelTypeEnum }                                  from '@modules/logistics/fuel-management/domain/enums/fuel-type.enum';
 
 export class QueryVehicleDto {
   @ApiProperty({required: false})
@@ -41,6 +41,11 @@ export class QueryVehicleDto {
   @IsOptional()
   @IsString()
   departmentId?: string;
+
+  @ApiProperty({required: false})
+  @IsOptional()
+  @IsBooleanString()
+  available?: string;
 
   @ApiProperty({required: false})
   @IsOptional()
