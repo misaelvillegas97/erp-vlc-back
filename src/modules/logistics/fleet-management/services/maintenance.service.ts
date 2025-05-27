@@ -168,11 +168,17 @@ export class MaintenanceService {
     for (const vehicle of vehiclesNeedingMaintenance) {
       // Check for date-based maintenance
       if (vehicle.nextMaintenanceDate && vehicle.nextMaintenanceDate >= today && vehicle.nextMaintenanceDate <= nextMonth) {
+        // Store alert with metadata for translation
         await this.createMaintenanceAlert({
           vehicleId: vehicle.id,
           type: AlertType.DATE,
-          title: `Scheduled maintenance for ${ vehicle.brand } ${ vehicle.model }`,
-          description: `Vehicle with license plate ${ vehicle.licensePlate } has scheduled maintenance on ${ vehicle.nextMaintenanceDate }`,
+          alertKey: 'maintenance-alerts.scheduled',
+          alertParams: {
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.licensePlate,
+            date: vehicle.nextMaintenanceDate
+          },
           dueDate: vehicle.nextMaintenanceDate,
           priority: 3
         });
@@ -180,11 +186,17 @@ export class MaintenanceService {
 
       // Check for odometer-based maintenance
       if (vehicle.nextMaintenanceKm && vehicle.lastKnownOdometer >= (vehicle.nextMaintenanceKm - 500)) {
+        // Store alert with metadata for translation
         await this.createMaintenanceAlert({
           vehicleId: vehicle.id,
           type: AlertType.ODOMETER,
-          title: `Odometer-based maintenance for ${ vehicle.brand } ${ vehicle.model }`,
-          description: `Vehicle with license plate ${ vehicle.licensePlate } is approaching ${ vehicle.nextMaintenanceKm } km for scheduled maintenance`,
+          alertKey: 'maintenance-alerts.odometer',
+          alertParams: {
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.licensePlate,
+            km: vehicle.nextMaintenanceKm
+          },
           thresholdKm: vehicle.nextMaintenanceKm,
           priority: 4
         });
@@ -192,11 +204,17 @@ export class MaintenanceService {
 
       // Check for insurance expiry
       if (vehicle.insuranceExpiry && vehicle.insuranceExpiry >= today && vehicle.insuranceExpiry <= nextMonth) {
+        // Store alert with metadata for translation
         await this.createMaintenanceAlert({
           vehicleId: vehicle.id,
           type: AlertType.INSURANCE,
-          title: `Insurance expiry for ${ vehicle.brand } ${ vehicle.model }`,
-          description: `The insurance for vehicle with license plate ${ vehicle.licensePlate } expires on ${ vehicle.insuranceExpiry }`,
+          alertKey: 'maintenance-alerts.insurance',
+          alertParams: {
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.licensePlate,
+            date: vehicle.insuranceExpiry
+          },
           dueDate: vehicle.insuranceExpiry,
           priority: 5
         });
@@ -204,11 +222,17 @@ export class MaintenanceService {
 
       // Check for technical inspection expiry
       if (vehicle.technicalInspectionExpiry && vehicle.technicalInspectionExpiry >= today && vehicle.technicalInspectionExpiry <= nextMonth) {
+        // Store alert with metadata for translation
         await this.createMaintenanceAlert({
           vehicleId: vehicle.id,
           type: AlertType.INSPECTION,
-          title: `Technical inspection expiry for ${ vehicle.brand } ${ vehicle.model }`,
-          description: `The technical inspection for vehicle with license plate ${ vehicle.licensePlate } expires on ${ vehicle.technicalInspectionExpiry }`,
+          alertKey: 'maintenance-alerts.inspection',
+          alertParams: {
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.licensePlate,
+            date: vehicle.technicalInspectionExpiry
+          },
           dueDate: vehicle.technicalInspectionExpiry,
           priority: 5
         });
@@ -216,11 +240,17 @@ export class MaintenanceService {
 
       // Check for circulation permit expiry
       if (vehicle.circulationPermitExpiry && vehicle.circulationPermitExpiry >= today && vehicle.circulationPermitExpiry <= nextMonth) {
+        // Store alert with metadata for translation
         await this.createMaintenanceAlert({
           vehicleId: vehicle.id,
           type: AlertType.CIRCULATION_PERMIT,
-          title: `Circulation permit expiry for ${ vehicle.brand } ${ vehicle.model }`,
-          description: `The circulation permit for vehicle with license plate ${ vehicle.licensePlate } expires on ${ vehicle.circulationPermitExpiry }`,
+          alertKey: 'maintenance-alerts.circulation',
+          alertParams: {
+            brand: vehicle.brand,
+            model: vehicle.model,
+            licensePlate: vehicle.licensePlate,
+            date: vehicle.circulationPermitExpiry
+          },
           dueDate: vehicle.circulationPermitExpiry,
           priority: 5
         });
@@ -228,7 +258,7 @@ export class MaintenanceService {
     }
   }
 
-  async createMaintenanceAlert(data: any): Promise<MaintenanceAlertMapper> {
+  async createMaintenanceAlert(data: Partial<MaintenanceAlertEntity>): Promise<MaintenanceAlertMapper> {
     // Check if a similar active alert already exists
     const existingAlert = await this.alertRepository.findOne({
       where: {

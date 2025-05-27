@@ -1,0 +1,22 @@
+{
+  "scheduled" : {
+    "title" : "Mantenimiento programado para {brand} {model}",
+    "description" : "El vehículo con matrícula {licensePlate} tiene mantenimiento programado el {date}"
+  },
+  "odometer" : {
+    "title" : "Mantenimiento basado en odómetro para {brand} {model}",
+    "description" : "El vehículo con matrícula {licensePlate} se está acercando a {km} km para el mantenimiento programado"
+  },
+  "insurance" : {
+    "title" : "Vencimiento del seguro para {brand} {model}",
+    "description" : "El seguro del vehículo con matrícula {licensePlate} vence el {date}"
+  },
+  "inspection" : {
+    "title" : "Vencimiento de la inspección técnica para {brand} {model}",
+    "description" : "La inspección técnica del vehículo con matrícula {licensePlate} vence el {date}"
+  },
+  "circulation" : {
+    "title" : "Vencimiento del permiso de circulación para {brand} {model}",
+    "description" : "El permiso de circulación del vehículo con matrícula {licensePlate} vence el {date}"
+  }
+}

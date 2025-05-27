@@ -1,0 +1,22 @@
+{
+  "scheduled" : {
+    "title" : "Scheduled maintenance for {brand} {model}",
+    "description" : "Vehicle with license plate {licensePlate} has scheduled maintenance on {date}"
+  },
+  "odometer" : {
+    "title" : "Odometer-based maintenance for {brand} {model}",
+    "description" : "Vehicle with license plate {licensePlate} is approaching {km} km for scheduled maintenance"
+  },
+  "insurance" : {
+    "title" : "Insurance expiry for {brand} {model}",
+    "description" : "The insurance for vehicle with license plate {licensePlate} expires on {date}"
+  },
+  "inspection" : {
+    "title" : "Technical inspection expiry for {brand} {model}",
+    "description" : "The technical inspection for vehicle with license plate {licensePlate} expires on {date}"
+  },
+  "circulation" : {
+    "title" : "Circulation permit expiry for {brand} {model}",
+    "description" : "The circulation permit for vehicle with license plate {licensePlate} expires on {date}"
+  }
+}

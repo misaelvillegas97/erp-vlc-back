@@ -32,11 +32,11 @@ export class MaintenanceAlertEntity extends AbstractEntity {
   @Column({type: 'enum', enum: AlertStatus, default: AlertStatus.ACTIVE})
   status: AlertStatus;
 
-  @Column()
-  title: string;
+  @Column({nullable: true})
+  alertKey: string;
 
-  @Column({type: 'text'})
-  description: string;
+  @Column({type: 'json', nullable: true})
+  alertParams: Record<string, any>;
 
   @Column({type: 'date', nullable: true})
   dueDate: string;
