@@ -86,7 +86,7 @@ export class VehiclesService {
   async findAllAvailable(): Promise<[ VehicleEntity[], number ]> {
     return this.vehicleRepository.findAndCount({
       where: {status: VehicleStatus.AVAILABLE},
-      order: {brand: 'ASC', model: 'ASC'}
+      order: {licensePlate: 'ASC'}
     });
   }
 
