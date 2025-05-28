@@ -51,6 +51,7 @@ import { ConfigModule as AppConfigModule } from '@modules/config/config.module';
 import gpsConfig                           from '@core/config/gps.config';
 import { GpsModule }                       from '@modules/gps/gps.module';
 import { HealthModule }                    from '@modules/health/health.module';
+import { InventoryModule }                 from '@modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -138,7 +139,8 @@ import { HealthModule }                    from '@modules/health/health.module';
     LogisticsModule,
     AppConfigModule,
     GpsModule,
-    HealthModule
+    HealthModule,
+    InventoryModule
   ],
   controllers: [ AppController ]
 })

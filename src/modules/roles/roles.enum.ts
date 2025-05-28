@@ -4,6 +4,8 @@ export enum RoleEnum {
   'dispatcher' = 3,
   'driver' = 4,
   'accountant' = 5,
+  'inventory_manager' = 6,
+  'warehouse_staff' = 7
 }
 
 export const roleNames = {
@@ -12,4 +14,5 @@ export const roleNames = {
   [RoleEnum.dispatcher]: 'dispatcher',
   [RoleEnum.driver]: 'driver',
   [RoleEnum.accountant]: 'accountant',
+  [RoleEnum.inventory_manager]: 'inventory_manager',
 };

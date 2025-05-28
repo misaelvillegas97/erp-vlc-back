@@ -86,5 +86,20 @@ export class RoleSeedService {
         }),
       );
     }
+
+    const countInventoryManager = await this.repository.count({
+      where: {
+        id: RoleEnum.inventory_manager,
+      },
+    });
+
+    if (!countInventoryManager) {
+      await this.repository.save(
+        this.repository.create({
+          id: RoleEnum.inventory_manager,
+          name: 'Inventory Manager',
+        }),
+      );
+    }
   }
 }

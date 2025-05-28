@@ -21,11 +21,4 @@ export class SeederController {
 
     return {message: 'Database seeding completed successfully!'};
   }
-
-  @Get('seed/feature-toggles')
-  async seedFeatureToggles() {
-    await this.service.seedFeatureToggles();
-
-    return {message: 'Feature toggles seeding completed successfully!'};
-  }
 }
