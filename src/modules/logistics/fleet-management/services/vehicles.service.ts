@@ -28,8 +28,6 @@ export class VehiclesService {
   ) {}
 
   async findAll(query: QueryVehicleDto): Promise<[ VehicleEntity[], number ]> {
-    console.log(!!query.available, typeof query.available);
-
     const take = query.limit || 100;
     const skip = ((query.page || 1) - 1) * take;
 
