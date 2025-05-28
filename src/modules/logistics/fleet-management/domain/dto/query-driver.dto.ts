@@ -1,6 +1,7 @@
-import { ApiProperty }                  from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { DriverLicenseType }            from '@modules/users/domain/entities/driver-license.entity';
+import { ApiProperty }                            from '@nestjs/swagger';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { DriverLicenseType }                      from '@modules/users/domain/entities/driver-license.entity';
+import { Transform }                              from 'class-transformer';
 
 export class QueryDriverDto {
   @ApiProperty({required: false, description: 'Búsqueda por nombre, apellido o documento'})
@@ -28,10 +29,14 @@ export class QueryDriverDto {
   onlyValid?: boolean = false;
 
   @ApiProperty({required: false, default: 1, description: 'Número de página para paginación'})
+  @Transform(({value}) => (value ? Number(value) : 1))
+  @IsNumber()
   @IsOptional()
   page?: number = 1;
 
   @ApiProperty({required: false, default: 10, description: 'Cantidad de registros por página'})
+  @Transform(({value}) => (value ? Number(value) : 10))
+  @IsNumber()
   @IsOptional()
   limit?: number = 10;
 }
