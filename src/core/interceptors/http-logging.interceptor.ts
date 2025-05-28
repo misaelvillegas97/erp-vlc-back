@@ -24,7 +24,18 @@ export class HttpLoggingInterceptor implements NestInterceptor {
       catchError((error) => {
         const response = context.switchToHttp().getResponse();
         const delay = Date.now() - now;
-        this._logger.error(`${ response.statusCode } | [${ method }] ${ url } - ${ delay }ms`);
+
+        // Enhanced error logging with more details
+        const statusCode = error.status || (response.statusCode || 500);
+        const errorName = error.name || 'Unknown Error';
+        const errorMessage = error.message || 'No error message provided';
+        const errorStack = error.stack ? `\n${ error.stack }` : '';
+
+        this._logger.error(
+          `${ statusCode } | [${ method }] ${ url } - ${ context.getClass().name }.${ context.getHandler().name } - ${ delay }ms
+          Error: ${ errorName } - ${ errorMessage }${ errorStack }`
+        );
+
         return throwError(error);
       }),
     );
