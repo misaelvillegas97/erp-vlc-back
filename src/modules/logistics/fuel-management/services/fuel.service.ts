@@ -9,6 +9,9 @@ import { VehiclesService }                                 from '../../fleet-man
 import { FuelConsumptionByPeriod, FuelConsumptionSummary } from '../domain/interfaces/fuel-consumption.interface';
 import { DateTime }                                        from 'luxon';
 import { EventEmitter2 }                                   from '@nestjs/event-emitter';
+import { FuelRecordMapper }                                from '../domain/mappers/fuel-record.mapper';
+import { FuelConsumptionSummaryMapper }                    from '../domain/mappers/fuel-consumption-summary.mapper';
+import { FuelConsumptionByPeriodMapper }                   from '../domain/mappers/fuel-consumption-by-period.mapper';
 
 /**
  * Service for managing fuel records
@@ -27,9 +30,9 @@ export class FuelService {
   /**
    * Find all fuel records with optional filtering
    * @param query Query parameters for filtering
-   * @returns Array of fuel records and total count
+   * @returns Array of fuel record mappers and total count
    */
-  async findAll(query: QueryFuelRecordDto): Promise<[ FuelRecordEntity[], number ]> {
+  async findAll(query: QueryFuelRecordDto): Promise<[ FuelRecordMapper[], number ]> {
     const take = query.limit || 10;
     const skip = ((query.page || 1) - 1) * take;
 
@@ -64,21 +67,23 @@ export class FuelService {
       where.notes = ILike(`%${ query.search }%`);
     }
 
-    return this.fuelRecordRepository.findAndCount({
+    const [ entities, count ] = await this.fuelRecordRepository.findAndCount({
       where,
       take,
       skip,
       order: {date: 'DESC'},
       relations: [ 'vehicle', 'user' ]
     });
+
+    return [ FuelRecordMapper.toDomainAll(entities), count ];
   }
 
   /**
    * Find a fuel record by ID
    * @param id Fuel record ID
-   * @returns Fuel record entity
+   * @returns Fuel record mapper
    */
-  async findById(id: string): Promise<FuelRecordEntity> {
+  async findById(id: string): Promise<FuelRecordMapper> {
     const fuelRecord = await this.fuelRecordRepository.findOne({
       where: {id},
       relations: [ 'vehicle', 'user' ]
@@ -88,29 +93,31 @@ export class FuelService {
       throw new NotFoundException(`Fuel record with ID ${ id } not found`);
     }
 
-    return fuelRecord;
+    return FuelRecordMapper.toDomain(fuelRecord);
   }
 
   /**
    * Find fuel records by vehicle ID
    * @param vehicleId Vehicle ID
-   * @returns Array of fuel records
+   * @returns Array of fuel record mappers
    */
-  async findByVehicleId(vehicleId: string): Promise<FuelRecordEntity[]> {
-    return this.fuelRecordRepository.find({
+  async findByVehicleId(vehicleId: string): Promise<FuelRecordMapper[]> {
+    const entities = await this.fuelRecordRepository.find({
       where: {vehicleId},
       order: {date: 'DESC'},
       relations: [ 'user' ]
     });
+
+    return FuelRecordMapper.toDomainAll(entities);
   }
 
   /**
    * Create a new fuel record
    * @param userId ID of the user creating the record
    * @param createFuelRecordDto DTO with fuel record data
-   * @returns Created fuel record entity
+   * @returns Created fuel record mapper
    */
-  async create(userId: string, createFuelRecordDto: CreateFuelRecordDto): Promise<FuelRecordEntity> {
+  async create(userId: string, createFuelRecordDto: CreateFuelRecordDto): Promise<FuelRecordMapper> {
     // Verify vehicle exists
     await this.vehiclesService.findById(createFuelRecordDto.vehicleId);
 
@@ -137,29 +144,38 @@ export class FuelService {
       createFuelRecordDto.finalOdometer
     );
 
-    return this.fuelRecordRepository.save(fuelRecord);
+    const savedEntity = await this.fuelRecordRepository.save(fuelRecord);
+    return FuelRecordMapper.toDomain(savedEntity);
   }
 
   /**
    * Update an existing fuel record
    * @param id Fuel record ID
    * @param updateFuelRecordDto DTO with updated fuel record data
-   * @returns Updated fuel record entity
+   * @returns Updated fuel record mapper
    */
-  async update(id: string, updateFuelRecordDto: UpdateFuelRecordDto): Promise<FuelRecordEntity> {
-    const fuelRecord = await this.findById(id);
+  async update(id: string, updateFuelRecordDto: UpdateFuelRecordDto): Promise<FuelRecordMapper> {
+    // Get the original entity from the repository
+    const originalEntity = await this.fuelRecordRepository.findOne({
+      where: {id},
+      relations: [ 'vehicle', 'user' ]
+    });
+
+    if (!originalEntity) {
+      throw new NotFoundException(`Fuel record with ID ${ id } not found`);
+    }
 
     // If vehicle ID is changing, verify the new vehicle exists
-    if (updateFuelRecordDto.vehicleId && updateFuelRecordDto.vehicleId !== fuelRecord.vehicleId) {
+    if (updateFuelRecordDto.vehicleId && updateFuelRecordDto.vehicleId !== originalEntity.vehicleId) {
       await this.vehiclesService.findById(updateFuelRecordDto.vehicleId);
     }
 
     // Update fields
-    Object.assign(fuelRecord, updateFuelRecordDto);
+    Object.assign(originalEntity, updateFuelRecordDto);
 
     // Convert date if provided
     if (updateFuelRecordDto.date) {
-      fuelRecord.date = updateFuelRecordDto.date.toISOString().split('T')[0];
+      originalEntity.date = updateFuelRecordDto.date.toISOString().split('T')[0];
     }
 
     // Recalculate metrics if relevant fields were updated
@@ -169,21 +185,22 @@ export class FuelService {
       updateFuelRecordDto.liters !== undefined ||
       updateFuelRecordDto.cost !== undefined
     ) {
-      fuelRecord.calculateMetrics();
+      originalEntity.calculateMetrics();
     }
 
     // Update vehicle's odometer if final odometer is greater than current
     if (updateFuelRecordDto.finalOdometer) {
-      const vehicle = await this.vehiclesService.findById(fuelRecord.vehicleId);
+      const vehicle = await this.vehiclesService.findById(originalEntity.vehicleId);
       if (updateFuelRecordDto.finalOdometer > vehicle.lastKnownOdometer) {
         await this.vehiclesService.updateOdometer(
-          fuelRecord.vehicleId,
+          originalEntity.vehicleId,
           updateFuelRecordDto.finalOdometer
         );
       }
     }
 
-    return this.fuelRecordRepository.save(fuelRecord);
+    const updatedEntity = await this.fuelRecordRepository.save(originalEntity);
+    return FuelRecordMapper.toDomain(updatedEntity);
   }
 
   /**
@@ -191,7 +208,13 @@ export class FuelService {
    * @param id Fuel record ID
    */
   async delete(id: string): Promise<void> {
-    const fuelRecord = await this.findById(id);
+    const fuelRecord = await this.fuelRecordRepository.findOne({
+      where: {id}
+    });
+
+    if (!fuelRecord)
+      throw new NotFoundException(`Fuel record with ID ${ id } not found`);
+
     await this.fuelRecordRepository.remove(fuelRecord);
   }
 
@@ -200,13 +223,13 @@ export class FuelService {
    * @param vehicleId Optional vehicle ID to filter by
    * @param startDate Optional start date to filter by
    * @param endDate Optional end date to filter by
-   * @returns Fuel consumption summary
+   * @returns Fuel consumption summary mappers
    */
   async getFuelConsumptionSummary(
     vehicleId?: string,
     startDate?: Date,
     endDate?: Date
-  ): Promise<FuelConsumptionSummary[]> {
+  ): Promise<FuelConsumptionSummaryMapper[]> {
     let query = this.fuelRecordRepository
       .createQueryBuilder('fuelRecord')
       .leftJoinAndSelect('fuelRecord.vehicle', 'vehicle');
@@ -283,7 +306,7 @@ export class FuelService {
       });
     }
 
-    return summaries;
+    return FuelConsumptionSummaryMapper.toDomainAll(summaries);
   }
 
   /**
@@ -291,13 +314,13 @@ export class FuelService {
    * @param vehicleId Optional vehicle ID to filter by
    * @param startDate Optional start date to filter by
    * @param endDate Optional end date to filter by
-   * @returns Fuel consumption by period
+   * @returns Fuel consumption by period mappers
    */
   async getFuelConsumptionByPeriod(
     vehicleId?: string,
     startDate?: Date,
     endDate?: Date
-  ): Promise<FuelConsumptionByPeriod[]> {
+  ): Promise<FuelConsumptionByPeriodMapper[]> {
     let query = this.fuelRecordRepository
       .createQueryBuilder('fuelRecord');
 
@@ -366,6 +389,8 @@ export class FuelService {
     }
 
     // Sort by period (newest first)
-    return periodSummaries.sort((a, b) => b.period.localeCompare(a.period));
+    const sortedSummaries = periodSummaries.sort((a, b) => b.period.localeCompare(a.period));
+
+    return FuelConsumptionByPeriodMapper.toDomainAll(sortedSummaries);
   }
 }

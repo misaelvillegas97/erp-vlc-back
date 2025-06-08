@@ -5,11 +5,9 @@ import { FuelService }                                                          
 import { CreateFuelRecordDto }                                                                          from '../domain/dto/create-fuel-record.dto';
 import { UpdateFuelRecordDto }                                                                          from '../domain/dto/update-fuel-record.dto';
 import { QueryFuelRecordDto }                                                                           from '../domain/dto/query-fuel-record.dto';
-import { FuelRecordEntity }                                                                             from '../domain/entities/fuel-record.entity';
-import {
-  FuelConsumptionByPeriod,
-  FuelConsumptionSummary
-}                                                                                                       from '../domain/interfaces/fuel-consumption.interface';
+import { FuelRecordMapper }                                                                             from '../domain/mappers/fuel-record.mapper';
+import { FuelConsumptionSummaryMapper }                                                                 from '../domain/mappers/fuel-consumption-summary.mapper';
+import { FuelConsumptionByPeriodMapper }                                                                from '../domain/mappers/fuel-consumption-by-period.mapper';
 import { Request }                                                                                      from 'express';
 
 @ApiTags('Logistics - Fuel Management')
@@ -25,7 +23,7 @@ export class FuelController {
   @ApiResponse({status: 200, description: 'Returns list of fuel records'})
   @Get()
   @HttpCode(HttpStatus.OK)
-  async findAll(@Query() query: QueryFuelRecordDto): Promise<{ total: number; items: FuelRecordEntity[] }> {
+  async findAll(@Query() query: QueryFuelRecordDto): Promise<{ total: number; items: FuelRecordMapper[] }> {
     const [ items, total ] = await this.fuelService.findAll(query);
     return {total, items};
   }
@@ -36,7 +34,7 @@ export class FuelController {
   @ApiParam({name: 'id', description: 'Fuel record ID'})
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: string): Promise<FuelRecordEntity> {
+  findOne(@Param('id') id: string): Promise<FuelRecordMapper> {
     return this.fuelService.findById(id);
   }
 
@@ -45,7 +43,7 @@ export class FuelController {
   @ApiParam({name: 'vehicleId', description: 'Vehicle ID'})
   @Get('vehicle/:vehicleId')
   @HttpCode(HttpStatus.OK)
-  findByVehicle(@Param('vehicleId') vehicleId: string): Promise<FuelRecordEntity[]> {
+  findByVehicle(@Param('vehicleId') vehicleId: string): Promise<FuelRecordMapper[]> {
     return this.fuelService.findByVehicleId(vehicleId);
   }
 
@@ -53,7 +51,7 @@ export class FuelController {
   @ApiResponse({status: 201, description: 'Fuel record has been created successfully'})
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Req() req: Request, @Body() createFuelRecordDto: CreateFuelRecordDto): Promise<FuelRecordEntity> {
+  create(@Req() req: Request, @Body() createFuelRecordDto: CreateFuelRecordDto): Promise<FuelRecordMapper> {
     // Extract user ID from JWT token
     const userId = req.user['id'];
     return this.fuelService.create(userId, createFuelRecordDto);
@@ -68,7 +66,7 @@ export class FuelController {
   update(
     @Param('id') id: string,
     @Body() updateFuelRecordDto: UpdateFuelRecordDto,
-  ): Promise<FuelRecordEntity> {
+  ): Promise<FuelRecordMapper> {
     return this.fuelService.update(id, updateFuelRecordDto);
   }
 
@@ -93,7 +91,7 @@ export class FuelController {
     @Query('vehicleId') vehicleId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<FuelConsumptionSummary[]> {
+  ): Promise<FuelConsumptionSummaryMapper[]> {
     const startDateObj = startDate ? new Date(startDate) : undefined;
     const endDateObj = endDate ? new Date(endDate) : undefined;
 
@@ -111,7 +109,7 @@ export class FuelController {
     @Query('vehicleId') vehicleId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-  ): Promise<FuelConsumptionByPeriod[]> {
+  ): Promise<FuelConsumptionByPeriodMapper[]> {
     const startDateObj = startDate ? new Date(startDate) : undefined;
     const endDateObj = endDate ? new Date(endDate) : undefined;
 
