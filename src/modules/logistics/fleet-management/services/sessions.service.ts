@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository }                                                    from '@nestjs/typeorm';
-import { Between, FindOptionsWhere, ILike, Repository }                        from 'typeorm';
+import { Between, Repository }                                                 from 'typeorm';
 import { VehicleSessionEntity, VehicleSessionStatus }                          from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                                        from '../domain/entities/vehicle-session-location.entity';
 import { StartSessionDto }                                                     from '../domain/dto/start-session.dto';
@@ -12,6 +12,7 @@ import { DriversService }                                                      f
 import { VehicleStatus }                                                       from '../domain/entities/vehicle.entity';
 import { FilesService }                                                        from '@modules/files/files.service';
 import { GpsProviderFactoryService }                                           from '@modules/gps/services/gps-provider-factory.service';
+import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
 
 @Injectable()
 export class SessionsService {
@@ -28,62 +29,73 @@ export class SessionsService {
     private readonly gpsProviderFactoryService: GpsProviderFactoryService
   ) {}
 
-  async findAll(query: QuerySessionDto): Promise<[ VehicleSessionEntity[], number ]> {
-    const take = query.limit || 10;
-    const skip = ((query.page || 1) - 1) * take;
+  async findAll(query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
 
-    const where: FindOptionsWhere<VehicleSessionEntity> = {};
-    const relations = [ 'vehicle', 'driver', 'gps' ];
+    const qb = this.sessionRepository.createQueryBuilder('session');
+
+    // Add relations
+    qb.leftJoinAndSelect('session.vehicle', 'vehicle');
+    qb.leftJoinAndSelect('session.driver', 'driver');
+    qb.leftJoinAndSelect('session.gps', 'gps');
 
     if (query.includeDetails) {
-      relations.push('locations');
+      qb.leftJoinAndSelect('session.locations', 'locations');
     }
 
+    // Add filters
     if (query.vehicleId) {
-      where.vehicleId = query.vehicleId;
+      qb.andWhere('session.vehicleId = :vehicleId', {vehicleId: query.vehicleId});
     }
 
     if (query.driverId) {
-      where.driverId = query.driverId;
+      qb.andWhere('session.driverId = :driverId', {driverId: query.driverId});
     }
 
     if (query.status) {
-      where.status = query.status;
+      qb.andWhere('session.status = :status', {status: query.status});
     }
 
     if (query.startDateFrom && query.startDateTo) {
-      where.startTime = Between(
-        new Date(query.startDateFrom),
-        new Date(query.startDateTo)
-      );
+      qb.andWhere('session.startTime BETWEEN :startDateFrom AND :startDateTo', {
+        startDateFrom: new Date(query.startDateFrom),
+        startDateTo: new Date(query.startDateTo)
+      });
     } else if (query.startDateFrom) {
-      where.startTime = Between(
-        new Date(query.startDateFrom),
-        new Date()
-      );
-    }
-
-    if (query.search) {
-      const search = `%${ query.search }%`;
-      return this.sessionRepository.findAndCount({
-        where: [
-          {purpose: ILike(search)},
-          {observations: ILike(search)}
-        ],
-        relations,
-        take,
-        skip,
-        order: {startTime: 'DESC'}
+      qb.andWhere('session.startTime >= :startDateFrom', {
+        startDateFrom: new Date(query.startDateFrom)
       });
     }
 
-    return this.sessionRepository.findAndCount({
-      where,
-      relations,
-      take,
-      skip,
-      order: {startTime: 'DESC'}
-    });
+    if (query.search) {
+      qb.andWhere('(session.purpose ILIKE :search OR session.observations ILIKE :search)', {
+        search: `%${ query.search }%`
+      });
+    }
+
+    // Get total count
+    let total = await qb.getCount();
+
+    // Add ordering
+    qb.orderBy('session.startTime', 'DESC');
+
+    // Add pagination
+    qb.take(limit);
+    qb.skip((page - 1) * limit);
+
+    // Cache the query for better performance
+    qb.cache(30000);
+
+    // Get results
+    const [ items, count ] = await qb.getManyAndCount();
+
+    // If count is different from total (due to pagination), update total
+    if (count !== 0 && total > count) {
+      total = count;
+    }
+
+    return new PaginationDto({total, page, limit, items});
   }
 
   async findAllActive(includeDetails: boolean = false): Promise<VehicleSessionEntity[]> {

@@ -9,6 +9,7 @@ import { QuerySessionDto }                                                      
 import { VehicleSessionEntity }                                                       from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                                               from '../domain/entities/vehicle-session-location.entity';
 import { SessionMapper }                                                              from '@modules/logistics/fleet-management/domain/mappers/session.mapper';
+import { PaginationDto }                                                              from '@shared/utils/dto/pagination.dto';
 
 @ApiTags('Logistics - Vehicle Sessions')
 @UseGuards(AuthGuard('jwt'))
@@ -23,9 +24,8 @@ export class SessionsController {
   @ApiResponse({status: 200, description: 'Returns list of vehicle sessions'})
   @Get()
   @HttpCode(HttpStatus.OK)
-  async findAll(@Query() query: QuerySessionDto): Promise<{ total: number; items: VehicleSessionEntity[] }> {
-    const [ items, total ] = await this.sessionsService.findAll(query);
-    return {total, items};
+  async findAll(@Query() query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
+    return this.sessionsService.findAll(query);
   }
 
   @ApiOperation({summary: 'Get all active vehicle sessions'})
@@ -49,14 +49,17 @@ export class SessionsController {
   @ApiResponse({status: 200, description: 'Returns list of historical vehicle sessions'})
   @Get('history')
   @HttpCode(HttpStatus.OK)
-  async findHistory(@Query() query: QuerySessionDto): Promise<{ total: number; items: SessionMapper[] }> {
+  async findHistory(@Query() query: QuerySessionDto): Promise<PaginationDto<SessionMapper>> {
     // Set status filter to exclude active sessions for history
     const historyQuery = {
       ...query,
       status: undefined // Will be handled in the service
     };
-    const [ items, total ] = await this.sessionsService.findAll(historyQuery);
-    return {total, items: SessionMapper.toDomainAll(items)};
+    const result = await this.sessionsService.findAll(historyQuery);
+    return {
+      ...result,
+      items: SessionMapper.toDomainAll(result.items)
+    };
   }
 
   @ApiOperation({summary: 'Get a single vehicle session by ID'})

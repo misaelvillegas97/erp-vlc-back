@@ -1,6 +1,7 @@
-import { ApiProperty }                                        from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { VehicleSessionStatus }                               from '../entities/vehicle-session.entity';
+import { ApiProperty }                                                  from '@nestjs/swagger';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { VehicleSessionStatus }                                         from '../entities/vehicle-session.entity';
+import { Transform }                                                    from 'class-transformer';
 
 export class QuerySessionDto {
   @ApiProperty({required: false})
@@ -34,10 +35,14 @@ export class QuerySessionDto {
   search?: string;
 
   @ApiProperty({required: false, default: 1})
+  @Transform(({value}) => (value ? Number(value) : 1))
+  @IsNumber()
   @IsOptional()
   page?: number = 1;
 
   @ApiProperty({required: false, default: 10})
+  @Transform(({value}) => (value ? Number(value) : 10))
+  @IsNumber()
   @IsOptional()
   limit?: number = 10;
 
