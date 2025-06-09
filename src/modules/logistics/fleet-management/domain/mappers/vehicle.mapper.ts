@@ -34,8 +34,6 @@ export class VehicleMapper {
   }
 
   static toDomain(entity: VehicleEntity): VehicleMapper {
-    const displayName = `${ entity.licensePlate } - ${ entity.brand } ${ entity.model }`;
-
     return new VehicleMapper({
       id: entity.id,
       brand: entity.brand,
@@ -60,11 +58,15 @@ export class VehicleMapper {
       technicalInspectionExpiry: entity.technicalInspectionExpiry,
       notes: entity.notes,
       createdAt: entity.createdAt,
-      displayName,
+      displayName: this.getDisplayName(entity),
     });
   }
 
   static toDomainAll(entities: VehicleEntity[]): VehicleMapper[] {
     return entities.map(entity => this.toDomain(entity));
+  }
+
+  static getDisplayName(vehicle: VehicleEntity): string {
+    return `${ vehicle.licensePlate } - ${ vehicle.brand } ${ vehicle.model }`;
   }
 }

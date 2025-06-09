@@ -2,7 +2,7 @@ import { FuelConsumptionSummary } from '@modules/logistics/fuel-management/domai
 
 export class FuelConsumptionSummaryMapper {
   vehicleId: string;
-  vehicleInfo: {
+  vehicle: {
     brand: string;
     model: string;
     licensePlate: string;
@@ -22,11 +22,11 @@ export class FuelConsumptionSummaryMapper {
   }
 
   static toDomain(summary: FuelConsumptionSummary): FuelConsumptionSummaryMapper {
-    const displayName = `${ summary.vehicleInfo.licensePlate } - ${ summary.vehicleInfo.brand } ${ summary.vehicleInfo.model }`;
+    const displayName = `${ summary.vehicle.licensePlate } - ${ summary.vehicle.brand } ${ summary.vehicle.model }`;
 
     return new FuelConsumptionSummaryMapper({
       vehicleId: summary.vehicleId,
-      vehicleInfo: summary.vehicleInfo,
+      vehicle: summary.vehicle,
       totalRecords: summary.totalRecords,
       totalLiters: summary.totalLiters,
       totalCost: summary.totalCost,

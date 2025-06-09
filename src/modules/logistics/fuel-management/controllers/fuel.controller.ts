@@ -85,7 +85,7 @@ export class FuelController {
   @ApiQuery({name: 'vehicleId', required: false, description: 'Filter by vehicle ID'})
   @ApiQuery({name: 'startDate', required: false, description: 'Filter by start date (YYYY-MM-DD)'})
   @ApiQuery({name: 'endDate', required: false, description: 'Filter by end date (YYYY-MM-DD)'})
-  @Get('summary')
+  @Get('analysis/summary')
   @HttpCode(HttpStatus.OK)
   async getSummary(
     @Query('vehicleId') vehicleId?: string,
@@ -103,7 +103,7 @@ export class FuelController {
   @ApiQuery({name: 'vehicleId', required: false, description: 'Filter by vehicle ID'})
   @ApiQuery({name: 'startDate', required: false, description: 'Filter by start date (YYYY-MM-DD)'})
   @ApiQuery({name: 'endDate', required: false, description: 'Filter by end date (YYYY-MM-DD)'})
-  @Get('analysis/by-period')
+  @Get('analysis/period')
   @HttpCode(HttpStatus.OK)
   async getByPeriod(
     @Query('vehicleId') vehicleId?: string,

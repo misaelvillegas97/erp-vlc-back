@@ -3,10 +3,11 @@
  */
 export interface FuelConsumptionSummary {
   vehicleId: string;
-  vehicleInfo: {
+  vehicle: {
     brand: string;
     model: string;
     licensePlate: string;
+    displayName: string; // Display name for the vehicle
   };
   totalRecords: number;        // Total number of records
   totalLiters: number;         // Total liters consumed

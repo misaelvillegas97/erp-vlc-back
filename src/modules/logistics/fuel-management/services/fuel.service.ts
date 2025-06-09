@@ -12,6 +12,8 @@ import { EventEmitter2 }                                   from '@nestjs/event-e
 import { FuelRecordMapper }                                from '../domain/mappers/fuel-record.mapper';
 import { FuelConsumptionSummaryMapper }                    from '../domain/mappers/fuel-consumption-summary.mapper';
 import { FuelConsumptionByPeriodMapper }                   from '../domain/mappers/fuel-consumption-by-period.mapper';
+import { VehicleMapper }                                   from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
+import { BigNumber }                                       from 'bignumber.js';
 
 /**
  * Service for managing fuel records
@@ -25,7 +27,13 @@ export class FuelService {
     private readonly fuelRecordRepository: Repository<FuelRecordEntity>,
     private readonly vehiclesService: VehiclesService,
     private readonly eventEmitter: EventEmitter2
-  ) {}
+  ) {
+    BigNumber.config({
+      DECIMAL_PLACES: 2,
+      ROUNDING_MODE: BigNumber.ROUND_HALF_UP
+    });
+
+  }
 
   /**
    * Find all fuel records with optional filtering
@@ -264,50 +272,60 @@ export class FuelService {
       vehicleGroups.get(record.vehicleId)?.push(record);
     });
 
-    // Calculate summaries for each vehicle
+    // Calculate summaries for each vehicle using BigNumber
     const summaries: FuelConsumptionSummary[] = [];
     for (const [ vehicleId, vehicleRecords ] of vehicleGroups.entries()) {
       if (vehicleRecords.length === 0) continue;
 
       const vehicle = vehicleRecords[0].vehicle;
 
-      let totalLiters = 0;
-      let totalCost = 0;
-      let totalDistance = 0;
-      let efficiencySum = 0;
+      let totalLiters = new BigNumber(0);
+      let totalCost = new BigNumber(0);
+      let totalDistance = new BigNumber(0);
+      let efficiencySum = new BigNumber(0);
       let validEfficiencyCount = 0;
 
       vehicleRecords.forEach(record => {
-        totalLiters += record.liters;
-        totalCost += record.cost;
+        totalLiters = totalLiters.plus(new BigNumber(record.liters));
+        totalCost = totalCost.plus(new BigNumber(record.cost));
 
-        const distance = record.finalOdometer - record.initialOdometer;
-        totalDistance += distance;
+        const distance = new BigNumber(record.finalOdometer).minus(new BigNumber(record.initialOdometer));
+        totalDistance = totalDistance.plus(distance);
 
         if (record.efficiency) {
-          efficiencySum += record.efficiency;
+          efficiencySum = efficiencySum.plus(new BigNumber(record.efficiency));
           validEfficiencyCount++;
         }
       });
 
+      const averageEfficiency = validEfficiencyCount > 0
+        ? efficiencySum.dividedBy(new BigNumber(validEfficiencyCount))
+        : new BigNumber(0);
+
+      const averageCostPerKm = totalDistance.isGreaterThan(0)
+        ? totalCost.dividedBy(totalDistance)
+        : new BigNumber(0);
+
       summaries.push({
         vehicleId,
-        vehicleInfo: {
+        vehicle: {
           brand: vehicle.brand,
           model: vehicle.model,
-          licensePlate: vehicle.licensePlate
+          licensePlate: vehicle.licensePlate,
+          displayName: VehicleMapper.getDisplayName(vehicle)
         },
         totalRecords: vehicleRecords.length,
-        totalLiters,
-        totalCost,
-        totalDistance,
-        averageEfficiency: validEfficiencyCount > 0 ? efficiencySum / validEfficiencyCount : 0,
-        averageCostPerKm: totalDistance > 0 ? totalCost / totalDistance : 0
+        totalLiters: totalLiters.toNumber(),
+        totalCost: totalCost.toNumber(),
+        totalDistance: totalDistance.toNumber(),
+        averageEfficiency: averageEfficiency.toNumber(),
+        averageCostPerKm: averageCostPerKm.toNumber()
       });
     }
 
     return FuelConsumptionSummaryMapper.toDomainAll(summaries);
   }
+
 
   /**
    * Get fuel consumption analysis by period (month)
@@ -357,34 +375,38 @@ export class FuelService {
       periodGroups.get(period)?.push(record);
     });
 
-    // Calculate summaries for each period
+    // Calculate summaries for each period using BigNumber
     const periodSummaries: FuelConsumptionByPeriod[] = [];
     for (const [ period, periodRecords ] of periodGroups.entries()) {
-      let totalLiters = 0;
-      let totalCost = 0;
-      let totalDistance = 0;
-      let efficiencySum = 0;
+      let totalLiters = new BigNumber(0);
+      let totalCost = new BigNumber(0);
+      let totalDistance = new BigNumber(0);
+      let efficiencySum = new BigNumber(0);
       let validEfficiencyCount = 0;
 
       periodRecords.forEach(record => {
-        totalLiters += record.liters;
-        totalCost += record.cost;
+        totalLiters = totalLiters.plus(new BigNumber(record.liters));
+        totalCost = totalCost.plus(new BigNumber(record.cost));
 
-        const distance = record.finalOdometer - record.initialOdometer;
-        totalDistance += distance;
+        const distance = new BigNumber(record.finalOdometer).minus(new BigNumber(record.initialOdometer));
+        totalDistance = totalDistance.plus(distance);
 
         if (record.efficiency) {
-          efficiencySum += record.efficiency;
+          efficiencySum = efficiencySum.plus(new BigNumber(record.efficiency));
           validEfficiencyCount++;
         }
       });
 
+      const averageEfficiency = validEfficiencyCount > 0
+        ? efficiencySum.dividedBy(new BigNumber(validEfficiencyCount))
+        : new BigNumber(0);
+
       periodSummaries.push({
         period,
-        totalLiters,
-        totalCost,
-        totalDistance,
-        averageEfficiency: validEfficiencyCount > 0 ? efficiencySum / validEfficiencyCount : 0
+        totalLiters: totalLiters.toNumber(),
+        totalCost: totalCost.toNumber(),
+        totalDistance: totalDistance.toNumber(),
+        averageEfficiency: averageEfficiency.toNumber()
       });
     }
 
@@ -393,4 +415,5 @@ export class FuelService {
 
     return FuelConsumptionByPeriodMapper.toDomainAll(sortedSummaries);
   }
+
 }
