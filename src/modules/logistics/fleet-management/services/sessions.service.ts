@@ -69,9 +69,15 @@ export class SessionsService {
     }
 
     if (query.search) {
-      qb.andWhere('(session.purpose ILIKE :search OR session.observations ILIKE :search)', {
-        search: `%${ query.search }%`
-      });
+      // search in vehicle plate, driver name, session purpose or observations
+      qb.andWhere(
+        '(vehicle.licensePlate ILIKE :search OR ' +
+        'driver.firstName ILIKE :search OR ' +
+        'driver.lastName ILIKE :search OR ' +
+        'session.purpose ILIKE :search OR ' +
+        'session.observations ILIKE :search)',
+        {search: `%${ query.search }%`}
+      );
     }
 
     // Get total count
@@ -155,10 +161,17 @@ export class SessionsService {
     //   throw new UnprocessableEntityException({code: 'DRIVER_LICENSE_INVALID'});
     // }
 
-    // Check if odometer reading is valid
-    if (startSessionDto.initialOdometer < vehicle.lastKnownOdometer) {
+    // Check if odometer reading is valid with a tolerance of 100 kilometers
+    const odometerTolerance = 100;
+    if (startSessionDto.initialOdometer < vehicle.lastKnownOdometer - odometerTolerance) {
       throw new UnprocessableEntityException(
-        `Initial odometer reading (${ startSessionDto.initialOdometer }) cannot be less than vehicle's current odometer (${ vehicle.lastKnownOdometer })`
+        `Initial odometer reading (${ startSessionDto.initialOdometer }) cannot be less than vehicle's current odometer (${ vehicle.lastKnownOdometer }) minus tolerance (${ odometerTolerance } km)`
+      );
+    }
+
+    if (startSessionDto.initialOdometer > vehicle.lastKnownOdometer + odometerTolerance) {
+      throw new UnprocessableEntityException(
+        `Initial odometer reading (${ startSessionDto.initialOdometer }) cannot be greater than vehicle's current odometer (${ vehicle.lastKnownOdometer }) plus tolerance (${ odometerTolerance } km)`
       );
     }
 
