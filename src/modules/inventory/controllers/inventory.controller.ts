@@ -11,6 +11,7 @@ import { RoleDto }                                                             f
 
 @Controller('inventory')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(RoleEnum.admin, RoleEnum.inventory_manager, RoleEnum.warehouse_staff)
 export class InventoryController {
   constructor(
     private readonly inventoryService: InventoryService
@@ -21,7 +22,7 @@ export class InventoryController {
     return this.inventoryService.findAll(query);
   }
 
-  @Get(':id')
+  @Get('item/:id')
   findOne(@Param('id') id: string): Promise<InventoryItemEntity> {
     return this.inventoryService.findOne(id);
   }
@@ -32,19 +33,19 @@ export class InventoryController {
     return this.inventoryService.create(createInventoryItemDto);
   }
 
-  @Patch(':id')
+  @Patch('item/:id')
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   update(@Param('id') id: string, @Body() updateInventoryItemDto: any): Promise<InventoryItemEntity> {
     return this.inventoryService.update(id, updateInventoryItemDto);
   }
 
-  @Delete(':id')
+  @Delete('item/:id')
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   remove(@Param('id') id: string): Promise<void> {
     return this.inventoryService.delete(id);
   }
 
-  @Post(':id/add-stock')
+  @Post('item/:id/add-stock')
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager, RoleEnum.warehouse_staff)
   addStock(
     @Param('id') id: string,
@@ -60,7 +61,7 @@ export class InventoryController {
     );
   }
 
-  @Post(':id/remove-stock')
+  @Post('item/:id/remove-stock')
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager, RoleEnum.warehouse_staff)
   removeStock(
     @Param('id') id: string,
@@ -76,7 +77,7 @@ export class InventoryController {
     );
   }
 
-  @Post(':id/adjust-stock')
+  @Post('item/:id/adjust-stock')
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   adjustStock(
     @Param('id') id: string,
@@ -113,6 +114,11 @@ export class InventoryController {
     return this.inventoryService.getStockByProduct(productId);
   }
 
+  @Get('product-info/:nameOrUpc')
+  getStockByProductInfo(@Param('nameOrUpc') nameOrUpc: string): Promise<InventoryItemEntity[]> {
+    return this.inventoryService.getStockByProductInfo(nameOrUpc);
+  }
+
   @Get('warehouse/:warehouseId')
   getStockByWarehouse(@Param('warehouseId') warehouseId: string): Promise<InventoryItemEntity[]> {
     return this.inventoryService.getStockByWarehouse(warehouseId);
@@ -128,7 +134,7 @@ export class InventoryController {
     return this.inventoryService.getExpiringItems(days);
   }
 
-  @Post(':id/reserve')
+  @Post('item/:id/reserve')
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager) // , 'sales_staff'
   reserveStock(
     @Param('id') id: string,
@@ -143,7 +149,7 @@ export class InventoryController {
     );
   }
 
-  @Post(':id/release')
+  @Post('item/:id/release')
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager) // , 'sales_staff'
   releaseReservedStock(
     @Param('id') id: string,

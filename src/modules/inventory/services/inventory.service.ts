@@ -1,4 +1,4 @@
-import { Injectable }                            from '@nestjs/common';
+import { BadRequestException, Injectable }       from '@nestjs/common';
 import { InjectRepository }                      from '@nestjs/typeorm';
 import { FindManyOptions, Repository }           from 'typeorm';
 import { EventEmitter2 }                         from '@nestjs/event-emitter';
@@ -27,6 +27,9 @@ export class InventoryService {
   }
 
   async create(data: any): Promise<InventoryItemEntity> {
+    // Ensure name is provided
+    if (!data.name) throw new BadRequestException('Name is required for inventory item');
+
     const item = this.inventoryItemRepository.create(data as Partial<InventoryItemEntity>);
     return this.inventoryItemRepository.save(item);
   }
@@ -205,11 +208,23 @@ export class InventoryService {
   }
 
   // Métodos para consultas específicas
-  async getStockByProduct(productId: string): Promise<InventoryItemEntity[]> {
+  async getStockByProduct(upcCode: string): Promise<InventoryItemEntity[]> {
     return this.inventoryItemRepository.find({
-      where: {productId},
+      where: {upcCode},
       relations: [ 'warehouse' ]
     });
+  }
+
+  // New method to get stock by product name or UPC code
+  async getStockByProductInfo(nameOrUpc: string): Promise<InventoryItemEntity[]> {
+    return this.inventoryItemRepository
+      .createQueryBuilder('item')
+      .leftJoinAndSelect('item.warehouse', 'warehouse')
+      .where('item.name LIKE :name OR item.upcCode = :upc', {
+        name: `%${ nameOrUpc }%`,
+        upc: nameOrUpc
+      })
+      .getMany();
   }
 
   async getStockByWarehouse(warehouseId: string): Promise<InventoryItemEntity[]> {

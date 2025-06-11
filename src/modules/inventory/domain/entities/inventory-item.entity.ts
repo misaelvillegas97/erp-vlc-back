@@ -1,18 +1,19 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { AbstractEntity }                                   from '@shared/domain/entities/abstract.entity';
-import { ProductEntity }                                    from '@modules/products/domain/entities/product.entity';
 import { WarehouseEntity }                                  from './warehouse.entity';
 import { InventoryMovementEntity }                          from './inventory-movement.entity';
 import { InventoryAlertEntity }                             from './inventory-alert.entity';
 
 @Entity('inventory_items')
 export class InventoryItemEntity extends AbstractEntity {
-  @ManyToOne(() => ProductEntity)
-  @JoinColumn({name: 'product_id'})
-  product: ProductEntity;
+  @Column({nullable: false})
+  name: string;
 
-  @Column({name: 'product_id'})
-  productId: string;
+  @Column({nullable: true})
+  description?: string;
+
+  @Column({nullable: true})
+  upcCode?: string;
 
   @ManyToOne(() => WarehouseEntity)
   @JoinColumn({name: 'warehouse_id'})

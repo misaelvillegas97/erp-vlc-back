@@ -280,7 +280,6 @@ export class InventoryAlertService {
         alertId: alert.id,
         alertType: alert.type,
         inventoryItemId: alert.inventoryItemId,
-        productId: alert.inventoryItem?.productId,
         warehouseId: alert.inventoryItem?.warehouseId,
         priority: alert.priority,
         alertParams: alert.alertParams

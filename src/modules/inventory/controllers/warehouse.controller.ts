@@ -8,7 +8,7 @@ import { Roles }                                                        from '@m
 import { RoleEnum }                                                     from '@modules/roles/roles.enum';
 
 @Controller('warehouses')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'))
 export class WarehouseController {
   constructor(
     private readonly warehouseService: WarehouseService
@@ -25,18 +25,21 @@ export class WarehouseController {
   }
 
   @Post()
+  @UseGuards(RolesGuard)
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   create(@Body() createWarehouseDto: any): Promise<WarehouseEntity> {
     return this.warehouseService.create(createWarehouseDto);
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   update(@Param('id') id: string, @Body() updateWarehouseDto: any): Promise<WarehouseEntity> {
     return this.warehouseService.update(id, updateWarehouseDto);
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   remove(@Param('id') id: string): Promise<void> {
     return this.warehouseService.delete(id);
@@ -53,6 +56,7 @@ export class WarehouseController {
   }
 
   @Post(':warehouseId/zones')
+  @UseGuards(RolesGuard)
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   createZone(
     @Param('warehouseId') warehouseId: string,
@@ -66,12 +70,14 @@ export class WarehouseController {
   }
 
   @Patch('zones/:id')
+  @UseGuards(RolesGuard)
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   updateZone(@Param('id') id: string, @Body() updateZoneDto: any): Promise<WarehouseZoneEntity> {
     return this.warehouseService.updateZone(id, updateZoneDto);
   }
 
   @Delete('zones/:id')
+  @UseGuards(RolesGuard)
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
   removeZone(@Param('id') id: string): Promise<void> {
     return this.warehouseService.deleteZone(id);
