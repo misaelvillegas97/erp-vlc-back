@@ -3,6 +3,9 @@ import { InjectRepository }    from '@nestjs/typeorm';
 import { Repository }          from 'typeorm';
 import { WarehouseEntity }     from '../domain/entities/warehouse.entity';
 import { WarehouseZoneEntity } from '../domain/entities/warehouse-zone.entity';
+import { CreateWarehouseDto }  from '@modules/inventory/domain/dto/create-warehouse.dto';
+import { PaginationDto }       from '@shared/utils/dto/pagination.dto';
+import { QueryWarehouseDto }   from '@modules/inventory/domain/dto/query-warehouse.dto';
 
 @Injectable()
 export class WarehouseService {
@@ -14,8 +17,36 @@ export class WarehouseService {
   ) {}
 
   // Métodos para gestionar almacenes
-  async findAll(): Promise<WarehouseEntity[]> {
-    return this.warehouseRepository.find();
+  async findAll(query?: QueryWarehouseDto): Promise<PaginationDto<WarehouseEntity>> {
+    const {page = 1, limit = 10} = query;
+    const qb = this.warehouseRepository.createQueryBuilder('warehouse');
+
+    qb.leftJoinAndSelect('warehouse.zones', 'zone');
+
+    if (query.name) {
+      qb.andWhere('warehouse.name ILIKE :name', {name: `%${ query.name }%`});
+    }
+
+    if (query.isActive !== undefined) {
+      qb.andWhere('warehouse.isActive = :isActive', {isActive: query.isActive});
+    }
+
+    if (query.contactPerson) {
+      qb.andWhere('warehouse.contactPerson ILIKE :contactPerson', {contactPerson: `%${ query.contactPerson }%`});
+    }
+
+    qb.orderBy('warehouse.name', 'ASC');
+    qb.addOrderBy('zone.name', 'ASC');
+
+    const total = await qb.getCount();
+
+    qb.take(query.limit);
+    qb.skip((query.page - 1) * query.limit);
+    qb.cache(30000); // Cache for 30 seconds
+
+    const warehouses = await qb.getMany();
+
+    return new PaginationDto<WarehouseEntity>({total, page, limit, items: warehouses});
   }
 
   async findOne(id: string): Promise<WarehouseEntity> {
@@ -25,8 +56,10 @@ export class WarehouseService {
     });
   }
 
-  async create(data: any): Promise<WarehouseEntity> {
-    const warehouse = this.warehouseRepository.create(data as Partial<WarehouseEntity>);
+  async create(data: CreateWarehouseDto): Promise<WarehouseEntity> {
+    const warehouse = this.warehouseRepository.create(data);
+
+    console.log('Creating warehouse with data:', data);
     return this.warehouseRepository.save(warehouse);
   }
 

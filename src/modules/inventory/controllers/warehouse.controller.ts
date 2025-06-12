@@ -1,11 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { WarehouseService }                                             from '../services/warehouse.service';
-import { WarehouseEntity }                                              from '../domain/entities/warehouse.entity';
-import { WarehouseZoneEntity }                                          from '../domain/entities/warehouse-zone.entity';
-import { RolesGuard }                                                   from '@modules/roles/roles.guard';
-import { AuthGuard }                                                    from '@nestjs/passport';
-import { Roles }                                                        from '@modules/roles/roles.decorator';
-import { RoleEnum }                                                     from '@modules/roles/roles.enum';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { WarehouseService }                                                    from '../services/warehouse.service';
+import { WarehouseEntity }                                                     from '../domain/entities/warehouse.entity';
+import { WarehouseZoneEntity }                                                 from '../domain/entities/warehouse-zone.entity';
+import { RolesGuard }                                                          from '@modules/roles/roles.guard';
+import { AuthGuard }                                                           from '@nestjs/passport';
+import { Roles }                                                               from '@modules/roles/roles.decorator';
+import { RoleEnum }                                                            from '@modules/roles/roles.enum';
+import { CreateWarehouseDto }                                                  from '@modules/inventory/domain/dto/create-warehouse.dto';
+import { QueryWarehouseDto }                                                   from '@modules/inventory/domain/dto/query-warehouse.dto';
+import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
 
 @Controller('warehouses')
 @UseGuards(AuthGuard('jwt'))
@@ -15,8 +18,8 @@ export class WarehouseController {
   ) {}
 
   @Get()
-  findAll(): Promise<WarehouseEntity[]> {
-    return this.warehouseService.findAll();
+  findAll(@Query() query: QueryWarehouseDto): Promise<PaginationDto<WarehouseEntity>> {
+    return this.warehouseService.findAll(query);
   }
 
   @Get(':id')
@@ -27,7 +30,7 @@ export class WarehouseController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(RoleEnum.admin, RoleEnum.inventory_manager)
-  create(@Body() createWarehouseDto: any): Promise<WarehouseEntity> {
+  create(@Body() createWarehouseDto: CreateWarehouseDto): Promise<WarehouseEntity> {
     return this.warehouseService.create(createWarehouseDto);
   }
 

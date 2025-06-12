@@ -17,8 +17,8 @@ export class InventoryCountScheduler {
     this.logger.log('Scheduling weekly inventory counts');
     try {
       // Get all active warehouses
-      const warehouses = await this.warehouseService.findAll();
-      const activeWarehouses = warehouses.filter(warehouse => warehouse.isActive);
+      const warehouses = await this.warehouseService.findAll({limit: 1000});
+      const activeWarehouses = warehouses.items.filter(warehouse => warehouse.isActive);
 
       for (const warehouse of activeWarehouses) {
         // Create a weekly count for each warehouse
@@ -46,7 +46,7 @@ export class InventoryCountScheduler {
     try {
       // Get all active warehouses
       const warehouses = await this.warehouseService.findAll();
-      const activeWarehouses = warehouses.filter(warehouse => warehouse.isActive);
+      const activeWarehouses = warehouses.items.filter(warehouse => warehouse.isActive);
 
       for (const warehouse of activeWarehouses) {
         // Create a monthly count for each warehouse
