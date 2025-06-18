@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import { InventoryService }                                                    from '../services/inventory.service';
 import { InventoryItemEntity }                                                 from '../domain/entities/inventory-item.entity';
 import { InventoryMovementEntity }                                             from '../domain/entities/inventory-movement.entity';
+import { InventoryBatchEntity }                                                from '../domain/entities/inventory-batch.entity';
 import { AuthGuard }                                                           from '@nestjs/passport';
 import { RolesGuard }                                                          from '@modules/roles/roles.guard';
 import { Roles }                                                               from '@modules/roles/roles.decorator';
@@ -57,7 +58,9 @@ export class InventoryController {
       addStockDto.quantity,
       addStockDto.reference,
       addStockDto.metadata,
-      user.id
+      user.id,
+      addStockDto.batchNumber,
+      addStockDto.expirationDate
     );
   }
 
@@ -84,11 +87,20 @@ export class InventoryController {
     @Body() adjustStockDto: any,
     @CurrentUser() user: { id: string, role: RoleDto }
   ): Promise<InventoryMovementEntity> {
+    // If batch information is provided, include it in metadata
+    const metadata = adjustStockDto.metadata || {};
+    if (adjustStockDto.batchNumber) {
+      metadata.batchNumber = adjustStockDto.batchNumber;
+    }
+    if (adjustStockDto.expirationDate) {
+      metadata.expirationDate = adjustStockDto.expirationDate;
+    }
+
     return this.inventoryService.adjustStock(
       id,
       adjustStockDto.newQuantity,
       adjustStockDto.reference,
-      adjustStockDto.metadata,
+      metadata,
       user.id
     );
   }
@@ -132,6 +144,34 @@ export class InventoryController {
   @Get('expiring')
   getExpiringItems(@Query('days') days: number = 30): Promise<InventoryItemEntity[]> {
     return this.inventoryService.getExpiringItems(days);
+  }
+
+  @Get('item/:id/batches')
+  getBatchesByItemId(@Param('id') id: string): Promise<InventoryBatchEntity[]> {
+    return this.inventoryService.getBatchesByItemId(id);
+  }
+
+  @Get('batches')
+  getAllBatches(
+    @Query('warehouseId') warehouseId?: string,
+    @Query('expiringBefore') expiringBefore?: string,
+    @Query('isReserved') isReserved?: string,
+    @Query('batchNumber') batchNumber?: string
+  ): Promise<InventoryBatchEntity[]> {
+    const options: any = {};
+
+    if (warehouseId) options.warehouseId = warehouseId;
+    if (batchNumber) options.batchNumber = batchNumber;
+
+    if (expiringBefore) {
+      options.expiringBefore = new Date(expiringBefore);
+    }
+
+    if (isReserved !== undefined) {
+      options.isReserved = isReserved === 'true';
+    }
+
+    return this.inventoryService.getAllBatches(options);
   }
 
   @Post('item/:id/reserve')

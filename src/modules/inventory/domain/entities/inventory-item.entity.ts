@@ -3,6 +3,7 @@ import { AbstractEntity }                                   from '@shared/domain
 import { WarehouseEntity }                                  from './warehouse.entity';
 import { InventoryMovementEntity }                          from './inventory-movement.entity';
 import { InventoryAlertEntity }                             from './inventory-alert.entity';
+import { InventoryBatchEntity }                             from './inventory-batch.entity';
 
 @Entity('inventory_items')
 export class InventoryItemEntity extends AbstractEntity {
@@ -51,4 +52,7 @@ export class InventoryItemEntity extends AbstractEntity {
 
   @OneToMany(() => InventoryAlertEntity, alert => alert.inventoryItem)
   alerts: InventoryAlertEntity[];
+
+  @OneToMany(() => InventoryBatchEntity, batch => batch.inventoryItem)
+  batches: InventoryBatchEntity[];
 }

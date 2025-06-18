@@ -25,6 +25,7 @@ import { InventoryMovementEntity }  from './domain/entities/inventory-movement.e
 import { InventoryAlertEntity }     from './domain/entities/inventory-alert.entity';
 import { InventoryCountEntity }     from './domain/entities/inventory-count.entity';
 import { InventoryCountItemEntity } from './domain/entities/inventory-count-item.entity';
+import { InventoryBatchEntity }     from './domain/entities/inventory-batch.entity';
 
 // External modules
 import { ProductsModule }      from '@modules/products/products.module';
@@ -40,7 +41,8 @@ import { NotificationsModule } from '@modules/notifications/notifications.module
       InventoryMovementEntity,
       InventoryAlertEntity,
       InventoryCountEntity,
-      InventoryCountItemEntity
+      InventoryCountItemEntity,
+      InventoryBatchEntity
     ]),
     ProductsModule,
     UsersModule,
