@@ -1,16 +1,18 @@
 import { Module }        from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { VehiclesController }    from './fleet-management/controllers/vehicles.controller';
-import { DriversController }     from './fleet-management/controllers/drivers.controller';
-import { SessionsController }    from './fleet-management/controllers/sessions.controller';
-import { MaintenanceController } from './fleet-management/controllers/maintenance.controller';
-import { FuelController }        from './fuel-management/controllers/fuel.controller';
+import { VehiclesController }        from './fleet-management/controllers/vehicles.controller';
+import { DriversController }         from './fleet-management/controllers/drivers.controller';
+import { SessionsController }        from './fleet-management/controllers/sessions.controller';
+import { MaintenanceController }     from './fleet-management/controllers/maintenance.controller';
+import { FleetDashboardsController } from './fleet-management/controllers/fleet-dashboards.controller';
+import { FuelController }            from './fuel-management/controllers/fuel.controller';
 
 import { VehiclesService }         from './fleet-management/services/vehicles.service';
 import { DriversService }          from './fleet-management/services/drivers.service';
 import { SessionsService }         from './fleet-management/services/sessions.service';
 import { MaintenanceService }      from './fleet-management/services/maintenance.service';
+import { FleetDashboardsService }  from './fleet-management/services/fleet-dashboards.service';
 import { VehicleDocumentsService } from './fleet-management/services/vehicle-documents.service';
 import { FuelService }             from './fuel-management/services/fuel.service';
 
@@ -57,6 +59,7 @@ import { GpsHandler }               from '@modules/logistics/fleet-management/ha
     DriversController,
     SessionsController,
     MaintenanceController,
+    FleetDashboardsController,
     FuelController
   ],
   providers: [
@@ -65,6 +68,7 @@ import { GpsHandler }               from '@modules/logistics/fleet-management/ha
     SessionsService,
     SessionSchedulerService,
     MaintenanceService,
+    FleetDashboardsService,
     VehicleDocumentsService,
     FuelService,
     MaintenanceScheduler,
@@ -76,6 +80,7 @@ import { GpsHandler }               from '@modules/logistics/fleet-management/ha
     DriversService,
     SessionsService,
     MaintenanceService,
+    FleetDashboardsService,
     VehicleDocumentsService,
     FuelService
   ]
