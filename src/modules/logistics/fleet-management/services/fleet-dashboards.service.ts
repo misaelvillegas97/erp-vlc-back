@@ -4,7 +4,7 @@ import { Repository }                                            from 'typeorm';
 import { VehicleSessionEntity, VehicleSessionStatus }            from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                          from '../domain/entities/vehicle-session-location.entity';
 import { VehicleEntity, VehicleType }                            from '../domain/entities/vehicle.entity';
-import { MaintenanceAlertEntity }                                from '../domain/entities/maintenance-alert.entity';
+import { AlertStatus, MaintenanceAlertEntity }                   from '../domain/entities/maintenance-alert.entity';
 import { SessionsService }                                       from './sessions.service';
 import { VehiclesService }                                       from './vehicles.service';
 import { DriversService }                                        from './drivers.service';
@@ -1092,7 +1092,7 @@ export class FleetDashboardsService {
 
     const expiringLicenses = await this.driverLicenseRepository.createQueryBuilder('license')
       .leftJoinAndSelect('license.user', 'user')
-      .where('license.expiryDate BETWEEN :now AND :thirtyDays', {
+      .where('license.licenseValidTo BETWEEN :now AND :thirtyDays', {
         now: new Date(),
         thirtyDays: thirtyDaysFromNow
       })
@@ -1116,7 +1116,7 @@ export class FleetDashboardsService {
     // Get maintenance alerts
     const maintenanceAlerts = await this.maintenanceAlertRepository.createQueryBuilder('alert')
       .leftJoinAndSelect('alert.vehicle', 'vehicle')
-      .where('alert.resolved = :resolved', {resolved: false})
+      .where('alert.status = :resolved', {resolved: AlertStatus.RESOLVED})
       .getMany();
 
     const maintenanceAlertsData = maintenanceAlerts.map<MaintenanceAlertItemDto>(alert => {
