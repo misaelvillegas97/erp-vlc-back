@@ -169,11 +169,11 @@ export class SessionsService {
       );
     }
 
-    if (startSessionDto.initialOdometer > vehicle.lastKnownOdometer + odometerTolerance) {
-      throw new UnprocessableEntityException(
-        `Initial odometer reading (${ startSessionDto.initialOdometer }) cannot be greater than vehicle's current odometer (${ vehicle.lastKnownOdometer }) plus tolerance (${ odometerTolerance } km)`
-      );
-    }
+    // if (startSessionDto.initialOdometer > vehicle.lastKnownOdometer + odometerTolerance) {
+    //   throw new UnprocessableEntityException(
+    //     `Initial odometer reading (${ startSessionDto.initialOdometer }) cannot be greater than vehicle's current odometer (${ vehicle.lastKnownOdometer }) plus tolerance (${ odometerTolerance } km)`
+    //   );
+    // }
 
     // Create new session
     const session = new VehicleSessionEntity();
