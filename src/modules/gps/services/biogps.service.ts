@@ -63,7 +63,7 @@ export class BiogpsService implements IGpsProvider {
   /**
    * Fetch GPS history from Biogps API and process it
    */
-  async getOneHistory(apiUrl: string, apiHash: string, vehicleId?: string, startTime?: Date, endTime?: Date): Promise<GenericGPS[]> {
+  async getOneHistory(apiUrl: string, apiHash: string, licensePlate: string, vehicleId?: string, startTime?: Date, endTime?: Date): Promise<GenericGPS[]> {
     if (!apiUrl || !apiHash) {
       this.logger.warn('Biogps API URL or Hash is not configured');
       return [];
@@ -136,7 +136,7 @@ export class BiogpsService implements IGpsProvider {
       this.logger.debug(`Fetched GPS history in ${ (fetchEndTime - fetchStartTime) }ms`);
 
       // Parse the raw data to GenericGPS format
-      const gpsData = BiogpsParser.fromHistoryToGeneric(response.data);
+      const gpsData = BiogpsParser.fromHistoryToGeneric(response.data, licensePlate);
 
       this.logger.debug(`Fetched and parsed ${ gpsData.length } GPS records`);
       return gpsData;

@@ -19,7 +19,7 @@ export class GpsProviderFactoryService {
     private readonly vehicleGpsProviderRepository: Repository<VehicleGpsProviderEntity>,
   ) {}
 
-  async getProviderForVehicle(vehicleId: string): Promise<{ provider: IGpsProvider, config: any }> {
+  async getProviderForVehicle(vehicleId: string): Promise<{ provider: IGpsProvider, config: any, historyConfig: any }> {
     // Find the GPS provider assigned to the vehicle
     const vehicleGpsProvider = await this.getVehicleGpsProvider(vehicleId);
 
@@ -29,6 +29,7 @@ export class GpsProviderFactoryService {
 
     // Get the provider configuration
     const config = await this.configService.findFeatureToggleByName(`${ vehicleGpsProvider.provider }-provider`);
+    const historyConfig = await this.configService.findFeatureToggleByName(`${ vehicleGpsProvider.provider }-history`);
 
     if (!config?.enabled) {
       throw new NotFoundException(`GPS provider ${ vehicleGpsProvider.provider } is not enabled`);
@@ -46,7 +47,7 @@ export class GpsProviderFactoryService {
         throw new NotFoundException(`GPS provider ${ vehicleGpsProvider.provider } is not implemented`);
     }
 
-    return {provider: providerService, config};
+    return {provider: providerService, config, historyConfig};
   }
 
   private async getVehicleGpsProvider(vehicleId: string): Promise<VehicleGpsProviderEntity> {

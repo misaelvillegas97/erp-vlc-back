@@ -49,13 +49,11 @@ export class BiogpsParser {
     });
   }
 
-  static fromHistoryToGeneric(raw: BiogpsRawHistory): GenericGPS[] {
+  static fromHistoryToGeneric(raw: BiogpsRawHistory, licensePlate: string): GenericGPS[] {
+    console.log('Parsing BIOGPS history data...', raw);
     const innerItems = raw.items.flatMap(item => item.items);
 
     return innerItems.map(item => {
-      const licensePlate = item.device_id.toString();
-
-      // Chilean format: yyyy-MM-dd HH:mm:ss
       const timestamp = DateTime.fromFormat(item.raw_time, 'yyyy-MM-dd HH:mm:ss', {zone: 'America/Santiago'}).toUTC().toMillis();
 
       return {

@@ -9,11 +9,14 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   SerializeOptions,
   UseGuards,
-}                                                                                         from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags, } from '@nestjs/swagger';
-import { AuthGuard }                                                                      from '@nestjs/passport';
+}                                                                                                                    from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags, } from '@nestjs/swagger';
+import { AuthGuard }                                                                                                 from '@nestjs/passport';
+import { Response }                                                                                                  from 'express';
+import { DateTime }                                                                                                  from 'luxon';
 
 
 import { InfinityPaginationResponse, InfinityPaginationResponseDto, } from '@shared/utils/dto/infinity-pagination-response.dto';
@@ -25,6 +28,7 @@ import { UpdateUserDto }                                              from './dt
 import { User }                                                       from './domain/user';
 import { UsersService }                                               from './users.service';
 import { DriverLicenseDto }                                           from '@modules/users/dto/driver-license.dto';
+import { ExportFormat, ExportUserDto }                                from './dto/export-user.dto';
 
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -108,5 +112,47 @@ export class UsersController {
 
   createDriverLicense(@Param('id') id: User['id'], @Body() driverLicenseDto: DriverLicenseDto): Promise<any> {
     return this.usersService.createDriverLicense(id, driverLicenseDto);
+  }
+
+  @ApiOperation({summary: 'Export users to different formats'})
+  @ApiResponse({status: 200, description: 'Returns the exported file'})
+  @ApiQuery({name: 'format', enum: ExportFormat, required: false, description: 'Export format (json, csv, excel)'})
+  @Get('export')
+  @HttpCode(HttpStatus.OK)
+  async exportUsers(
+    @Query() query: QueryUserDto,
+    @Query() exportOptions: ExportUserDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const format = exportOptions.format || ExportFormat.EXCEL;
+    const buffer = await this.usersService.exportUsers(query, format);
+
+    const dateStr = DateTime.now().toISODate();
+    let fileName = `usuarios_${ dateStr }`;
+    let contentType = '';
+
+    switch (format) {
+      case ExportFormat.JSON:
+        fileName += '.json';
+        contentType = 'application/json';
+        break;
+      case ExportFormat.CSV:
+        fileName += '.csv';
+        contentType = 'text/csv';
+        break;
+      case ExportFormat.EXCEL:
+      default:
+        fileName += '.xlsx';
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        break;
+    }
+
+    res.set({
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename="${ fileName }"`,
+      'Content-Length': buffer.byteLength,
+    });
+
+    res.end(buffer);
   }
 }

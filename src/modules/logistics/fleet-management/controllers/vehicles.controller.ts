@@ -1,15 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { AuthGuard }                                                                                      from '@nestjs/passport';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags }                                         from '@nestjs/swagger';
-import { VehiclesService }                                                                                from '../services/vehicles.service';
-import { CreateVehicleDto }                                                                               from '../domain/dto/create-vehicle.dto';
-import { UpdateVehicleDto }                                                                               from '../domain/dto/update-vehicle.dto';
-import { QueryVehicleDto }                                                                                from '../domain/dto/query-vehicle.dto';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard }                                                                                           from '@nestjs/passport';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags }                                              from '@nestjs/swagger';
+import { VehiclesService }                                                                                     from '../services/vehicles.service';
+import { CreateVehicleDto }                                                                                    from '../domain/dto/create-vehicle.dto';
+import { UpdateVehicleDto }                                                                                    from '../domain/dto/update-vehicle.dto';
+import { QueryVehicleDto }                                                                                     from '../domain/dto/query-vehicle.dto';
 import {
   VehicleEntity,
   VehicleStatus
-}                                                                                                         from '../domain/entities/vehicle.entity';
-import { VehicleMapper }                                                                                  from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
+}                                                                                                              from '../domain/entities/vehicle.entity';
+import { VehicleMapper }                                                                                       from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
+import {
+  ExportFormat,
+  ExportVehicleDto
+}                                                                                                              from '../domain/dto/export-vehicle.dto';
+import { Response }                                                                                            from 'express';
+import { DateTime }                                                                                            from 'luxon';
 
 @ApiTags('Logistics - Vehicles')
 @UseGuards(AuthGuard('jwt'))
@@ -36,6 +42,48 @@ export class VehiclesController {
   async findAvailable(): Promise<{ total: number; items: VehicleMapper[] }> {
     const [ items, total ] = await this.vehiclesService.findAllAvailable();
     return {total, items: items.map(vehicle => VehicleMapper.toDomain(vehicle))};
+  }
+
+  @ApiOperation({summary: 'Export vehicles to different formats'})
+  @ApiResponse({status: 200, description: 'Returns the exported file'})
+  @ApiQuery({name: 'format', enum: ExportFormat, required: false, description: 'Export format (json, csv, excel)'})
+  @Get('export')
+  @HttpCode(HttpStatus.OK)
+  async exportVehicles(
+    @Query() query: QueryVehicleDto,
+    @Query() exportOptions: ExportVehicleDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const format = exportOptions.format || ExportFormat.EXCEL;
+    const buffer = await this.vehiclesService.exportVehicles(query, format);
+
+    const dateStr = DateTime.now().toISODate();
+    let fileName = `vehiculos_${ dateStr }`;
+    let contentType = '';
+
+    switch (format) {
+      case ExportFormat.JSON:
+        fileName += '.json';
+        contentType = 'application/json';
+        break;
+      case ExportFormat.CSV:
+        fileName += '.csv';
+        contentType = 'text/csv';
+        break;
+      case ExportFormat.EXCEL:
+      default:
+        fileName += '.xlsx';
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        break;
+    }
+
+    res.set({
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename="${ fileName }"`,
+      'Content-Length': buffer.byteLength,
+    });
+
+    res.end(buffer);
   }
 
   @ApiOperation({summary: 'Get a single vehicle by ID'})

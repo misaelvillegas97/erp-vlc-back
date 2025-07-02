@@ -6,7 +6,7 @@ export interface IGpsProvider {
 
   getOneCurrent(apiUrl: string, apiHash: string, vehicleId?: string): Promise<GenericGPS>;
 
-  getOneHistory(apiUrl: string, apiHash: string, providerId?: string, startTime?: Date, endTime?: Date): Promise<GenericGPS[]>;
+  getOneHistory(apiUrl: string, apiHash: string, licensePlate: string, providerId?: string, startTime?: Date, endTime?: Date): Promise<GenericGPS[]>;
 
   discover(apiUrl: string, apiHash: string): Promise<VehicleDiscovery>;
 

@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
 
 import bcrypt from 'bcryptjs';
 
@@ -18,9 +18,14 @@ import { DriverLicenseEntity }        from './domain/entities/driver-license.ent
 import { Repository }                 from 'typeorm';
 import { DriverLicenseDto }           from '@modules/users/dto/driver-license.dto';
 import { DateTime }                   from 'luxon';
+import { ExportFormat }               from './dto/export-user.dto';
+import * as ExcelJS                   from 'exceljs';
+import * as Papa                      from 'papaparse';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly usersRepository: UserRepository,
     private readonly filesService: FilesService,
@@ -247,5 +252,96 @@ export class UsersService {
         errors: {[errorKey]: `${ errorKey }NotExists`},
       });
     }
+  }
+
+  /**
+   * Export users to the specified format
+   * @param query Query parameters to filter users
+   * @param format Export format (json, csv, excel)
+   * @returns Buffer with the exported data
+   */
+  async exportUsers(query: any, format: ExportFormat): Promise<Buffer> {
+    this.logger.log(`Exporting users in ${ format } format`);
+
+    const page = query?.page ?? 1;
+    let limit = query?.limit ?? 1000; // Use a higher limit for exports
+    if (limit > 5000) limit = 5000;
+
+    const users = await this.findManyWithPagination({
+      filterOptions: query?.filters,
+      sortOptions: query?.sort,
+      paginationOptions: {
+        page,
+        limit,
+      },
+    });
+
+    switch (format) {
+      case ExportFormat.JSON:
+        return this.exportToJson(users);
+      case ExportFormat.CSV:
+        return this.exportToCsv(users);
+      case ExportFormat.EXCEL:
+      default:
+        return this.exportToExcel(users);
+    }
+  }
+
+  /**
+   * Export users to JSON format
+   * @param users List of users to export
+   * @returns Buffer with the JSON data
+   */
+  private exportToJson(users: User[]): Buffer {
+    const jsonData = JSON.stringify(users, null, 2);
+    return Buffer.from(jsonData);
+  }
+
+  /**
+   * Export users to CSV format
+   * @param users List of users to export
+   * @returns Buffer with the CSV data
+   */
+  private exportToCsv(users: User[]): Buffer {
+    const csv = Papa.unparse(users);
+    return Buffer.from(csv);
+  }
+
+  /**
+   * Export users to Excel format
+   * @param users List of users to export
+   * @returns Buffer with the Excel data
+   */
+  private async exportToExcel(users: User[]): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Usuarios');
+
+    // Define columns
+    worksheet.columns = [
+      {header: 'ID', key: 'id', width: 36},
+      {header: 'Nombre', key: 'name', width: 20},
+      {header: 'Email', key: 'email', width: 25},
+      {header: 'Nombre', key: 'firstName', width: 15},
+      {header: 'Apellido', key: 'lastName', width: 15},
+      {header: 'Documento ID', key: 'documentId', width: 15},
+      {header: 'Teléfono', key: 'phoneNumber', width: 15},
+      {header: 'Dirección', key: 'address', width: 30},
+      {header: 'Contacto de Emergencia', key: 'emergencyContactName', width: 25},
+      {header: 'Teléfono de Emergencia', key: 'emergencyContactPhone', width: 25},
+      {header: 'Notas', key: 'notes', width: 30},
+      {header: 'Fecha de Creación', key: 'createdAt', width: 20},
+      {header: 'Fecha de Actualización', key: 'updatedAt', width: 20},
+    ];
+
+    // Format headers
+    worksheet.getRow(1).font = {bold: true};
+    worksheet.getRow(1).alignment = {vertical: 'middle', horizontal: 'center'};
+
+    // Add data
+    worksheet.addRows(users);
+
+    const excelBuffer = workbook.xlsx.writeBuffer();
+
+    return Buffer.from(await excelBuffer);
   }
 }

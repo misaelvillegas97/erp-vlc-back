@@ -15,6 +15,10 @@ import { MaintenanceAlertMapper }                                              f
 import { VehicleDocumentMapper }                                               from '../domain/mappers/vehicle-document.mapper';
 import { GPSProviderEnum }                                                     from '@modules/gps/domain/enums/provider.enum';
 import { VehicleGpsProviderEntity }                                            from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
+import { ExportFormat }                                                        from '../domain/dto/export-vehicle.dto';
+import { VehicleMapper }                                                       from '../domain/mappers/vehicle.mapper';
+import * as ExcelJS                                                            from 'exceljs';
+import * as Papa                                                               from 'papaparse';
 
 @Injectable()
 export class VehiclesService {
@@ -254,5 +258,91 @@ export class VehiclesService {
       throw new NotFoundException(`Vehicle with license plate ${ licensePlate } not found`);
 
     return vehicle.gpsProvider.provider === provider;
+  }
+
+  /**
+   * Export vehicles to the specified format
+   * @param query Query parameters to filter vehicles
+   * @param format Export format (json, csv, excel)
+   * @returns Buffer with the exported data
+   */
+  async exportVehicles(query: QueryVehicleDto, format: ExportFormat): Promise<Buffer | ExcelJS.Buffer> {
+    this.logger.log(`Exporting vehicles in ${ format } format`);
+
+    const [ vehicles ] = await this.findAll(query);
+    const vehicleMappers = VehicleMapper.toDomainAll(vehicles);
+
+    switch (format) {
+      case ExportFormat.JSON:
+        return this.exportToJson(vehicleMappers);
+      case ExportFormat.CSV:
+        return this.exportToCsv(vehicleMappers);
+      case ExportFormat.EXCEL:
+      default:
+        return this.exportToExcel(vehicleMappers);
+    }
+  }
+
+  /**
+   * Export vehicles to JSON format
+   * @param vehicles List of vehicles to export
+   * @returns Buffer with the JSON data
+   */
+  private exportToJson(vehicles: VehicleMapper[]): Buffer {
+    const jsonData = JSON.stringify(vehicles, null, 2);
+    return Buffer.from(jsonData);
+  }
+
+  /**
+   * Export vehicles to CSV format
+   * @param vehicles List of vehicles to export
+   * @returns Buffer with the CSV data
+   */
+  private exportToCsv(vehicles: VehicleMapper[]): Buffer {
+    const csv = Papa.unparse(vehicles);
+    return Buffer.from(csv);
+  }
+
+  /**
+   * Export vehicles to Excel format
+   * @param vehicles List of vehicles to export
+   * @returns Buffer with the Excel data
+   */
+  private async exportToExcel(vehicles: VehicleMapper[]): Promise<ExcelJS.Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Vehículos');
+
+    // Define columns
+    worksheet.columns = [
+      {header: 'ID', key: 'id', width: 36},
+      {header: 'Marca', key: 'brand', width: 15},
+      {header: 'Modelo', key: 'model', width: 15},
+      {header: 'Año', key: 'year', width: 10},
+      {header: 'Placa', key: 'licensePlate', width: 15},
+      {header: 'VIN', key: 'vin', width: 20},
+      {header: 'Tipo', key: 'type', width: 15},
+      {header: 'Color', key: 'color', width: 15},
+      {header: 'Tipo de Combustible', key: 'fuelType', width: 20},
+      {header: 'Capacidad del Tanque', key: 'tankCapacity', width: 20},
+      {header: 'Odómetro Actual', key: 'lastKnownOdometer', width: 15},
+      {header: 'Estado', key: 'status', width: 15},
+      {header: 'Departamento', key: 'departmentId', width: 15},
+      {header: 'Última Mantención', key: 'lastMaintenanceDate', width: 20},
+      {header: 'Próxima Mantención', key: 'nextMaintenanceDate', width: 20},
+      {header: 'Próxima Mantención (Km)', key: 'nextMaintenanceKm', width: 25},
+      {header: 'Fecha de Compra', key: 'purchaseDate', width: 20},
+      {header: 'Vencimiento Seguro', key: 'insuranceExpiry', width: 20},
+      {header: 'Vencimiento Revisión Técnica', key: 'technicalInspectionExpiry', width: 25},
+      {header: 'Nombre para Mostrar', key: 'displayName', width: 30},
+    ];
+
+    // Format headers
+    worksheet.getRow(1).font = {bold: true};
+    worksheet.getRow(1).alignment = {vertical: 'middle', horizontal: 'center'};
+
+    // Add data
+    worksheet.addRows(vehicles);
+
+    return workbook.xlsx.writeBuffer();
   }
 }

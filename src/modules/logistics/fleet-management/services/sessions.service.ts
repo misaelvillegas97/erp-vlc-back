@@ -271,12 +271,13 @@ export class SessionsService {
     // Retrieve GPS history for the session
     try {
       // Get the GPS provider for this vehicle
-      const {provider, config} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
+      const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
 
       // Get the GPS history for the session
       const historyData = await provider.getOneHistory(
-        config.metadata.historyEndpoint || config.metadata.endpoint,
-        config.metadata.apiKey,
+        historyConfig.metadata.endpoint,
+        historyConfig.metadata.apiKey,
+        session.vehicle.licensePlate,
         session.vehicle.gpsProvider.providerId,
         session.startTime,
         session.endTime
