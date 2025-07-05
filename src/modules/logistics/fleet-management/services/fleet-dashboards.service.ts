@@ -18,6 +18,7 @@ import { GeographicalAnalysisDashboardDto }                      from '../domain
 import { ComplianceSafetyDashboardDto, MaintenanceAlertItemDto } from '../domain/dto/dashboards/compliance-safety-dashboard.dto';
 import { UserEntity }                                            from '@modules/users/domain/entities/user.entity';
 import { DriverLicenseEntity }                                   from '@modules/users/domain/entities/driver-license.entity';
+import { GpsEntity }                                             from '@modules/gps/domain/entities/gps.entity';
 
 @Injectable()
 export class FleetDashboardsService {
@@ -37,7 +38,9 @@ export class FleetDashboardsService {
     @InjectRepository(DriverLicenseEntity)
     private driverLicenseRepository: Repository<DriverLicenseEntity>,
     @InjectRepository(MaintenanceAlertEntity)
-    private maintenanceAlertRepository: Repository<MaintenanceAlertEntity>
+    private maintenanceAlertRepository: Repository<MaintenanceAlertEntity>,
+    @InjectRepository(GpsEntity)
+    private gpsRepository: Repository<GpsEntity>
   ) {}
 
   /**
@@ -941,12 +944,8 @@ export class FleetDashboardsService {
     }
 
     // Prepare heat map data
-    // For simplicity, we'll use all location points with a random weight
-    const heatMapData = locations.map(location => ({
-      latitude: location.latitude,
-      longitude: location.longitude,
-      weight: Math.random() * 0.5 + 0.5 // Random weight between 0.5 and 1
-    }));
+    // Calculate real weights based on frequency of visits to each coordinate area
+    const heatMapData = await this.calculateHeatMapData(locations, dateFrom, dateTo, query);
 
     // Prepare frequent routes data
     // This is a simplified approach - in a real app, you would use route clustering algorithms
@@ -1298,6 +1297,119 @@ export class FleetDashboardsService {
         violations: speedViolations.sort((a, b) => b.excess - a.excess).slice(0, 20)
       }
     };
+  }
+
+  /**
+   * Calculate heat map data with real frequency-based weights
+   */
+  private async calculateHeatMapData(
+    sessionLocations: VehicleSessionLocationEntity[], 
+    dateFrom: Date, 
+    dateTo: Date, 
+    query: DashboardQueryDto
+  ): Promise<Array<{ latitude: number; longitude: number; weight: number }>> {
+    // Get GPS data from the same date range to complement session location data
+    const gpsQueryBuilder = this.gpsRepository.createQueryBuilder('gps')
+      .leftJoinAndSelect('gps.vehicle', 'vehicle')
+      .leftJoinAndSelect('gps.vehicleSession', 'session')
+      .where('gps.timestamp BETWEEN :dateFromTimestamp AND :dateToTimestamp', {
+        dateFromTimestamp: dateFrom.getTime(),
+        dateToTimestamp: dateTo.getTime()
+      });
+
+    if (query.vehicleId) {
+      gpsQueryBuilder.andWhere('vehicle.id = :vehicleId', { vehicleId: query.vehicleId });
+    }
+
+    if (query.driverId) {
+      gpsQueryBuilder.andWhere('session.driverId = :driverId', { driverId: query.driverId });
+    }
+
+    const gpsData = await gpsQueryBuilder.getMany();
+
+    // Combine all location points from both sources
+    const allLocationPoints: Array<{ latitude: number; longitude: number; timestamp?: Date | number }> = [];
+    
+    // Add session location points
+    sessionLocations.forEach(location => {
+      allLocationPoints.push({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timestamp: location.timestamp
+      });
+    });
+
+    // Add GPS points
+    gpsData.forEach(gpsPoint => {
+      allLocationPoints.push({
+        latitude: gpsPoint.latitude,
+        longitude: gpsPoint.longitude,
+        timestamp: gpsPoint.timestamp
+      });
+    });
+
+    // If no location data is available, return empty array
+    if (allLocationPoints.length === 0) {
+      return [];
+    }
+
+    // Create a grid-based frequency map to calculate weights
+    const gridSize = 0.005; // Approximately 500m grid for higher precision than the existing 1km grid
+    const locationFrequency = new Map<string, { 
+      lat: number; 
+      lng: number; 
+      count: number; 
+      center: { lat: number; lng: number } 
+    }>();
+
+    // Group locations by grid cells and count frequency
+    for (const point of allLocationPoints) {
+      // Round coordinates to grid
+      const gridLat = Math.round(point.latitude / gridSize) * gridSize;
+      const gridLng = Math.round(point.longitude / gridSize) * gridSize;
+      const gridKey = `${gridLat},${gridLng}`;
+
+      if (!locationFrequency.has(gridKey)) {
+        locationFrequency.set(gridKey, {
+          lat: gridLat,
+          lng: gridLng,
+          count: 0,
+          center: { lat: gridLat, lng: gridLng }
+        });
+      }
+
+      locationFrequency.get(gridKey).count += 1;
+    }
+
+    // Find max frequency for normalization
+    let maxFrequency = 0;
+    for (const data of locationFrequency.values()) {
+      if (data.count > maxFrequency) {
+        maxFrequency = data.count;
+      }
+    }
+
+    // Convert frequency data to heat map points with normalized weights
+    const heatMapPoints: Array<{ latitude: number; longitude: number; weight: number }> = [];
+    
+    for (const data of locationFrequency.values()) {
+      // Normalize weight between 0.1 and 1.0 based on frequency
+      // Areas with higher frequency get higher weights
+      const normalizedWeight = maxFrequency > 0 
+        ? Math.max(0.1, (data.count / maxFrequency) * 1.0)
+        : 0.5;
+
+      heatMapPoints.push({
+        latitude: data.center.lat,
+        longitude: data.center.lng,
+        weight: parseFloat(normalizedWeight.toFixed(2))
+      });
+    }
+
+    // Sort by weight (highest first) and limit to reasonable number of points for performance
+    return heatMapPoints
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 1000); // Limit to top 1000 points for better map performance
   }
 
   /**
