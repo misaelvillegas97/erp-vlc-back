@@ -9,6 +9,7 @@ import { FilterUserDto, SortUserDto } from '../../dto/query-user.dto';
 import { UserEntity }                 from '../entities/user.entity';
 import { UserMapper }                 from '../mappers/user.mapper';
 import { User }                       from '../user';
+import bcrypt                         from 'bcryptjs';
 
 export interface FindManyWithPagination {
   filterOptions?: FilterUserDto | null,
@@ -112,6 +113,22 @@ export class UserRepository {
         }),
       ),
     );
+
+    return UserMapper.toDomain(updatedEntity);
+  }
+
+  async updatePassword(id: User['id'], newPassword: string): Promise<User> {
+    const entity = await this.usersRepository.findOne({
+      where: {id},
+    });
+
+    if (!entity) {
+      throw new Error('User not found');
+    }
+
+    entity.password = await bcrypt.hash(newPassword, 10);
+
+    const updatedEntity = await this.usersRepository.save(entity);
 
     return UserMapper.toDomain(updatedEntity);
   }

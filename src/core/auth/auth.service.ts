@@ -414,6 +414,18 @@ export class AuthService {
     return this.sessionService.deleteById(data.sessionId);
   }
 
+  async overridePassword(userId: User['id'], password: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+
+    if (!user) throw this.getUnprocessableEntityException({user: 'USER_NOT_FOUND'});
+
+    user.password = password;
+
+    await this.sessionService.deleteByUserId({userId: user.id});
+
+    await this.usersService.updatePassword(user.id, password);
+  }
+
   private getUnprocessableEntityException = (errors: Record<string, string> = {}) => new UnprocessableEntityException({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     errors

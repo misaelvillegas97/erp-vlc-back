@@ -1,7 +1,10 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post, Req, Res, SerializeOptions, UseGuards, } from '@nestjs/common';
-import { ConfigService }                                                                                            from '@nestjs/config';
-import { AuthGuard }                                                                                                from '@nestjs/passport';
-import { ApiBearerAuth, ApiOkResponse, ApiTags }                                                                    from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post, Req, Res, SerializeOptions, UseGuards } from '@nestjs/common';
+import { ConfigService }                                                                                           from '@nestjs/config';
+import { AuthGuard }                                                                                               from '@nestjs/passport';
+import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags }                                             from '@nestjs/swagger';
+import { Roles }                                                                                                   from '@modules/roles/roles.decorator';
+import { RolesGuard }                                                                                              from '@modules/roles/roles.guard';
+import { RoleEnum }                                                                                                from '@modules/roles/roles.enum';
 
 import { Request, Response } from 'express';
 
@@ -15,6 +18,7 @@ import { AuthForgotPasswordDto } from './dto/auth-forgot-password.dto';
 import { AuthRegisterLoginDto }  from './dto/auth-register-login.dto';
 import { AuthResetPasswordDto }  from './dto/auth-reset-password.dto';
 import { AuthUpdateDto }         from './dto/auth-update.dto';
+import { AuthChangePasswordDto } from './dto/auth-change-password.dto';
 import { LoginResponseDto }      from './dto/login-response.dto';
 import { RefreshResponseDto }    from './dto/refresh-response.dto';
 import { AuthUserMapper }        from '@core/auth/mappers/auth-user.mapper';
@@ -161,5 +165,17 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   public async delete(@Req() request: Request): Promise<void> {
     return this.service.softDelete(request.user, request.user.sessionId);
+  }
+
+  @ApiBearerAuth()
+  @Post('override/password')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RoleEnum.admin)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({description: 'Password successfully changed'})
+  public overridePassword(
+    @Body() changePasswordDto: AuthChangePasswordDto,
+  ): Promise<void> {
+    return this.service.overridePassword(changePasswordDto.userId, changePasswordDto.password);
   }
 }

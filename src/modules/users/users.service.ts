@@ -216,6 +216,13 @@ export class UsersService {
     });
   }
 
+  updatePassword(
+    id: User['id'],
+    newPassword: string,
+  ): Promise<User> {
+    return this.usersRepository.updatePassword(id, newPassword);
+  }
+
   async remove(id: User['id']): Promise<void> {
     await this.usersRepository.remove(id);
   }
