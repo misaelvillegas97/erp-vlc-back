@@ -49,4 +49,6 @@ export class QuerySessionDto {
   @ApiProperty({required: false, default: false})
   @IsOptional()
   includeDetails?: boolean = false;
+
+  userId?: string; // Optional user ID for filtering sessions by user
 }

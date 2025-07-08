@@ -10,6 +10,8 @@ import { VehicleSessionEntity }                                                 
 import { VehicleSessionLocationEntity }                                               from '../domain/entities/vehicle-session-location.entity';
 import { SessionMapper }                                                              from '@modules/logistics/fleet-management/domain/mappers/session.mapper';
 import { PaginationDto }                                                              from '@shared/utils/dto/pagination.dto';
+import { CurrentUser }                                                                from '@shared/decorators/current-user.decorator';
+import { RoleEnum }                                                                   from '@modules/roles/roles.enum';
 
 @ApiTags('Logistics - Vehicle Sessions')
 @UseGuards(AuthGuard('jwt'))
@@ -24,7 +26,9 @@ export class SessionsController {
   @ApiResponse({status: 200, description: 'Returns list of vehicle sessions'})
   @Get()
   @HttpCode(HttpStatus.OK)
-  async findAll(@Query() query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
+  async findAll(@Query() query: QuerySessionDto, @CurrentUser() user: any): Promise<PaginationDto<VehicleSessionEntity>> {
+    if (user.role.id !== RoleEnum.admin && user.role.id !== RoleEnum.dispatcher) query.driverId = user.id;
+
     return this.sessionsService.findAll(query);
   }
 
@@ -49,10 +53,11 @@ export class SessionsController {
   @ApiResponse({status: 200, description: 'Returns list of historical vehicle sessions'})
   @Get('history')
   @HttpCode(HttpStatus.OK)
-  async findHistory(@Query() query: QuerySessionDto): Promise<PaginationDto<SessionMapper>> {
+  async findHistory(@Query() query: QuerySessionDto, @CurrentUser() user: any): Promise<PaginationDto<SessionMapper>> {
     // Set status filter to exclude active sessions for history
-    const historyQuery = {
+    const historyQuery: QuerySessionDto = {
       ...query,
+      driverId: user.role.id !== RoleEnum.admin && user.role.id !== RoleEnum.dispatcher ? user.id : undefined,
       status: undefined // Will be handled in the service
     };
     const result = await this.sessionsService.findAll(historyQuery);
@@ -107,7 +112,12 @@ export class SessionsController {
   finishSession(
     @Param('id') id: string,
     @Body() finishSessionDto: FinishSessionDto,
+    @CurrentUser() user: any,
   ): Promise<VehicleSessionEntity> {
+    if (user.role.id !== RoleEnum.admin && user.role.id !== RoleEnum.dispatcher) {
+      finishSessionDto.driverId = user.id; // Set driver ID if not admin or dispatcher
+    }
+
     return this.sessionsService.finishSession(id, finishSessionDto);
   }
 

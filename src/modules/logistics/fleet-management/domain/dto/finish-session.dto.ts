@@ -32,4 +32,6 @@ export class FinishSessionDto {
   @IsOptional()
   @IsNumber()
   finalLongitude?: number;
+
+  driverId?: string; // Optional driver ID for filtering sessions by user
 }

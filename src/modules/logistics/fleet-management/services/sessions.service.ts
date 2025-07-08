@@ -35,6 +35,7 @@ export class SessionsService {
 
     const qb = this.sessionRepository.createQueryBuilder('session');
 
+
     // Add relations
     qb.leftJoinAndSelect('session.vehicle', 'vehicle');
     qb.leftJoinAndSelect('session.driver', 'driver');
@@ -45,31 +46,17 @@ export class SessionsService {
     }
 
     // Add filters
-    if (query.vehicleId) {
-      qb.andWhere('session.vehicleId = :vehicleId', {vehicleId: query.vehicleId});
-    }
-
-    if (query.driverId) {
-      qb.andWhere('session.driverId = :driverId', {driverId: query.driverId});
-    }
-
-    if (query.status) {
-      qb.andWhere('session.status = :status', {status: query.status});
-    }
-
-    if (query.startDateFrom && query.startDateTo) {
-      qb.andWhere('session.startTime BETWEEN :startDateFrom AND :startDateTo', {
+    if (query.userId) qb.where('session.driverId = :userId', {userId: query.userId});
+    if (query.vehicleId) qb.andWhere('session.vehicleId = :vehicleId', {vehicleId: query.vehicleId});
+    if (query.driverId) qb.andWhere('session.driverId = :driverId', {driverId: query.driverId});
+    if (query.status) qb.andWhere('session.status = :status', {status: query.status});
+    if (query.startDateFrom && query.startDateTo) qb.andWhere('session.startTime BETWEEN :startDateFrom AND :startDateTo', {
         startDateFrom: new Date(query.startDateFrom),
         startDateTo: new Date(query.startDateTo)
       });
-    } else if (query.startDateFrom) {
-      qb.andWhere('session.startTime >= :startDateFrom', {
-        startDateFrom: new Date(query.startDateFrom)
-      });
-    }
+    else if (query.startDateFrom) qb.andWhere('session.startTime >= :startDateFrom', {startDateFrom: new Date(query.startDateFrom)});
 
-    if (query.search) {
-      // search in vehicle plate, driver name, session purpose or observations
+    if (query.search)
       qb.andWhere(
         '(vehicle.licensePlate ILIKE :search OR ' +
         'driver.firstName ILIKE :search OR ' +
@@ -78,7 +65,6 @@ export class SessionsService {
         'session.observations ILIKE :search)',
         {search: `%${ query.search }%`}
       );
-    }
 
     // Get total count
     let total = await qb.getCount();
@@ -117,9 +103,13 @@ export class SessionsService {
     });
   }
 
-  async findById(id: string): Promise<VehicleSessionEntity> {
+  async findById(id: string, userId?: string): Promise<VehicleSessionEntity> {
+    const whereCondition: any = {id};
+
+    if (userId) whereCondition.driverId = userId;
+
     const session = await this.sessionRepository.findOne({
-      where: {id},
+      where: {...whereCondition},
       relations: [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider' ]
     });
 
