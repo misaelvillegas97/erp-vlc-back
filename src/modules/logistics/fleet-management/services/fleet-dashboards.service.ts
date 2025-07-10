@@ -18,6 +18,7 @@ import { GeographicalAnalysisDashboardDto }                      from '../domain
 import { ComplianceSafetyDashboardDto, MaintenanceAlertItemDto } from '../domain/dto/dashboards/compliance-safety-dashboard.dto';
 import { UserEntity }                                            from '@modules/users/domain/entities/user.entity';
 import { DriverLicenseEntity }                                   from '@modules/users/domain/entities/driver-license.entity';
+import { GpsEntity }                                             from '@modules/gps/domain/entities/gps.entity';
 
 @Injectable()
 export class FleetDashboardsService {
@@ -37,7 +38,9 @@ export class FleetDashboardsService {
     @InjectRepository(DriverLicenseEntity)
     private driverLicenseRepository: Repository<DriverLicenseEntity>,
     @InjectRepository(MaintenanceAlertEntity)
-    private maintenanceAlertRepository: Repository<MaintenanceAlertEntity>
+    private maintenanceAlertRepository: Repository<MaintenanceAlertEntity>,
+    @InjectRepository(GpsEntity)
+    private gpsRepository: Repository<GpsEntity>
   ) {}
 
   /**
@@ -941,44 +944,12 @@ export class FleetDashboardsService {
     }
 
     // Prepare heat map data
-    // For simplicity, we'll use all location points with a random weight
-    const heatMapData = locations.map(location => ({
-      latitude: location.latitude,
-      longitude: location.longitude,
-      weight: Math.random() * 0.5 + 0.5 // Random weight between 0.5 and 1
-    }));
+    // Calculate real weights based on frequency of visits to each coordinate area
+    const heatMapData = await this.calculateHeatMapData(locations, dateFrom, dateTo, query);
 
     // Prepare frequent routes data
-    // This is a simplified approach - in a real app, you would use route clustering algorithms
-    const frequentRoutes = [];
-
-    // For demo purposes, we'll create some sample routes
-    for (let i = 0; i < 5; i++) {
-      const routePoints = [];
-      const routeLength = Math.floor(Math.random() * 10) + 5; // 5-15 points
-
-      // Start with a random location
-      const startIndex = Math.floor(Math.random() * locations.length);
-      let currentLat = locations[startIndex].latitude;
-      let currentLng = locations[startIndex].longitude;
-
-      routePoints.push({latitude: currentLat, longitude: currentLng});
-
-      // Generate route points
-      for (let j = 1; j < routeLength; j++) {
-        // Add small random changes to lat/lng
-        currentLat += (Math.random() - 0.5) * 0.01;
-        currentLng += (Math.random() - 0.5) * 0.01;
-
-        routePoints.push({latitude: currentLat, longitude: currentLng});
-      }
-
-      frequentRoutes.push({
-        id: `route-${ i + 1 }`,
-        count: Math.floor(Math.random() * 20) + 1, // 1-20 times traveled
-        path: routePoints
-      });
-    }
+    // Generate routes based on actual session data
+    const frequentRoutes = this.calculateFrequentRoutes(locations);
 
     return {
       totalGpsPoints: {
@@ -1298,6 +1269,232 @@ export class FleetDashboardsService {
         violations: speedViolations.sort((a, b) => b.excess - a.excess).slice(0, 20)
       }
     };
+  }
+
+  /**
+   * Calculate heat map data with real frequency-based weights
+   */
+  private async calculateHeatMapData(
+    sessionLocations: VehicleSessionLocationEntity[], 
+    dateFrom: Date, 
+    dateTo: Date, 
+    query: DashboardQueryDto
+  ): Promise<Array<{ latitude: number; longitude: number; weight: number }>> {
+    // Get GPS data from the same date range to complement session location data
+    const gpsQueryBuilder = this.gpsRepository.createQueryBuilder('gps')
+      .leftJoinAndSelect('gps.vehicle', 'vehicle')
+      .leftJoinAndSelect('gps.vehicleSession', 'session')
+      .where('gps.timestamp BETWEEN :dateFromTimestamp AND :dateToTimestamp', {
+        dateFromTimestamp: dateFrom.getTime(),
+        dateToTimestamp: dateTo.getTime()
+      });
+
+    if (query.vehicleId) {
+      gpsQueryBuilder.andWhere('vehicle.id = :vehicleId', { vehicleId: query.vehicleId });
+    }
+
+    if (query.driverId) {
+      gpsQueryBuilder.andWhere('session.driverId = :driverId', { driverId: query.driverId });
+    }
+
+    const gpsData = await gpsQueryBuilder.getMany();
+
+    // Combine all location points from both sources
+    const allLocationPoints: Array<{ latitude: number; longitude: number; timestamp?: Date | number }> = [];
+    
+    // Add session location points
+    sessionLocations.forEach(location => {
+      allLocationPoints.push({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timestamp: location.timestamp
+      });
+    });
+
+    // Add GPS points
+    gpsData.forEach(gpsPoint => {
+      allLocationPoints.push({
+        latitude: gpsPoint.latitude,
+        longitude: gpsPoint.longitude,
+        timestamp: gpsPoint.timestamp
+      });
+    });
+
+    // If no location data is available, return empty array
+    if (allLocationPoints.length === 0) {
+      return [];
+    }
+
+    // Create a grid-based frequency map to calculate weights
+    const gridSize = 0.005; // Approximately 500m grid for higher precision than the existing 1km grid
+    const locationFrequency = new Map<string, { 
+      lat: number; 
+      lng: number; 
+      count: number; 
+      center: { lat: number; lng: number } 
+    }>();
+
+    // Group locations by grid cells and count frequency
+    for (const point of allLocationPoints) {
+      // Round coordinates to grid
+      const gridLat = Math.round(point.latitude / gridSize) * gridSize;
+      const gridLng = Math.round(point.longitude / gridSize) * gridSize;
+      const gridKey = `${gridLat},${gridLng}`;
+
+      if (!locationFrequency.has(gridKey)) {
+        locationFrequency.set(gridKey, {
+          lat: gridLat,
+          lng: gridLng,
+          count: 0,
+          center: { lat: gridLat, lng: gridLng }
+        });
+      }
+
+      locationFrequency.get(gridKey).count += 1;
+    }
+
+    // Find max frequency for normalization
+    let maxFrequency = 0;
+    for (const data of locationFrequency.values()) {
+      if (data.count > maxFrequency) {
+        maxFrequency = data.count;
+      }
+    }
+
+    // Convert frequency data to heat map points with normalized weights
+    const heatMapPoints: Array<{ latitude: number; longitude: number; weight: number }> = [];
+    
+    for (const data of locationFrequency.values()) {
+      // Normalize weight between 0.1 and 1.0 based on frequency
+      // Areas with higher frequency get higher weights
+      const normalizedWeight = maxFrequency > 0 
+        ? Math.max(0.1, (data.count / maxFrequency) * 1.0)
+        : 0.5;
+
+      heatMapPoints.push({
+        latitude: data.center.lat,
+        longitude: data.center.lng,
+        weight: parseFloat(normalizedWeight.toFixed(2))
+      });
+    }
+
+    // Sort by weight (highest first) and limit to reasonable number of points for performance
+    return heatMapPoints
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 1000); // Limit to top 1000 points for better map performance
+  }
+
+  /**
+   * Calculate frequent routes based on actual session data
+   */
+  private calculateFrequentRoutes(
+    sessionLocations: VehicleSessionLocationEntity[]
+  ): Array<{ id: string; count: number; path: Array<{ latitude: number; longitude: number }> }> {
+    // Group locations by session to form individual routes
+    const sessionRoutes = new Map<string, VehicleSessionLocationEntity[]>();
+    
+    for (const location of sessionLocations) {
+      if (!sessionRoutes.has(location.sessionId)) {
+        sessionRoutes.set(location.sessionId, []);
+      }
+      sessionRoutes.get(location.sessionId).push(location);
+    }
+
+    // Convert sessions to route patterns
+    const routePatterns = new Map<string, { 
+      path: Array<{ latitude: number; longitude: number }>; 
+      count: number;
+      sessions: string[];
+    }>();
+
+    for (const [sessionId, locations] of sessionRoutes.entries()) {
+      if (locations.length < 2) continue; // Skip sessions with insufficient location data
+
+      // Sort locations by timestamp to create chronological route
+      const sortedLocations = locations.sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      // Create a simplified route by taking key waypoints (start, middle points, end)
+      const route = this.simplifyRoute(sortedLocations);
+      
+      if (route.length < 2) continue; // Skip if route is too short
+
+      // Create a route signature for pattern matching
+      const routeSignature = this.createRouteSignature(route);
+      
+      if (!routePatterns.has(routeSignature)) {
+        routePatterns.set(routeSignature, {
+          path: route,
+          count: 0,
+          sessions: []
+        });
+      }
+
+      const pattern = routePatterns.get(routeSignature);
+      pattern.count += 1;
+      pattern.sessions.push(sessionId);
+    }
+
+    // Convert to output format and filter by frequency
+    const frequentRoutes = Array.from(routePatterns.entries())
+      .filter(([, pattern]) => pattern.count >= 2) // Only routes used at least twice
+      .sort((a, b) => b[1].count - a[1].count) // Sort by frequency
+      .slice(0, 10) // Limit to top 10 routes
+      .map(([, pattern], index) => ({
+        id: `route-${index + 1}`,
+        count: pattern.count,
+        path: pattern.path
+      }));
+
+    return frequentRoutes;
+  }
+
+  /**
+   * Simplify a route by selecting key waypoints
+   */
+  private simplifyRoute(locations: VehicleSessionLocationEntity[]): Array<{ latitude: number; longitude: number }> {
+    if (locations.length === 0) return [];
+    if (locations.length <= 3) {
+      return locations.map(loc => ({ latitude: loc.latitude, longitude: loc.longitude }));
+    }
+
+    const simplified = [];
+    
+    // Always include start point
+    simplified.push({ latitude: locations[0].latitude, longitude: locations[0].longitude });
+
+    // Include middle points (every nth point for simplification)
+    const step = Math.max(1, Math.floor(locations.length / 5)); // Max 5 intermediate points
+    for (let i = step; i < locations.length - 1; i += step) {
+      simplified.push({ latitude: locations[i].latitude, longitude: locations[i].longitude });
+    }
+
+    // Always include end point
+    if (locations.length > 1) {
+      const lastLocation = locations[locations.length - 1];
+      simplified.push({ latitude: lastLocation.latitude, longitude: lastLocation.longitude });
+    }
+
+    return simplified;
+  }
+
+  /**
+   * Create a route signature for pattern matching
+   */
+  private createRouteSignature(route: Array<{ latitude: number; longitude: number }>): string {
+    if (route.length < 2) return 'invalid';
+
+    // Create signature based on start and end points with approximate coordinates
+    const start = route[0];
+    const end = route[route.length - 1];
+    
+    // Round coordinates to create approximate matching (within ~100m)
+    const precision = 0.001;
+    const startKey = `${Math.round(start.latitude / precision) * precision},${Math.round(start.longitude / precision) * precision}`;
+    const endKey = `${Math.round(end.latitude / precision) * precision},${Math.round(end.longitude / precision) * precision}`;
+    
+    return `${startKey}->${endKey}`;
   }
 
   /**
