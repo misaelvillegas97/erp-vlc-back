@@ -12,6 +12,7 @@ import { SessionMapper }                                                        
 import { PaginationDto }                                                              from '@shared/utils/dto/pagination.dto';
 import { CurrentUser }                                                                from '@shared/decorators/current-user.decorator';
 import { RoleEnum }                                                                   from '@modules/roles/roles.enum';
+import { VehicleMapper }                                                              from '@modules/logistics/fleet-management/domain/mappers/vehicle.mapper';
 
 @ApiTags('Logistics - Vehicle Sessions')
 @UseGuards(AuthGuard('jwt'))
@@ -142,5 +143,15 @@ export class SessionsController {
     @Body() updateLocationDto: UpdateLocationDto,
   ): Promise<VehicleSessionLocationEntity> {
     return this.sessionsService.updateLocation(id, updateLocationDto);
+  }
+
+  @ApiOperation({summary: 'Get latest vehicles used by the current user in sessions'})
+  @ApiResponse({status: 200, description: 'Returns list of vehicles used by the current user'})
+  @Get('user/latest-vehicles')
+  @HttpCode(HttpStatus.OK)
+  async findLatestVehiclesByUser(@CurrentUser() user: any): Promise<Partial<VehicleMapper>[]> {
+    const vehicles = await this.sessionsService.findLatestVehiclesByDriverId(user.id);
+
+    return vehicles.map(vehicle => VehicleMapper.toLightDomain(vehicle));
   }
 }

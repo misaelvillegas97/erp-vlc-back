@@ -9,7 +9,7 @@ import { UpdateLocationDto }                                                   f
 import { QuerySessionDto }                                                     from '../domain/dto/query-session.dto';
 import { VehiclesService }                                                     from './vehicles.service';
 import { DriversService }                                                      from './drivers.service';
-import { VehicleStatus }                                                       from '../domain/entities/vehicle.entity';
+import { VehicleEntity, VehicleStatus }                                        from '../domain/entities/vehicle.entity';
 import { FilesService }                                                        from '@modules/files/files.service';
 import { GpsProviderFactoryService }                                           from '@modules/gps/services/gps-provider-factory.service';
 import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
@@ -128,12 +128,28 @@ export class SessionsService {
     });
   }
 
-  async findByDriverId(driverId: string): Promise<VehicleSessionEntity[]> {
+  async findByDriverId(driverId: string, options?: { limit: number }): Promise<VehicleSessionEntity[]> {
     return this.sessionRepository.find({
       where: {driverId},
       relations: [ 'vehicle' ],
-      order: {startTime: 'DESC'}
+      order: {startTime: 'DESC'},
+      take: options?.limit || 10
     });
+  }
+
+  async findLatestVehiclesByDriverId(driverId: string): Promise<VehicleEntity[]> {
+    const sessions = await this.findByDriverId(driverId, {limit: 50}); // Only fetch the last 50 sessions
+
+    // Extract unique vehicles from sessions
+    const uniqueVehicles = new Map<string, VehicleEntity>();
+
+    for (const session of sessions) {
+      if (session.vehicle && !uniqueVehicles.has(session.vehicle.id)) {
+        uniqueVehicles.set(session.vehicle.id, session.vehicle);
+      }
+    }
+
+    return Array.from(uniqueVehicles.values());
   }
 
   async startSession(startSessionDto: StartSessionDto): Promise<VehicleSessionEntity> {

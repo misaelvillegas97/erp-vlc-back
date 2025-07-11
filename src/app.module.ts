@@ -52,6 +52,7 @@ import gpsConfig                           from '@core/config/gps.config';
 import { GpsModule }                       from '@modules/gps/gps.module';
 import { HealthModule }                    from '@modules/health/health.module';
 import { InventoryModule }                 from '@modules/inventory/inventory.module';
+import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.module';
 
 @Module({
   imports: [
@@ -140,7 +141,8 @@ import { InventoryModule }                 from '@modules/inventory/inventory.mo
     AppConfigModule,
     GpsModule,
     HealthModule,
-    InventoryModule
+    InventoryModule,
+    ScrumboardModule
   ],
   controllers: [ AppController ]
 })

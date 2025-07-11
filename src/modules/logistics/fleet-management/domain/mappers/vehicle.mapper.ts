@@ -62,6 +62,25 @@ export class VehicleMapper {
     });
   }
 
+  static toLightDomain(entity: VehicleEntity): Partial<VehicleMapper> {
+    return new VehicleMapper({
+      id: entity.id,
+      brand: entity.brand,
+      model: entity.model,
+      year: entity.year,
+      licensePlate: entity.licensePlate,
+      vin: entity.vin,
+      type: entity.type,
+      color: entity.color,
+      fuelType: entity.fuelType,
+      tankCapacity: entity.tankCapacity,
+      lastKnownOdometer: entity.lastKnownOdometer,
+      lastRefuelingOdometer: entity.lastRefuelingOdometer,
+      status: entity.status,
+      currentSessionId: entity.currentSessionId,
+    });
+  }
+
   static toDomainAll(entities: VehicleEntity[]): VehicleMapper[] {
     return entities.map(entity => this.toDomain(entity));
   }

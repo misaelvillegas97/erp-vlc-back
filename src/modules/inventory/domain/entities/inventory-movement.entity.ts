@@ -1,7 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { AbstractEntity }                        from '@shared/domain/entities/abstract.entity';
 import { InventoryItemEntity }                   from './inventory-item.entity';
-import { UserEntity }                            from '@modules/users/domain/entities/user.entity';
 
 export enum MovementType {
   RECEIPT = 'RECEIPT',
@@ -33,10 +32,6 @@ export class InventoryMovementEntity extends AbstractEntity {
 
   @Column({type: 'json', nullable: true})
   metadata: Record<string, any>;
-
-  @ManyToOne(() => UserEntity)
-  @JoinColumn({name: 'created_by'})
-  createdBy: UserEntity;
 
   @Column({name: 'created_by'})
   createdById: string;
