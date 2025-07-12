@@ -21,4 +21,9 @@ export class ListEntity extends AbstractEntity {
 
   @OneToMany(() => CardEntity, card => card.list, {cascade: true})
   cards: CardEntity[];
+
+  constructor(values: Partial<ListEntity>) {
+    super();
+    Object.assign(this, values);
+  }
 }

@@ -8,6 +8,7 @@ import { CreateCardDto } from '../dtos/create-card.dto';
 import { UpdateCardDto } from '../dtos/update-card.dto';
 import { LabelEntity }   from '../entities/label.entity';
 import { BoardEntity }   from '../entities/board.entity';
+import { ListEntity }    from '@modules/scrumboard/entities/list.entity';
 
 @Injectable()
 export class CardService {
@@ -78,17 +79,24 @@ export class CardService {
       return acc;
     }, {});
 
-    const {labels, assignees, ...updateFields} = filteredDto;
+    console.log('Updating card with ID:', id, 'with data:', filteredDto);
+
+    const {labels, assignees, listId, ...updateFields} = filteredDto;
 
     // Update basic fields
     if (Object.keys(updateFields).length > 0) {
-      await this.cardRepository.update(id, updateFields);
+      await this.cardRepository.save({...card, ...updateFields});
+    }
+
+    // Update listId if provided
+    if (listId) {
+      card.list = new ListEntity({id: listId});
+      await this.cardRepository.save(card);
     }
 
     // Update labels if provided
     if (labels) {
-      const newLabels = await this.labelRepository.findBy({id: In(labels)});
-      card.labels = newLabels;
+      card.labels = await this.labelRepository.findBy({id: In(labels)});
       await this.cardRepository.save(card);
     }
 
