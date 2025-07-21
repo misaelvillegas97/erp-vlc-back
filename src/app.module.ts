@@ -53,6 +53,7 @@ import { GpsModule }                       from '@modules/gps/gps.module';
 import { HealthModule }                    from '@modules/health/health.module';
 import { InventoryModule }                 from '@modules/inventory/inventory.module';
 import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.module';
+import { ChecklistsModule } from '@modules/checklists/checklists.module';
 
 @Module({
   imports: [
@@ -142,7 +143,8 @@ import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.
     GpsModule,
     HealthModule,
     InventoryModule,
-    ScrumboardModule
+    ScrumboardModule,
+    ChecklistsModule
   ],
   controllers: [ AppController ]
 })
