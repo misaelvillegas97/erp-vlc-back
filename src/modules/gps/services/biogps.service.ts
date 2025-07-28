@@ -75,7 +75,7 @@ export class BiogpsService implements IGpsProvider {
       const fetchStartTime = Date.now();
 
       // Build the URL with parameters
-      let url = `${ apiUrl }?lang=es&user_api_hash=${ apiHash }`;
+      let url = `${ apiUrl }?lang=es&snap_to_road=true&user_api_hash=${ apiHash }`;
 
       // Add device ID (vehicle ID) if provided
       if (vehicleId) {
