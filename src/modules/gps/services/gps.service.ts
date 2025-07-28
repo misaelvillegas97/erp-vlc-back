@@ -74,6 +74,31 @@ export class GpsService {
   }
 
   /**
+   * Delete all GPS records for a specific session
+   */
+  async deleteBySessionId(sessionId: string): Promise<void> {
+    try {
+      const result = await this.gpsRepository.delete({
+        vehicleSession: {id: sessionId}
+      });
+      this.logger.log(`Deleted ${ result.affected } GPS records for session ${ sessionId }`);
+    } catch (error) {
+      this.logger.error(`Error deleting GPS records for session ${ sessionId }: ${ error.message }`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Find GPS records by session ID
+   */
+  async findBySessionId(sessionId: string): Promise<GpsEntity[]> {
+    return this.gpsRepository.find({
+      where: {vehicleSession: {id: sessionId}},
+      order: {timestamp: 'ASC'},
+    });
+  }
+
+  /**
    * Handle GPS updated event
    */
   @OnEvent('gps.updated')

@@ -118,4 +118,6 @@ Generate code, corrections, and refactorings that comply with the basic principl
 - Write tests for each controller and service.
 - Write end to end tests for each api module.
 - Add a admin/test method to each controller as a smoke test.
- 
+
+
+- VALIDATE EACH DEVELOPMENT WITH `npm run build`

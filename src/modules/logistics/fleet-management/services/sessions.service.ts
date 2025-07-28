@@ -12,7 +12,9 @@ import { DriversService }                                                      f
 import { VehicleEntity, VehicleStatus }                                        from '../domain/entities/vehicle.entity';
 import { FilesService }                                                        from '@modules/files/files.service';
 import { GpsProviderFactoryService }                                           from '@modules/gps/services/gps-provider-factory.service';
+import { GpsService }                                                          from '@modules/gps/services/gps.service';
 import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
+import { GenericGPS }                                                          from '@modules/gps/domain/interfaces/generic-gps.interface';
 
 @Injectable()
 export class SessionsService {
@@ -26,7 +28,8 @@ export class SessionsService {
     private readonly vehiclesService: VehiclesService,
     private readonly driversService: DriversService,
     private readonly filesService: FilesService,
-    private readonly gpsProviderFactoryService: GpsProviderFactoryService
+    private readonly gpsProviderFactoryService: GpsProviderFactoryService,
+    private readonly gpsService: GpsService
   ) {}
 
   async findAll(query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
@@ -110,7 +113,8 @@ export class SessionsService {
 
     const session = await this.sessionRepository.findOne({
       where: {...whereCondition},
-      relations: [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider' ]
+      relations: [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider' ],
+      order: {gps: {timestamp: 'ASC'}}
     });
 
     if (!session) {
@@ -289,11 +293,17 @@ export class SessionsService {
         session.endTime
       );
 
-      // Process and emit GPS events if history data is available
+      // Process GPS history data if available
       if (historyData && historyData.length > 0) {
         this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
 
-        // Emit events for each GPS record
+        // Clear existing GPS data for the session
+        await this.clearSessionGpsData(session.id);
+
+        // Save the new GPS history data (more complete route)
+        await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
+
+        // Maintain compatibility by emitting events
         provider.emitGpsEvents(historyData);
       }
     } catch (error) {
@@ -302,6 +312,39 @@ export class SessionsService {
     }
 
     return this.findById(savedSession.id);
+  }
+
+  /**
+   * Clear existing GPS data for a session
+   */
+  private async clearSessionGpsData(sessionId: string): Promise<void> {
+    try {
+      await this.gpsService.deleteBySessionId(sessionId);
+      this.logger.log(`Cleared existing GPS data for session ${ sessionId }`);
+    } catch (error) {
+      this.logger.error(`Error clearing GPS data for session ${ sessionId }: ${ error.message }`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Save GPS history data for a session
+   */
+  private async saveGpsHistoryData(
+    sessionId: string,
+    historyData: GenericGPS[],
+    vehicle: VehicleEntity,
+    session: VehicleSessionEntity
+  ): Promise<void> {
+    try {
+      for (const gpsRecord of historyData) {
+        await this.gpsService.saveGps(gpsRecord, vehicle, session);
+      }
+      this.logger.log(`Saved ${ historyData.length } GPS history records for session ${ sessionId }`);
+    } catch (error) {
+      this.logger.error(`Error saving GPS history for session ${ sessionId }: ${ error.message }`, error.stack);
+      throw error;
+    }
   }
 
   async cancelSession(id: string): Promise<VehicleSessionEntity> {

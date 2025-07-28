@@ -1,4 +1,4 @@
-import { Global, Module }               from '@nestjs/common';
+import { forwardRef, Global, Module }   from '@nestjs/common';
 import { TypeOrmModule }                from '@nestjs/typeorm';
 import { BiogpsService }                from '@modules/gps/services/biogps.service';
 import { FeatureToggleModule }          from '@modules/config/base/feature-toggle-module.base';
@@ -19,7 +19,7 @@ import { LogisticsModule }              from '@modules/logistics/logistics.modul
       GpsEntity,
       VehicleGpsProviderEntity
     ]),
-    LogisticsModule
+    forwardRef(() => LogisticsModule)
   ],
   controllers: [ GpsController ],
   providers: [
@@ -30,7 +30,9 @@ import { LogisticsModule }              from '@modules/logistics/logistics.modul
     GpsFeatureTogglesProvider
   ],
   exports: [
+    TypeOrmModule,
     BiogpsService,
+    GpsService,
     GpsProviderFactoryService
   ],
 })

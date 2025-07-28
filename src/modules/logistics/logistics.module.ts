@@ -1,5 +1,5 @@
-import { Module }        from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { forwardRef, Module } from '@nestjs/common';
+import { TypeOrmModule }      from '@nestjs/typeorm';
 
 import { VehiclesController }        from './fleet-management/controllers/vehicles.controller';
 import { DriversController }         from './fleet-management/controllers/drivers.controller';
@@ -33,6 +33,7 @@ import { RoleUserEntity }      from '@modules/roles/domain/entities/role-user.en
 
 import { FilesModule }              from '../files/files.module';
 import { UsersModule }              from '@modules/users/users.module';
+import { GpsModule }                from '@modules/gps/gps.module';
 import { VehicleGpsProviderEntity } from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
 import { GpsHandler }               from '@modules/logistics/fleet-management/handlers/gps.handler';
 
@@ -52,7 +53,8 @@ import { GpsHandler }               from '@modules/logistics/fleet-management/ha
       FuelRecordEntity
     ]),
     FilesModule,
-    UsersModule
+    UsersModule,
+    forwardRef(() => GpsModule)
   ],
   controllers: [
     VehiclesController,
