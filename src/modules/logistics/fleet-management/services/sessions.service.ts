@@ -293,17 +293,22 @@ export class SessionsService {
         session.endTime
       );
 
-      // Process GPS history data if available
-      if (historyData && historyData.length > 0) {
+      // Process GPS history data if available and has more than 1 record
+      if (historyData && historyData.length > 1) {
         this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
 
-        // Clear existing GPS data for the session
-        await this.clearSessionGpsData(session.id);
+        // Clear existing GPS data for the session. TODO: Check if this is necessary and if it affects performance
+        // await this.clearSessionGpsData(session.id);
 
         // Save the new GPS history data (more complete route)
         await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
 
         // Maintain compatibility by emitting events
+        provider.emitGpsEvents(historyData);
+      } else if (historyData && historyData.length <= 1) {
+        this.logger.log(`Skipping GPS history replacement for session ${ session.id } - insufficient data (${ historyData.length } records). Keeping existing history.`);
+
+        // Still emit events for compatibility, but don't replace existing data
         provider.emitGpsEvents(historyData);
       }
     } catch (error) {

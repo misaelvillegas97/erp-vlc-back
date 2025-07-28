@@ -127,6 +127,8 @@ export class GpsService {
         referenceId: gpsData.referenceId,
         licensePlate: gpsData.licensePlate,
         timestamp: gpsData.currentLocation.timestamp,
+        latitude: gpsData.currentLocation.lat,
+        longitude: gpsData.currentLocation.lng,
       },
     });
 
