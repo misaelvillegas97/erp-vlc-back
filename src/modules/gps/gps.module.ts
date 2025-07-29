@@ -1,6 +1,8 @@
 import { forwardRef, Global, Module }   from '@nestjs/common';
 import { TypeOrmModule }                from '@nestjs/typeorm';
+import { HttpModule }                   from '@nestjs/axios';
 import { BiogpsService }                from '@modules/gps/services/biogps.service';
+import { OsrmService }                  from '@modules/gps/services/osrm.service';
 import { FeatureToggleModule }          from '@modules/config/base/feature-toggle-module.base';
 import { FeatureToggleRegistryService } from '@modules/config/feature-toggle-registry.service';
 import { GpsFeatureTogglesProvider }    from '@modules/gps/gps-feature-toggles.provider';
@@ -15,6 +17,7 @@ import { LogisticsModule }              from '@modules/logistics/logistics.modul
 @Global()
 @Module({
   imports: [
+    HttpModule,
     TypeOrmModule.forFeature([
       GpsEntity,
       VehicleGpsProviderEntity
@@ -27,13 +30,15 @@ import { LogisticsModule }              from '@modules/logistics/logistics.modul
     BiogpsService,
     GpsService,
     GpsProviderFactoryService,
+    OsrmService,
     GpsFeatureTogglesProvider
   ],
   exports: [
     TypeOrmModule,
     BiogpsService,
     GpsService,
-    GpsProviderFactoryService
+    GpsProviderFactoryService,
+    OsrmService
   ],
 })
 export class GpsModule extends FeatureToggleModule {

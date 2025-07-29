@@ -131,6 +131,7 @@ export class BiogpsService implements IGpsProvider {
         url += `&from_date=${ fromDate }&from_time=${ fromTime }&to_date=${ toDate }&to_time=${ toTime }&snap_to_road=true`;
       }
 
+      this.logger.debug(`Fetching GPS history from BioGPS API: ${ url }`);
       const response = await axios.get<BiogpsRawHistory>(url);
       const fetchEndTime = Date.now();
       this.logger.debug(`Fetched GPS history in ${ (fetchEndTime - fetchStartTime) }ms`);

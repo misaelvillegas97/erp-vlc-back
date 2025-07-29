@@ -9,4 +9,7 @@ export default registerAs('gps', () => ({
     defaultTimeout: parseInt(process.env.GPS_DEFAULT_TIMEOUT, 10) || 30000,
     defaultInterval: parseInt(process.env.GPS_DEFAULT_INTERVAL, 10) || 60000,
   },
+  osrm: {
+    apiUrl: process.env.OSRM_API_URL || 'https://router.project-osrm.org',
+  },
 }));

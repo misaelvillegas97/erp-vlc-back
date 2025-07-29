@@ -7,4 +7,7 @@ export interface GpsConfig {
     apiUrl: string;
     apiHash: string;
   };
+  osrm: {
+    apiUrl: string;
+  };
 }

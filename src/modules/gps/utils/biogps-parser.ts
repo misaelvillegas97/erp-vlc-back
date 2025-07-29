@@ -50,7 +50,6 @@ export class BiogpsParser {
   }
 
   static fromHistoryToGeneric(raw: BiogpsRawHistory, licensePlate: string): GenericGPS[] {
-    console.log('Parsing BIOGPS history data...', raw);
     const innerItems = raw.items.flatMap(item => item.items);
 
     return innerItems.map(item => {

@@ -63,11 +63,19 @@ export class VehicleSessionEntity extends AbstractEntity {
   })
   locations: VehicleSessionLocationEntity[];
 
-  @OneToMany(() => GpsEntity, gps => gps.vehicleSession, {
-    cascade: true
-  })
+  @OneToMany(() => GpsEntity, gps => gps.vehicleSession, {cascade: true})
   gps?: GpsEntity[];
 
   @Column('simple-json', {nullable: true})
   images: { id: string, path: string }[];
+
+  @Column('simple-json', {nullable: true, name: 'route_polygon'})
+  routePolygon: {
+    geometry: {
+      coordinates: number[][];
+      type: string;
+    };
+    distance: number;
+    duration: number;
+  };
 }

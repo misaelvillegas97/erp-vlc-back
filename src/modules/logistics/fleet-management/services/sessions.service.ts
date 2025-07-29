@@ -13,8 +13,10 @@ import { VehicleEntity, VehicleStatus }                                        f
 import { FilesService }                                                        from '@modules/files/files.service';
 import { GpsProviderFactoryService }                                           from '@modules/gps/services/gps-provider-factory.service';
 import { GpsService }                                                          from '@modules/gps/services/gps.service';
+import { OsrmService }                                                         from '@modules/gps/services/osrm.service';
 import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
 import { GenericGPS }                                                          from '@modules/gps/domain/interfaces/generic-gps.interface';
+import { OsrmRoutePoint }                                                      from '@modules/gps/domain/interfaces/osrm.interface';
 
 @Injectable()
 export class SessionsService {
@@ -29,7 +31,8 @@ export class SessionsService {
     private readonly driversService: DriversService,
     private readonly filesService: FilesService,
     private readonly gpsProviderFactoryService: GpsProviderFactoryService,
-    private readonly gpsService: GpsService
+    private readonly gpsService: GpsService,
+    private readonly osrmService: OsrmService,
   ) {}
 
   async findAll(query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
@@ -119,6 +122,46 @@ export class SessionsService {
 
     if (!session) {
       throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
+    }
+
+    // Generate route polygon if missing (for sessions created before OSRM integration)
+    if (!session.routePolygon && session.status === VehicleSessionStatus.COMPLETED && session.endTime) {
+      try {
+        this.logger.log(`Generating missing route polygon for session ${ session.id }`);
+
+        // Generate route polygon using OSRM Match service
+        const osrmPoints: OsrmRoutePoint[] = session.gps.map(point => ({
+          latitude: point.latitude,
+          longitude: point.longitude,
+          timestamp: point.timestamp ? new Date(point.timestamp) : undefined,
+        }));
+
+        // Configure Match service options for better GPS point matching
+        const matchOptions = {
+          tidy: true,           // Allow input track modification for better matching quality on noisy tracks
+          gaps: 'split' as const, // Split track based on timestamp gaps
+          geometries: 'geojson' as const,
+          overview: 'full' as const,
+          steps: false,
+          annotations: false
+        };
+
+        const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions);
+        if (routeData) {
+          // Update session with route polygon data
+          await this.sessionRepository.update(session.id, {
+            routePolygon: routeData,
+          });
+
+          // Update the session object to return the generated data
+          session.routePolygon = routeData;
+
+          this.logger.log(`Successfully generated and saved route polygon for session ${ session.id }`);
+        }
+      } catch (error) {
+        // Don't interrupt the main flow if there's an error generating the route
+        this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
+      }
     }
 
     return session;
@@ -302,6 +345,36 @@ export class SessionsService {
 
         // Save the new GPS history data (more complete route)
         await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
+
+        // Generate route polygon using OSRM Match service
+        try {
+          const osrmPoints: OsrmRoutePoint[] = historyData.map(point => ({
+            latitude: point.currentLocation.lat,
+            longitude: point.currentLocation.lng,
+            timestamp: point.currentLocation.timestamp ? new Date(point.currentLocation.timestamp) : undefined,
+          }));
+
+          // Configure Match service options for better GPS point matching
+          const matchOptions = {
+            tidy: true,           // Allow input track modification for better matching quality on noisy tracks
+            gaps: 'split' as const, // Split track based on timestamp gaps
+            geometries: 'geojson' as const,
+            overview: 'full' as const,
+            steps: false,
+            annotations: false
+          };
+
+          const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions);
+          if (routeData) {
+            // Update session with route polygon data
+            await this.sessionRepository.update(session.id, {
+              routePolygon: routeData,
+            });
+            this.logger.log(`Successfully generated and saved route polygon for session ${ session.id }`);
+          }
+        } catch (error) {
+          this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
+        }
 
         // Maintain compatibility by emitting events
         provider.emitGpsEvents(historyData);
