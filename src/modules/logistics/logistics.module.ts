@@ -22,6 +22,7 @@ import { MaintenanceScheduler }    from '@modules/logistics/fleet-management/sch
 import { VehicleEntity }                from './fleet-management/domain/entities/vehicle.entity';
 import { VehicleSessionEntity }         from './fleet-management/domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity } from './fleet-management/domain/entities/vehicle-session-location.entity';
+import { VehicleSessionRouteEntity }    from './fleet-management/domain/entities/vehicle-session-route.entity';
 import { MaintenanceRecordEntity }      from './fleet-management/domain/entities/maintenance-record.entity';
 import { MaintenanceAlertEntity }       from './fleet-management/domain/entities/maintenance-alert.entity';
 import { VehicleDocumentEntity }        from './fleet-management/domain/entities/vehicle-document.entity';
@@ -43,6 +44,7 @@ import { GpsHandler }               from '@modules/logistics/fleet-management/ha
       VehicleEntity,
       VehicleSessionEntity,
       VehicleSessionLocationEntity,
+      VehicleSessionRouteEntity,
       VehicleGpsProviderEntity,
       UserEntity,
       DriverLicenseEntity,

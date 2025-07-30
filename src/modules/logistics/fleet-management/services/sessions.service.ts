@@ -3,6 +3,7 @@ import { InjectRepository }                                                    f
 import { Between, Repository }                                                 from 'typeorm';
 import { VehicleSessionEntity, VehicleSessionStatus }                          from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                                        from '../domain/entities/vehicle-session-location.entity';
+import { VehicleSessionRouteEntity }                                           from '../domain/entities/vehicle-session-route.entity';
 import { StartSessionDto }                                                     from '../domain/dto/start-session.dto';
 import { FinishSessionDto }                                                    from '../domain/dto/finish-session.dto';
 import { UpdateLocationDto }                                                   from '../domain/dto/update-location.dto';
@@ -16,7 +17,7 @@ import { GpsService }                                                          f
 import { OsrmService }                                                         from '@modules/gps/services/osrm.service';
 import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
 import { GenericGPS }                                                          from '@modules/gps/domain/interfaces/generic-gps.interface';
-import { OsrmRoutePoint }                                                      from '@modules/gps/domain/interfaces/osrm.interface';
+import { OsrmRoutePoint, OsrmValidationConfig }                                from '@modules/gps/domain/interfaces/osrm.interface';
 
 @Injectable()
 export class SessionsService {
@@ -27,6 +28,8 @@ export class SessionsService {
     private readonly sessionRepository: Repository<VehicleSessionEntity>,
     @InjectRepository(VehicleSessionLocationEntity)
     private readonly locationRepository: Repository<VehicleSessionLocationEntity>,
+    @InjectRepository(VehicleSessionRouteEntity)
+    private readonly routeRepository: Repository<VehicleSessionRouteEntity>,
     private readonly vehiclesService: VehiclesService,
     private readonly driversService: DriversService,
     private readonly filesService: FilesService,
@@ -34,6 +37,277 @@ export class SessionsService {
     private readonly gpsService: GpsService,
     private readonly osrmService: OsrmService,
   ) {}
+
+  /**
+   * Get route details for a session
+   * @param sessionId Session ID
+   * @returns Promise with route details or null
+   */
+  async getRouteDetails(sessionId: string): Promise<VehicleSessionRouteEntity | null> {
+    return this.routeRepository.findOne({
+      where: {sessionId}
+    });
+  }
+
+  /**
+   * Find session by ID with optional route details loading
+   * @param id Session ID
+   * @param userId Optional user ID for filtering
+   * @param includeRouteDetails Whether to load detailed route data
+   * @returns Promise with session entity
+   */
+  async findByIdWithRouteDetails(id: string, userId?: string, includeRouteDetails = false): Promise<VehicleSessionEntity> {
+    const whereCondition: any = {id};
+    if (userId) whereCondition.driverId = userId;
+
+    const relations = [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider' ];
+    if (includeRouteDetails) {
+      relations.push('routeDetails');
+    }
+
+    const session = await this.sessionRepository.findOne({
+      where: {...whereCondition},
+      relations,
+      order: {gps: {timestamp: 'ASC'}}
+    });
+
+    if (!session) {
+      throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
+    }
+
+    return session;
+  }
+
+  async findById(id: string, userId?: string): Promise<VehicleSessionEntity> {
+    const whereCondition: any = {id};
+
+    if (userId) whereCondition.driverId = userId;
+
+    const session = await this.sessionRepository.findOne({
+      where: {...whereCondition},
+      relations: [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider', 'routeDetails' ],
+      order: {gps: {timestamp: 'ASC'}}
+    });
+
+    if (!session) throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
+
+    this.logger.log(`Retrieved session ${ session.id }, Route details loaded: ${ !!session.routeDetails }`);
+
+    // Generate route polygon if missing (for sessions created before OSRM integration)
+    if (!session.routeDistance && session.status === VehicleSessionStatus.COMPLETED && session.endTime) {
+      try {
+        this.logger.log(`Generating missing route polygon for session ${ session.id }`);
+
+        // Generate route polygon using OSRM Match service
+        // Timestamp: Convert "1753735234000" → "2025-04-28T12:27:14.000Z"
+        const osrmPoints: OsrmRoutePoint[] = session.gps.map(point => ({
+          latitude: point.latitude,
+          longitude: point.longitude,
+          timestamp: point.timestamp
+        }));
+
+        // Configure Match service options for better GPS point matching
+        const matchOptions = {
+          tidy: true,           // Allow input track modification for better matching quality on noisy tracks
+          gaps: 'split' as const, // Split track based on timestamp gaps
+          geometries: 'geojson' as const,
+          overview: 'full' as const,
+          steps: false,
+          annotations: false
+        };
+
+        // Calculate expected values from session data instead of GPS points
+        const expectedDistance = session.finalOdometer && session.initialOdometer
+          ? (session.finalOdometer - session.initialOdometer) * 1000 // Convert km to meters
+          : 0;
+
+        const expectedDuration = session.endTime && session.startTime
+          ? (session.endTime.getTime() - session.startTime.getTime()) / 1000 // Convert ms to seconds
+          : 0;
+
+        // Configure validation to ensure OSRM results are reasonable using session odometer data
+        const validationConfig: OsrmValidationConfig = {
+          enableValidation: expectedDistance > 0 && expectedDuration > 0, // Only validate if we have session data
+          distanceTolerancePercent: 0.5,  // Allow 50% difference in distance
+          durationTolerancePercent: 1,  // Allow 60% difference in duration (more tolerance for traffic/routing differences)
+          maxRetries: 3,                  // Retry up to 3 times if validation fails
+          expectedDistance: expectedDistance > 0 ? expectedDistance : undefined,
+          expectedDuration: expectedDuration > 0 ? expectedDuration : undefined
+        };
+
+        this.logger.debug(`Session validation data - Expected distance: ${ expectedDistance }m, Expected duration: ${ expectedDuration }s`);
+
+        const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions, validationConfig);
+        if (routeData) {
+          // Save detailed route data to separate entity
+          await this.saveRouteDetails(session.id, routeData);
+
+          // Update session with lightweight route metadata
+          await this.sessionRepository.update(session.id, {
+            routeDistance: routeData.distance,
+            routeDuration: routeData.duration,
+            routeCoordinateCount: routeData.geometry?.coordinates?.length || 0
+          });
+
+          // Update the session object with metadata
+          session.routeDistance = routeData.distance;
+          session.routeDuration = routeData.duration;
+          session.routeCoordinateCount = routeData.geometry?.coordinates?.length || 0;
+
+          this.logger.log(`Successfully generated and saved route data for session ${ session.id }`);
+        }
+      } catch (error) {
+        // Don't interrupt the main flow if there's an error generating the route
+        this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
+      }
+    }
+
+    return session;
+  }
+
+  async finishSession(id: string, finishSessionDto: FinishSessionDto): Promise<VehicleSessionEntity> {
+    // Get session
+    const session = await this.findById(id);
+
+    if (session.status !== VehicleSessionStatus.ACTIVE) {
+      throw new UnprocessableEntityException(`Session is not active`);
+    }
+
+    // Check if odometer reading is valid
+    if (finishSessionDto.finalOdometer < session.initialOdometer) {
+      throw new UnprocessableEntityException(
+        `Final odometer reading (${ finishSessionDto.finalOdometer }) cannot be less than initial odometer (${ session.initialOdometer })`
+      );
+    }
+
+    // Update session
+    session.endTime = new Date();
+    session.finalOdometer = finishSessionDto.finalOdometer;
+    session.status = VehicleSessionStatus.COMPLETED;
+    session.observations = finishSessionDto.observations;
+    session.incidents = finishSessionDto.incidents;
+
+    // Process images if provided
+    if (finishSessionDto.imageIds && finishSessionDto.imageIds.length > 0) {
+      const images = [];
+      for (const imageId of finishSessionDto.imageIds) {
+        try {
+          const fileInfo = await this.filesService.findById(imageId);
+          if (fileInfo) {
+            images.push({id: imageId, path: fileInfo.path});
+          }
+        } catch (error) {
+          this.logger.error(`Error processing image ${ imageId }: ${ error.message }`);
+        }
+      }
+      session.images = images;
+    }
+
+    // Save session
+    const savedSession = await this.sessionRepository.save(session);
+
+    // Record final location if provided
+    if (finishSessionDto.finalLatitude && finishSessionDto.finalLongitude) {
+      await this.recordLocation(
+        savedSession.id,
+        {
+          latitude: finishSessionDto.finalLatitude,
+          longitude: finishSessionDto.finalLongitude
+        },
+        false,
+        true
+      );
+    }
+
+    // Update vehicle status and odometer
+    await this.vehiclesService.updateStatus(session.vehicleId, VehicleStatus.AVAILABLE);
+    await this.vehiclesService.updateOdometer(session.vehicleId, finishSessionDto.finalOdometer);
+
+    // Retrieve GPS history for the session
+    try {
+      // Get the GPS provider for this vehicle
+      const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
+
+      // Get the GPS history for the session
+      const historyData = await provider.getOneHistory(
+        historyConfig.metadata.endpoint,
+        historyConfig.metadata.apiKey,
+        session.vehicle.licensePlate,
+        session.vehicle.gpsProvider.providerId,
+        session.startTime,
+        session.endTime
+      );
+
+      // Process GPS history data if available and has more than 1 record
+      if (historyData && historyData.length > 1) {
+        this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
+
+        // Clear existing GPS data for the session. TODO: Check if this is necessary and if it affects performance
+        // await this.clearSessionGpsData(session.id);
+
+        // Save the new GPS history data (more complete route)
+        await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
+
+        // Generate route polygon using OSRM Match service
+        try {
+          const osrmPoints: OsrmRoutePoint[] = historyData.map(point => ({
+            latitude: point.currentLocation.lat,
+            longitude: point.currentLocation.lng,
+            timestamp: +point.currentLocation.timestamp
+          }));
+
+          // Configure Match service options for better GPS point matching
+          const matchOptions = {
+            tidy: true,           // Allow input track modification for better matching quality on noisy tracks
+            gaps: 'split' as const, // Split track based on timestamp gaps
+            geometries: 'geojson' as const,
+            overview: 'full' as const,
+            steps: false,
+            annotations: false
+          };
+
+          const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions);
+          if (routeData) {
+            // Save detailed route data to separate entity
+            await this.saveRouteDetails(session.id, routeData);
+
+            // Update session with lightweight route metadata
+            await this.sessionRepository.update(session.id, {
+              routeDistance: routeData.distance,
+              routeDuration: routeData.duration,
+              routeCoordinateCount: routeData.geometry?.coordinates?.length || 0
+            });
+
+            this.logger.log(`Successfully generated and saved route data for session ${ session.id }`);
+          }
+        } catch (error) {
+          this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
+        }
+
+        // Maintain compatibility by emitting events
+        provider.emitGpsEvents(historyData);
+      } else if (historyData && historyData.length <= 1) {
+        this.logger.log(`Skipping GPS history replacement for session ${ session.id } - insufficient data (${ historyData.length } records). Keeping existing history.`);
+
+        // Still emit events for compatibility, but don't replace existing data
+        provider.emitGpsEvents(historyData);
+      }
+    } catch (error) {
+      // Don't interrupt the main flow if there's an error retrieving GPS history
+      this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
+    }
+
+    return this.findById(savedSession.id);
+  }
+
+  /**
+   * Compress route matchings data to JSON string
+   * @param matchings Array of OSRM matchings
+   * @returns Compressed JSON string
+   */
+  private compressMatchings(matchings: any[]): string {
+    return JSON.stringify(matchings);
+  }
 
   async findAll(query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
     const page = query.page || 1;
@@ -109,62 +383,18 @@ export class SessionsService {
     });
   }
 
-  async findById(id: string, userId?: string): Promise<VehicleSessionEntity> {
-    const whereCondition: any = {id};
-
-    if (userId) whereCondition.driverId = userId;
-
-    const session = await this.sessionRepository.findOne({
-      where: {...whereCondition},
-      relations: [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider' ],
-      order: {gps: {timestamp: 'ASC'}}
-    });
-
-    if (!session) {
-      throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
+  /**
+   * Decompress route matchings data from JSON string
+   * @param compressedData Compressed JSON string
+   * @returns Array of OSRM matchings
+   */
+  private decompressMatchings(compressedData: string): any[] {
+    try {
+      return JSON.parse(compressedData);
+    } catch (error) {
+      this.logger.error(`Error decompressing matchings data: ${ error.message }`);
+      return [];
     }
-
-    // Generate route polygon if missing (for sessions created before OSRM integration)
-    if (!session.routePolygon && session.status === VehicleSessionStatus.COMPLETED && session.endTime) {
-      try {
-        this.logger.log(`Generating missing route polygon for session ${ session.id }`);
-
-        // Generate route polygon using OSRM Match service
-        const osrmPoints: OsrmRoutePoint[] = session.gps.map(point => ({
-          latitude: point.latitude,
-          longitude: point.longitude,
-          timestamp: point.timestamp ? new Date(point.timestamp) : undefined,
-        }));
-
-        // Configure Match service options for better GPS point matching
-        const matchOptions = {
-          tidy: true,           // Allow input track modification for better matching quality on noisy tracks
-          gaps: 'split' as const, // Split track based on timestamp gaps
-          geometries: 'geojson' as const,
-          overview: 'full' as const,
-          steps: false,
-          annotations: false
-        };
-
-        const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions);
-        if (routeData) {
-          // Update session with route polygon data
-          await this.sessionRepository.update(session.id, {
-            routePolygon: routeData,
-          });
-
-          // Update the session object to return the generated data
-          session.routePolygon = routeData;
-
-          this.logger.log(`Successfully generated and saved route polygon for session ${ session.id }`);
-        }
-      } catch (error) {
-        // Don't interrupt the main flow if there's an error generating the route
-        this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
-      }
-    }
-
-    return session;
   }
 
   async findByVehicleId(vehicleId: string): Promise<VehicleSessionEntity[]> {
@@ -263,146 +493,27 @@ export class SessionsService {
     return this.findById(savedSession.id);
   }
 
-  async finishSession(id: string, finishSessionDto: FinishSessionDto): Promise<VehicleSessionEntity> {
-    // Get session
-    const session = await this.findById(id);
-
-    if (session.status !== VehicleSessionStatus.ACTIVE) {
-      throw new UnprocessableEntityException(`Session is not active`);
-    }
-
-    // Check if odometer reading is valid
-    if (finishSessionDto.finalOdometer < session.initialOdometer) {
-      throw new UnprocessableEntityException(
-        `Final odometer reading (${ finishSessionDto.finalOdometer }) cannot be less than initial odometer (${ session.initialOdometer })`
-      );
-    }
-
-    // Update session
-    session.endTime = new Date();
-    session.finalOdometer = finishSessionDto.finalOdometer;
-    session.status = VehicleSessionStatus.COMPLETED;
-    session.observations = finishSessionDto.observations;
-    session.incidents = finishSessionDto.incidents;
-
-    // Process images if provided
-    if (finishSessionDto.imageIds && finishSessionDto.imageIds.length > 0) {
-      const images = [];
-      for (const imageId of finishSessionDto.imageIds) {
-        try {
-          const fileInfo = await this.filesService.findById(imageId);
-          if (fileInfo) {
-            images.push({id: imageId, path: fileInfo.path});
-          }
-        } catch (error) {
-          this.logger.error(`Error processing image ${ imageId }: ${ error.message }`);
-        }
-      }
-      session.images = images;
-    }
-
-    // Save session
-    const savedSession = await this.sessionRepository.save(session);
-
-    // Record final location if provided
-    if (finishSessionDto.finalLatitude && finishSessionDto.finalLongitude) {
-      await this.recordLocation(
-        savedSession.id,
-        {
-          latitude: finishSessionDto.finalLatitude,
-          longitude: finishSessionDto.finalLongitude
-        },
-        false,
-        true
-      );
-    }
-
-    // Update vehicle status and odometer
-    await this.vehiclesService.updateStatus(session.vehicleId, VehicleStatus.AVAILABLE);
-    await this.vehiclesService.updateOdometer(session.vehicleId, finishSessionDto.finalOdometer);
-
-    // Retrieve GPS history for the session
-    try {
-      // Get the GPS provider for this vehicle
-      const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
-
-      // Get the GPS history for the session
-      const historyData = await provider.getOneHistory(
-        historyConfig.metadata.endpoint,
-        historyConfig.metadata.apiKey,
-        session.vehicle.licensePlate,
-        session.vehicle.gpsProvider.providerId,
-        session.startTime,
-        session.endTime
-      );
-
-      // Process GPS history data if available and has more than 1 record
-      if (historyData && historyData.length > 1) {
-        this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
-
-        // Clear existing GPS data for the session. TODO: Check if this is necessary and if it affects performance
-        // await this.clearSessionGpsData(session.id);
-
-        // Save the new GPS history data (more complete route)
-        await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
-
-        // Generate route polygon using OSRM Match service
-        try {
-          const osrmPoints: OsrmRoutePoint[] = historyData.map(point => ({
-            latitude: point.currentLocation.lat,
-            longitude: point.currentLocation.lng,
-            timestamp: point.currentLocation.timestamp ? new Date(point.currentLocation.timestamp) : undefined,
-          }));
-
-          // Configure Match service options for better GPS point matching
-          const matchOptions = {
-            tidy: true,           // Allow input track modification for better matching quality on noisy tracks
-            gaps: 'split' as const, // Split track based on timestamp gaps
-            geometries: 'geojson' as const,
-            overview: 'full' as const,
-            steps: false,
-            annotations: false
-          };
-
-          const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions);
-          if (routeData) {
-            // Update session with route polygon data
-            await this.sessionRepository.update(session.id, {
-              routePolygon: routeData,
-            });
-            this.logger.log(`Successfully generated and saved route polygon for session ${ session.id }`);
-          }
-        } catch (error) {
-          this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
-        }
-
-        // Maintain compatibility by emitting events
-        provider.emitGpsEvents(historyData);
-      } else if (historyData && historyData.length <= 1) {
-        this.logger.log(`Skipping GPS history replacement for session ${ session.id } - insufficient data (${ historyData.length } records). Keeping existing history.`);
-
-        // Still emit events for compatibility, but don't replace existing data
-        provider.emitGpsEvents(historyData);
-      }
-    } catch (error) {
-      // Don't interrupt the main flow if there's an error retrieving GPS history
-      this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
-    }
-
-    return this.findById(savedSession.id);
-  }
-
   /**
-   * Clear existing GPS data for a session
+   * Save route details to separate entity
+   * @param sessionId Session ID
+   * @param routeData OSRM route response data
+   * @returns Promise with saved route entity
    */
-  private async clearSessionGpsData(sessionId: string): Promise<void> {
-    try {
-      await this.gpsService.deleteBySessionId(sessionId);
-      this.logger.log(`Cleared existing GPS data for session ${ sessionId }`);
-    } catch (error) {
-      this.logger.error(`Error clearing GPS data for session ${ sessionId }: ${ error.message }`, error.stack);
-      throw error;
+  private async saveRouteDetails(sessionId: string, routeData: any): Promise<VehicleSessionRouteEntity> {
+    const routeEntity = new VehicleSessionRouteEntity();
+    routeEntity.sessionId = sessionId;
+    routeEntity.geometry = routeData.geometry;
+    routeEntity.distance = routeData.distance;
+    routeEntity.duration = routeData.duration;
+    routeEntity.legs = routeData.legs || [];
+    routeEntity.coordinateCount = routeData.geometry?.coordinates?.length || 0;
+
+    if (routeData.allMatchings) {
+      routeEntity.allMatchings = this.compressMatchings(routeData.allMatchings);
+      routeEntity.totalMatchings = routeData.allMatchings.length;
     }
+
+    return this.routeRepository.save(routeEntity);
   }
 
   /**

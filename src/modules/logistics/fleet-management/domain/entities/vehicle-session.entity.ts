@@ -1,9 +1,10 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
-import { AbstractEntity }                                          from '@shared/domain/entities/abstract.entity';
-import { VehicleEntity }                                           from './vehicle.entity';
-import { VehicleSessionLocationEntity }                            from './vehicle-session-location.entity';
-import { UserEntity }                                              from '@modules/users/domain/entities/user.entity';
-import { GpsEntity }                                               from '@modules/gps/domain/entities/gps.entity';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import { AbstractEntity }                                                    from '@shared/domain/entities/abstract.entity';
+import { VehicleEntity }                                                     from './vehicle.entity';
+import { VehicleSessionLocationEntity }                                      from './vehicle-session-location.entity';
+import { VehicleSessionRouteEntity }                                         from './vehicle-session-route.entity';
+import { UserEntity }                                                        from '@modules/users/domain/entities/user.entity';
+import { GpsEntity }                                                         from '@modules/gps/domain/entities/gps.entity';
 
 export enum VehicleSessionStatus {
   ACTIVE = 'ACTIVE',
@@ -69,13 +70,15 @@ export class VehicleSessionEntity extends AbstractEntity {
   @Column('simple-json', {nullable: true})
   images: { id: string, path: string }[];
 
-  @Column('simple-json', {nullable: true, name: 'route_polygon'})
-  routePolygon: {
-    geometry: {
-      coordinates: number[][];
-      type: string;
-    };
-    distance: number;
-    duration: number;
-  };
+  @Column({nullable: true, type: 'float', name: 'route_distance'})
+  routeDistance: number;
+
+  @Column({nullable: true, type: 'float', name: 'route_duration'})
+  routeDuration: number;
+
+  @Column({nullable: true, type: 'int', name: 'route_coordinate_count'})
+  routeCoordinateCount: number;
+
+  @OneToOne(() => VehicleSessionRouteEntity, route => route.session, {nullable: true})
+  routeDetails?: VehicleSessionRouteEntity;
 }
