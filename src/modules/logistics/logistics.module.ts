@@ -28,9 +28,10 @@ import { MaintenanceAlertEntity }       from './fleet-management/domain/entities
 import { VehicleDocumentEntity }        from './fleet-management/domain/entities/vehicle-document.entity';
 import { FuelRecordEntity }             from './fuel-management/domain/entities/fuel-record.entity';
 
-import { UserEntity }          from '@modules/users/domain/entities/user.entity';
-import { DriverLicenseEntity } from '@modules/users/domain/entities/driver-license.entity';
-import { RoleUserEntity }      from '@modules/roles/domain/entities/role-user.entity';
+import { UserEntity }              from '@modules/users/domain/entities/user.entity';
+import { DriverLicenseEntity }     from '@modules/users/domain/entities/driver-license.entity';
+import { RoleUserEntity }          from '@modules/roles/domain/entities/role-user.entity';
+import { GpsEntity }               from '@modules/gps/domain/entities/gps.entity';
 
 import { FilesModule }              from '../files/files.module';
 import { UsersModule }              from '@modules/users/users.module';
@@ -52,7 +53,8 @@ import { GpsHandler }               from '@modules/logistics/fleet-management/ha
       MaintenanceRecordEntity,
       MaintenanceAlertEntity,
       VehicleDocumentEntity,
-      FuelRecordEntity
+      FuelRecordEntity,
+      GpsEntity
     ]),
     FilesModule,
     UsersModule,
