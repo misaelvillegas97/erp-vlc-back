@@ -18,6 +18,7 @@ import { GeographicalAnalysisDashboardDto }                      from '../domain
 import { ComplianceSafetyDashboardDto, MaintenanceAlertItemDto } from '../domain/dto/dashboards/compliance-safety-dashboard.dto';
 import { UserEntity }                                            from '@modules/users/domain/entities/user.entity';
 import { DriverLicenseEntity }                                   from '@modules/users/domain/entities/driver-license.entity';
+import { DateTime }                                              from 'luxon';
 
 @Injectable()
 export class FleetDashboardsService {
@@ -78,11 +79,11 @@ export class FleetDashboardsService {
       let totalSpeed = 0;
       let speedPoints = 0;
 
-      if (session.locations && session.locations.length > 1) {
+      if (session.gps && session.gps.length > 1) {
         // Calculate distance from location points
-        for (let i = 1; i < session.locations.length; i++) {
-          const prevLoc = session.locations[i - 1];
-          const currLoc = session.locations[i];
+        for (let i = 1; i < session.gps.length; i++) {
+          const prevLoc = session.gps[i - 1];
+          const currLoc = session.gps[i];
           sessionDistance += this.calculateDistance(
             prevLoc.latitude, prevLoc.longitude,
             currLoc.latitude, currLoc.longitude
@@ -116,8 +117,8 @@ export class FleetDashboardsService {
       });
 
       // Get latest location for map
-      if (session.locations && session.locations.length > 0) {
-        const latestLocation = session.locations[session.locations.length - 1];
+      if (session.gps && session.gps.length > 0) {
+        const latestLocation = session.gps[session.gps.length - 1];
         mapVehicles.push({
           sessionId: session.id,
           vehicleId: session.vehicleId,
@@ -181,7 +182,7 @@ export class FleetDashboardsService {
     const queryBuilder = this.sessionRepository.createQueryBuilder('session')
       .leftJoinAndSelect('session.vehicle', 'vehicle')
       .leftJoinAndSelect('session.driver', 'driver')
-      .leftJoinAndSelect('session.locations', 'locations')
+      .leftJoinAndSelect('session.gps', 'locations')
       .where('session.startTime BETWEEN :dateFrom AND :dateTo', {dateFrom, dateTo});
 
     if (query.vehicleType) {
@@ -228,10 +229,10 @@ export class FleetDashboardsService {
       // Calculate session distance
       let sessionDistance = 0;
 
-      if (session.locations && session.locations.length > 1) {
-        for (let i = 1; i < session.locations.length; i++) {
-          const prevLoc = session.locations[i - 1];
-          const currLoc = session.locations[i];
+      if (session.gps && session.gps.length > 1) {
+        for (let i = 1; i < session.gps.length; i++) {
+          const prevLoc = session.gps[i - 1];
+          const currLoc = session.gps[i];
           sessionDistance += this.calculateDistance(
             prevLoc.latitude, prevLoc.longitude,
             currLoc.latitude, currLoc.longitude
@@ -352,7 +353,7 @@ export class FleetDashboardsService {
     const queryBuilder = this.sessionRepository.createQueryBuilder('session')
       .leftJoinAndSelect('session.vehicle', 'vehicle')
       .leftJoinAndSelect('session.driver', 'driver')
-      .leftJoinAndSelect('session.locations', 'locations')
+      .leftJoinAndSelect('session.gps', 'locations')
       .leftJoinAndSelect('driver.driverLicense', 'driverLicense')
       .where('session.startTime BETWEEN :dateFrom AND :dateTo', {dateFrom, dateTo});
 
@@ -391,10 +392,10 @@ export class FleetDashboardsService {
       // Calculate session distance
       let sessionDistance = 0;
 
-      if (session.locations && session.locations.length > 1) {
-        for (let i = 1; i < session.locations.length; i++) {
-          const prevLoc = session.locations[i - 1];
-          const currLoc = session.locations[i];
+      if (session.gps && session.gps.length > 1) {
+        for (let i = 1; i < session.gps.length; i++) {
+          const prevLoc = session.gps[i - 1];
+          const currLoc = session.gps[i];
           sessionDistance += this.calculateDistance(
             prevLoc.latitude, prevLoc.longitude,
             currLoc.latitude, currLoc.longitude
@@ -567,7 +568,7 @@ export class FleetDashboardsService {
     const queryBuilder = this.sessionRepository.createQueryBuilder('session')
       .leftJoinAndSelect('session.vehicle', 'vehicle')
       .leftJoinAndSelect('session.driver', 'driver')
-      .leftJoinAndSelect('session.locations', 'locations')
+      .leftJoinAndSelect('session.gps', 'locations')
       .where('session.startTime BETWEEN :dateFrom AND :dateTo', {dateFrom, dateTo});
 
     if (query.vehicleType) {
@@ -609,10 +610,10 @@ export class FleetDashboardsService {
       // Calculate session distance
       let sessionDistance = 0;
 
-      if (session.locations && session.locations.length > 1) {
-        for (let i = 1; i < session.locations.length; i++) {
-          const prevLoc = session.locations[i - 1];
-          const currLoc = session.locations[i];
+      if (session.gps && session.gps.length > 1) {
+        for (let i = 1; i < session.gps.length; i++) {
+          const prevLoc = session.gps[i - 1];
+          const currLoc = session.gps[i];
           sessionDistance += this.calculateDistance(
             prevLoc.latitude, prevLoc.longitude,
             currLoc.latitude, currLoc.longitude
@@ -767,25 +768,11 @@ export class FleetDashboardsService {
     const dateFrom = query.dateFrom ? new Date(query.dateFrom) : new Date(new Date().setMonth(new Date().getMonth() - 1));
     const dateTo = query.dateTo ? new Date(query.dateTo) : new Date();
 
-    // Get all locations in the date range
-    const locationsQueryBuilder = this.locationRepository.createQueryBuilder('location')
-      .leftJoinAndSelect('location.session', 'session')
+    // Get all sessions with GPS data in the date range
+    const sessionsQueryBuilder = this.sessionRepository.createQueryBuilder('session')
       .leftJoinAndSelect('session.vehicle', 'vehicle')
       .leftJoinAndSelect('session.driver', 'driver')
-      .where('location.timestamp BETWEEN :dateFrom AND :dateTo', {dateFrom, dateTo});
-
-    if (query.vehicleId) {
-      locationsQueryBuilder.andWhere('session.vehicleId = :vehicleId', {vehicleId: query.vehicleId});
-    }
-
-    if (query.driverId) {
-      locationsQueryBuilder.andWhere('session.driverId = :driverId', {driverId: query.driverId});
-    }
-
-    const locations = await locationsQueryBuilder.getMany();
-
-    // Get all sessions in the date range
-    const sessionsQueryBuilder = this.sessionRepository.createQueryBuilder('session')
+      .leftJoinAndSelect('session.gps', 'gps')
       .where('session.startTime BETWEEN :dateFrom AND :dateTo', {dateFrom, dateTo});
 
     if (query.vehicleId) {
@@ -798,48 +785,68 @@ export class FleetDashboardsService {
 
     const sessions = await sessionsQueryBuilder.getMany();
 
+    console.log(`Found ${ sessions.length } sessions with GPS data from ${ dateFrom } to ${ dateTo }`);
+
+    // Extract all GPS points from sessions
+    const gpsPoints = [];
+    for (const session of sessions) {
+      if (session.gps && session.gps.length > 0) {
+        for (const gps of session.gps) {
+          // Filter GPS points by date range if timestamp is available
+          const gpsTimestamp = DateTime.fromMillis(+gps.timestamp).toJSDate();
+          if (gpsTimestamp >= dateFrom && gpsTimestamp <= dateTo) {
+            gpsPoints.push({
+              ...gps,
+              session: session,
+              sessionId: session.id
+            });
+          }
+        }
+      }
+    }
+
     // Calculate total GPS points
-    const totalGpsPoints = locations.length;
+    const totalGpsPoints = gpsPoints.length;
 
     // Find maximum speed
     let maxSpeed = 0;
-    let maxSpeedLocation = null;
+    let maxSpeedGpsPoint = null;
 
-    for (const location of locations) {
-      if (location.speed && location.speed > maxSpeed) {
-        maxSpeed = location.speed;
-        maxSpeedLocation = location;
+    for (const gpsPoint of gpsPoints) {
+      if (gpsPoint.speed && gpsPoint.speed > maxSpeed) {
+        maxSpeed = gpsPoint.speed;
+        maxSpeedGpsPoint = gpsPoint;
       }
     }
 
     // Calculate average distance per session
     let totalDistance = 0;
 
-    // Group locations by session
-    const sessionLocations = new Map<string, VehicleSessionLocationEntity[]>();
+    // Group GPS points by session
+    const sessionGpsPoints = new Map<string, any[]>();
 
-    for (const location of locations) {
-      const sessionId = location.sessionId;
-      if (!sessionLocations.has(sessionId)) {
-        sessionLocations.set(sessionId, []);
+    for (const gpsPoint of gpsPoints) {
+      const sessionId = gpsPoint.sessionId;
+      if (!sessionGpsPoints.has(sessionId)) {
+        sessionGpsPoints.set(sessionId, []);
       }
-      sessionLocations.get(sessionId).push(location);
+      sessionGpsPoints.get(sessionId).push(gpsPoint);
     }
 
     // Calculate distance for each session
-    for (const [ , sessionLocs ] of sessionLocations.entries()) {
-      // Sort locations by timestamp
-      sessionLocs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    for (const [ , sessionGps ] of sessionGpsPoints.entries()) {
+      // Sort GPS points by timestamp
+      sessionGps.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
       let sessionDistance = 0;
 
-      if (sessionLocs.length > 1) {
-        for (let i = 1; i < sessionLocs.length; i++) {
-          const prevLoc = sessionLocs[i - 1];
-          const currLoc = sessionLocs[i];
+      if (sessionGps.length > 1) {
+        for (let i = 1; i < sessionGps.length; i++) {
+          const prevGps = sessionGps[i - 1];
+          const currGps = sessionGps[i];
           sessionDistance += this.calculateDistance(
-            prevLoc.latitude, prevLoc.longitude,
-            currLoc.latitude, currLoc.longitude
+            prevGps.latitude, prevGps.longitude,
+            currGps.latitude, currGps.longitude
           );
         }
       }
@@ -854,10 +861,10 @@ export class FleetDashboardsService {
     const gridSize = 0.01; // Approximately 1km grid
     const visitedAreas = new Map<string, { lat: number, lng: number, count: number }>();
 
-    for (const location of locations) {
+    for (const gpsPoint of gpsPoints) {
       // Round coordinates to grid
-      const gridLat = Math.round(location.latitude / gridSize) * gridSize;
-      const gridLng = Math.round(location.longitude / gridSize) * gridSize;
+      const gridLat = Math.round(gpsPoint.latitude / gridSize) * gridSize;
+      const gridLng = Math.round(gpsPoint.longitude / gridSize) * gridSize;
       const gridKey = `${ gridLat },${ gridLng }`;
 
       if (!visitedAreas.has(gridKey)) {
@@ -894,11 +901,11 @@ export class FleetDashboardsService {
       speedDistribution.set(range.range, {min: range.min, max: range.max, count: 0});
     });
 
-    // Count locations in each speed range
-    for (const location of locations) {
-      if (location.speed !== null && location.speed !== undefined) {
+    // Count GPS points in each speed range
+    for (const gpsPoint of gpsPoints) {
+      if (gpsPoint.speed !== null && gpsPoint.speed !== undefined) {
         for (const [ , data ] of speedDistribution.entries()) {
-          if (location.speed >= data.min && location.speed < data.max) {
+          if (gpsPoint.speed >= data.min && gpsPoint.speed < data.max) {
             data.count += 1;
             break;
           }
@@ -941,10 +948,10 @@ export class FleetDashboardsService {
     }
 
     // Prepare heat map data
-    // For simplicity, we'll use all location points with a random weight
-    const heatMapData = locations.map(location => ({
-      latitude: location.latitude,
-      longitude: location.longitude,
+    // For simplicity, we'll use all GPS points with a random weight
+    const heatMapData = gpsPoints.map(gpsPoint => ({
+      latitude: gpsPoint.latitude,
+      longitude: gpsPoint.longitude,
       weight: Math.random() * 0.5 + 0.5 // Random weight between 0.5 and 1
     }));
 
@@ -957,10 +964,10 @@ export class FleetDashboardsService {
       const routePoints = [];
       const routeLength = Math.floor(Math.random() * 10) + 5; // 5-15 points
 
-      // Start with a random location
-      const startIndex = Math.floor(Math.random() * locations.length);
-      let currentLat = locations[startIndex].latitude;
-      let currentLng = locations[startIndex].longitude;
+      // Start with a random GPS point
+      const startIndex = Math.floor(Math.random() * gpsPoints.length);
+      let currentLat = gpsPoints[startIndex].latitude;
+      let currentLng = gpsPoints[startIndex].longitude;
 
       routePoints.push({latitude: currentLat, longitude: currentLng});
 
@@ -984,12 +991,12 @@ export class FleetDashboardsService {
       totalGpsPoints: {
         count: totalGpsPoints
       },
-      maxSpeed: maxSpeedLocation ? {
+      maxSpeed: maxSpeedGpsPoint ? {
         maxSpeedKmh: parseFloat(maxSpeed.toFixed(2)),
-        sessionId: maxSpeedLocation.sessionId,
-        driverId: maxSpeedLocation.session.driverId,
-        vehicleId: maxSpeedLocation.session.vehicleId,
-        timestamp: maxSpeedLocation.timestamp.toISOString()
+        sessionId: maxSpeedGpsPoint.sessionId,
+        driverId: maxSpeedGpsPoint.session.driverId,
+        vehicleId: maxSpeedGpsPoint.session.vehicleId,
+        timestamp: DateTime.fromMillis(+maxSpeedGpsPoint.timestamp).toISO()
       } : {
         maxSpeedKmh: 0,
         sessionId: '',
@@ -1033,7 +1040,7 @@ export class FleetDashboardsService {
     const queryBuilder = this.sessionRepository.createQueryBuilder('session')
       .leftJoinAndSelect('session.vehicle', 'vehicle')
       .leftJoinAndSelect('session.driver', 'driver')
-      .leftJoinAndSelect('session.locations', 'locations')
+      .leftJoinAndSelect('session.gps', 'gps')
       .where('session.startTime BETWEEN :dateFrom AND :dateTo', {dateFrom, dateTo});
 
     if (query.vehicleType) {
@@ -1058,16 +1065,16 @@ export class FleetDashboardsService {
       : 0;
 
     // Define speed limit (could be configurable)
-    const speedLimit = 80; // km/h
+    const speedLimit = 120; // km/h
 
     // Count speed violations
     let speedViolationsCount = 0;
     const speedViolations = [];
 
     for (const session of sessions) {
-      if (session.locations) {
-        for (const location of session.locations) {
-          if (location.speed && location.speed > speedLimit) {
+      if (session.gps) {
+        for (const _gps of session.gps) {
+          if (_gps.speed && _gps.speed > speedLimit) {
             speedViolationsCount++;
             speedViolations.push({
               sessionId: session.id,
@@ -1076,10 +1083,10 @@ export class FleetDashboardsService {
               lastName: session.driver.lastName,
               vehicleId: session.vehicleId,
               licensePlate: session.vehicle.licensePlate,
-              timestamp: location.timestamp.toISOString(),
-              speed: location.speed,
+              timestamp: DateTime.fromMillis(+_gps.timestamp).toISO(),
+              speed: _gps.speed,
               speedLimit,
-              excess: location.speed - speedLimit
+              excess: _gps.speed - speedLimit
             });
           }
         }
