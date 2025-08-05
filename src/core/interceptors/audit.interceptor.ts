@@ -55,7 +55,9 @@ export class AuditInterceptor implements NestInterceptor {
         const recordHash = createHash('sha256')
           .update(JSON.stringify(logData))
           .digest('hex');
-        this.auditService.log({...logData, recordHash}).catch(() => {});
+        this.auditService.log({...logData, recordHash}).catch((er) => {console.log(er);});
+
+        return data;
       }),
     );
   }
