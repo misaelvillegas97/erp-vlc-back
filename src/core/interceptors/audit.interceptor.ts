@@ -1,9 +1,9 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { AuditService } from '@modules/audit/services/audit.service';
-import { createHash } from 'crypto';
-import geoip from 'geoip-lite';
+import { mergeMap, Observable }                                       from 'rxjs';
+import { AuditService }                                               from '@modules/audit/services/audit.service';
+import { createHash }                                                 from 'crypto';
+import geoip                                                          from 'geoip-lite';
+import { v4 }                                                         from 'uuid';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -22,7 +22,7 @@ export class AuditInterceptor implements NestInterceptor {
     const authType = authHeader ? authHeader.split(' ')[0] : undefined;
     const userRoles = user?.roles;
     const scopes = user?.scopes;
-    const requestId = headers['x-request-id'] || request.id;
+    const requestId = headers['x-request-id'] || request.id || v4();
     const traceId = headers['x-trace-id'];
     const appVersion = headers['x-app-version'];
     const environment = process.env.NODE_ENV;
@@ -32,7 +32,7 @@ export class AuditInterceptor implements NestInterceptor {
     const geoCity = geo?.city;
 
     return next.handle().pipe(
-      tap(async () => {
+      mergeMap(async (data) => {
         const durationMs = Date.now() - start;
         const logData = {
           userId,
@@ -55,7 +55,7 @@ export class AuditInterceptor implements NestInterceptor {
         const recordHash = createHash('sha256')
           .update(JSON.stringify(logData))
           .digest('hex');
-        await this.auditService.log({ ...logData, recordHash });
+        this.auditService.log({...logData, recordHash}).catch(() => {});
       }),
     );
   }
