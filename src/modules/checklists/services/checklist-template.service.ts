@@ -1,16 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository }                                   from '@nestjs/typeorm';
 import { Repository }                                         from 'typeorm';
 import { ChecklistTemplateEntity }                            from '../domain/entities/checklist-template.entity';
 import { CategoryEntity }                                     from '../domain/entities/category.entity';
 import { QuestionEntity }                                     from '../domain/entities/question.entity';
 import { CreateChecklistTemplateDto }                         from '../domain/dto/create-checklist-template.dto';
+import { TargetType }                                         from '../domain/enums/target-type.enum';
 import { CreateCategoryDto }                                  from '../domain/dto/create-category.dto';
 
 export interface QueryChecklistTemplateDto {
   type?: string;
   isActive?: boolean;
-  vehicleTypes?: string[];
+  targetTypes?: TargetType[];
   userRoles?: string[];
   page?: number;
   limit?: number;
@@ -36,7 +37,7 @@ export class ChecklistTemplateService {
     template.name = dto.name;
     template.description = dto.description;
     template.version = dto.version || '1.0';
-    template.vehicleTypes = dto.vehicleTypes || [];
+    template.targetTypes = dto.targetTypes || [];
     template.userRoles = dto.userRoles || [];
     template.isActive = dto.isActive !== undefined ? dto.isActive : true;
     template.performanceThreshold = dto.performanceThreshold || 70.0;
@@ -107,8 +108,8 @@ export class ChecklistTemplateService {
       queryBuilder.andWhere('template.isActive = :isActive', {isActive: query.isActive});
     }
 
-    if (query.vehicleTypes && query.vehicleTypes.length > 0) {
-      queryBuilder.andWhere('template.vehicleTypes && :vehicleTypes', {vehicleTypes: query.vehicleTypes});
+    if (query.targetTypes && query.targetTypes.length > 0) {
+      queryBuilder.andWhere('template.targetTypes && :targetTypes', {targetTypes: query.targetTypes});
     }
 
     if (query.userRoles && query.userRoles.length > 0) {
@@ -157,7 +158,7 @@ export class ChecklistTemplateService {
     if (dto.name !== undefined) template.name = dto.name;
     if (dto.description !== undefined) template.description = dto.description;
     if (dto.version !== undefined) template.version = dto.version;
-    if (dto.vehicleTypes !== undefined) template.vehicleTypes = dto.vehicleTypes;
+    if (dto.targetTypes !== undefined) template.targetTypes = dto.targetTypes;
     if (dto.userRoles !== undefined) template.userRoles = dto.userRoles;
     if (dto.isActive !== undefined) template.isActive = dto.isActive;
     if (dto.performanceThreshold !== undefined) template.performanceThreshold = dto.performanceThreshold;
@@ -202,7 +203,7 @@ export class ChecklistTemplateService {
     duplicatedTemplate.name = newName || `${ originalTemplate.name } (Copy)`;
     duplicatedTemplate.description = originalTemplate.description;
     duplicatedTemplate.version = '1.0'; // Reset version for duplicated template
-    duplicatedTemplate.vehicleTypes = [ ...(originalTemplate.vehicleTypes || []) ];
+    duplicatedTemplate.targetTypes = [ ...(originalTemplate.targetTypes || []) ];
     duplicatedTemplate.userRoles = [ ...(originalTemplate.userRoles || []) ];
     duplicatedTemplate.isActive = false; // Start as inactive
     duplicatedTemplate.performanceThreshold = originalTemplate.performanceThreshold;
@@ -288,17 +289,17 @@ export class ChecklistTemplateService {
   }
 
   /**
-   * Find templates by vehicle type and user role
+   * Find templates by target type and user role
    */
-  async findByFilters(vehicleType?: string, userRole?: string): Promise<ChecklistTemplateEntity[]> {
+  async findByFilters(targetType?: TargetType, userRole?: string): Promise<ChecklistTemplateEntity[]> {
     const queryBuilder = this.templateRepository.createQueryBuilder('template')
       .leftJoinAndSelect('template.categories', 'categories')
       .leftJoinAndSelect('categories.questions', 'questions')
       .where('template.isActive = :isActive', {isActive: true})
       .andWhere('template.deletedAt IS NULL');
 
-    if (vehicleType) {
-      queryBuilder.andWhere(':vehicleType = ANY(template.vehicleTypes)', {vehicleType});
+    if (targetType) {
+      queryBuilder.andWhere(':targetType = ANY(template.targetTypes)', {targetType});
     }
 
     if (userRole) {

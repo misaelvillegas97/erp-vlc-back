@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional }                                     
 import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 import { Type }                                                                                             from 'class-transformer';
 import { ChecklistType }                                                                                    from '../enums/checklist-type.enum';
+import { TargetType }                                                                                       from '../enums/target-type.enum';
 import { CreateCategoryDto }                                                                                from './create-category.dto';
 import { RoleEnum }                                                                                         from '@modules/roles/roles.enum';
 
@@ -41,14 +42,15 @@ export class CreateChecklistTemplateDto {
   version?: string;
 
   @ApiPropertyOptional({
-    description: 'Vehicle types this checklist applies to',
-    type: [ String ],
-    example: [ 'TRUCK', 'VAN', 'SEDAN' ]
+    description: 'Target types this checklist applies to',
+    enum: TargetType,
+    isArray: true,
+    example: [ TargetType.VEHICLE, TargetType.USER, TargetType.WAREHOUSE ]
   })
   @IsArray()
-  @IsString({each: true})
+  @IsEnum(TargetType, {each: true})
   @IsOptional()
-  vehicleTypes?: string[];
+  targetTypes?: TargetType[];
 
   @ApiPropertyOptional({
     description: 'User roles that can execute this checklist',

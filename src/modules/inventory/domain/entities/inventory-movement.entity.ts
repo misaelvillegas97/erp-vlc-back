@@ -32,7 +32,4 @@ export class InventoryMovementEntity extends AbstractEntity {
 
   @Column({type: 'json', nullable: true})
   metadata: Record<string, any>;
-
-  @Column({name: 'created_by'})
-  createdById: string;
 }

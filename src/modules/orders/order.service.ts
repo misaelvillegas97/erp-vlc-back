@@ -253,7 +253,7 @@ export class OrderService {
     if (user.role.name === 'DRIVER' || user.role.name === 'OPERATOR') {
       summary.assignedDeliveries = await this.orderRepository
         .createQueryBuilder('o')
-        .leftJoinAndSelect('o.invoice', 'inv')
+        .leftJoinAndSelect('o.invoices', 'inv')
         .where('o.deliveryDate = :currentDate', {currentDate})
         .andWhere('o.status NOT IN (:...statuses)', {statuses: [ 'DELIVERED', 'CANCELED' ]})
         .andWhere('inv.delivery_assignment_id = :driverId', {driverId: user.id})

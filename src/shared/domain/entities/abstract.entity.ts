@@ -1,10 +1,16 @@
-import { BaseEntity, CreateDateColumn, DeleteDateColumn, JoinColumn, ManyToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import { v4 }                                                                                                     from 'uuid';
-import { UserEntity }                                                                                             from '@modules/users/domain/entities/user.entity';
+import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, JoinColumn, ManyToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { v4 }                                                                                                             from 'uuid';
+import { UserEntity }                                                                                                     from '@modules/users/domain/entities/user.entity';
 
 export abstract class AbstractEntity extends BaseEntity {
   @PrimaryColumn('uuid')
   id: string = v4();
+
+  @Column({name: 'created_by', type: 'uuid', nullable: true})
+  createdById: string;
+
+  @Column({name: 'deleted_by', type: 'uuid', nullable: true})
+  deletedById: string;
 
   @CreateDateColumn({name: 'created_at', type: 'timestamp with time zone'})
   createdAt: Date;

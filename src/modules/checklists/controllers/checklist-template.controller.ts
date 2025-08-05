@@ -7,6 +7,7 @@ import {
 }                                                                                                         from '../services/checklist-template.service';
 import { CreateChecklistTemplateDto }                                                                     from '../domain/dto/create-checklist-template.dto';
 import { ChecklistTemplateEntity }                                                                        from '../domain/entities/checklist-template.entity';
+import { TargetType }                                                                                     from '../domain/enums/target-type.enum';
 
 @ApiTags('Checklists - Templates')
 @UseGuards(AuthGuard('jwt'))
@@ -206,7 +207,7 @@ export class ChecklistTemplateController {
 
   @ApiOperation({
     summary: 'Find templates by filters',
-    description: 'Find active templates that match vehicle type and user role filters'
+    description: 'Find active templates that match target type and user role filters'
   })
   @ApiResponse({
     status: 200,
@@ -216,10 +217,10 @@ export class ChecklistTemplateController {
   @Get('filter/by-criteria')
   @HttpCode(HttpStatus.OK)
   async findByFilters(
-    @Query('vehicleType') vehicleType?: string,
+    @Query('targetType') targetType?: TargetType,
     @Query('userRole') userRole?: string
   ): Promise<ChecklistTemplateEntity[]> {
-    return this.templateService.findByFilters(vehicleType, userRole);
+    return this.templateService.findByFilters(targetType, userRole);
   }
 
   @ApiOperation({

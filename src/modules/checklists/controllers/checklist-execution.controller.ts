@@ -1,19 +1,27 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { AuthGuard }                                                                  from '@nestjs/passport';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags }                               from '@nestjs/swagger';
-import { ChecklistExecutionService }                                                  from '../services/checklist-execution.service';
-import { CreateChecklistExecutionDto }                                                from '../domain/dto/create-checklist-execution.dto';
-import { QueryChecklistExecutionDto }                                                 from '../domain/dto/query-checklist-execution.dto';
-import { ChecklistExecutionEntity }                                                   from '../domain/entities/checklist-execution.entity';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard }                                                                       from '@nestjs/passport';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags }                                    from '@nestjs/swagger';
+import { Response }                                                                        from 'express';
+import { ChecklistExecutionService }                                                       from '../services/checklist-execution.service';
+import { ChecklistExportService }                                                          from '../services/checklist-export.service';
+import { CreateChecklistExecutionDto }                                                     from '../domain/dto/create-checklist-execution.dto';
+import { QueryChecklistExecutionDto }                                                      from '../domain/dto/query-checklist-execution.dto';
+import { ChecklistExecutionEntity }                                                        from '../domain/entities/checklist-execution.entity';
+import { TargetType }                                                                      from '../domain/enums/target-type.enum';
+import { ExecutionReportDto }                                                              from '../domain/dto/execution-report.dto';
+import { CurrentUser }                                                                     from '@shared/decorators/current-user.decorator';
+import { UserRequest }                                                                     from '@modules/users/domain/models/user-request';
 
 @ApiTags('Checklists - Executions')
 @UseGuards(AuthGuard('jwt'))
 @Controller({
   path: 'checklists/executions',
-  version: '1',
 })
 export class ChecklistExecutionController {
-  constructor(private readonly executionService: ChecklistExecutionService) {}
+  constructor(
+    private readonly executionService: ChecklistExecutionService,
+    private readonly exportService: ChecklistExportService
+  ) {}
 
   @ApiOperation({
     summary: 'Execute a checklist',
@@ -30,8 +38,8 @@ export class ChecklistExecutionController {
   })
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async executeChecklist(@Body() dto: CreateChecklistExecutionDto): Promise<ChecklistExecutionEntity> {
-    return this.executionService.executeChecklist(dto);
+  async executeChecklist(@Body() dto: CreateChecklistExecutionDto, @CurrentUser() user: UserRequest): Promise<ChecklistExecutionEntity> {
+    return this.executionService.executeChecklist(dto, user);
   }
 
   @ApiOperation({
@@ -80,6 +88,100 @@ export class ChecklistExecutionController {
   }
 
   @ApiOperation({
+    summary: 'Get detailed execution report',
+    description: 'Get a detailed hierarchical report of a checklist execution with evaluation → category → question → answer structure, ordered for frontend rendering'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns detailed execution report with hierarchical structure',
+    type: ExecutionReportDto
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Checklist execution not found'
+  })
+  @ApiParam({name: 'id', description: 'Checklist execution ID'})
+  @Get(':id/report')
+  @HttpCode(HttpStatus.OK)
+  async getExecutionReport(@Param('id') id: string): Promise<ExecutionReportDto> {
+    return this.executionService.getExecutionReport(id);
+  }
+
+  @ApiOperation({
+    summary: 'Export execution report as PDF',
+    description: 'Export a detailed checklist execution report as a professionally formatted PDF document'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns PDF file for download',
+    headers: {
+      'Content-Type': {
+        description: 'application/pdf',
+        schema: {type: 'string'}
+      },
+      'Content-Disposition': {
+        description: 'attachment; filename="execution-report-{id}.pdf"',
+        schema: {type: 'string'}
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Checklist execution not found'
+  })
+  @ApiParam({name: 'id', description: 'Checklist execution ID'})
+  @Get(':id/export/pdf')
+  @HttpCode(HttpStatus.OK)
+  async exportToPdf(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    const pdfBuffer = await this.exportService.exportToPdf(id);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="execution-report-${ id }.pdf"`,
+      'Content-Length': pdfBuffer.length.toString(),
+    });
+
+    res.send(pdfBuffer);
+  }
+
+  @ApiOperation({
+    summary: 'Export execution report as Excel',
+    description: 'Export a detailed checklist execution report as a formatted Excel spreadsheet'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns Excel file for download',
+    headers: {
+      'Content-Type': {
+        description: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        schema: {type: 'string'}
+      },
+      'Content-Disposition': {
+        description: 'attachment; filename="execution-report-{id}.xlsx"',
+        schema: {type: 'string'}
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Checklist execution not found'
+  })
+  @ApiParam({name: 'id', description: 'Checklist execution ID'})
+  @Get(':id/export/excel')
+  @HttpCode(HttpStatus.OK)
+  async exportToExcel(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    const excelBuffer = await this.exportService.exportToExcel(id);
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="execution-report-${ id }.xlsx"`,
+      'Content-Length': excelBuffer.length.toString(),
+    });
+
+    res.send(excelBuffer);
+  }
+
+  @ApiOperation({
     summary: 'Get execution statistics',
     description: 'Get statistics for executions including average scores and completion rates'
   })
@@ -118,36 +220,37 @@ export class ChecklistExecutionController {
   }
 
   @ApiOperation({
-    summary: 'Get executions by vehicle',
-    description: 'Get all executions for a specific vehicle'
+    summary: 'Get executions by target',
+    description: 'Get all executions for a specific target (user, vehicle, warehouse, etc.)'
   })
   @ApiResponse({
     status: 200,
-    description: 'Returns list of executions for the vehicle',
+    description: 'Returns list of executions for the target',
     type: [ ChecklistExecutionEntity ]
   })
-  @ApiParam({name: 'vehicleId', description: 'Vehicle ID'})
-  @Get('vehicle/:vehicleId')
+  @ApiParam({name: 'targetType', description: 'Target type (USER, VEHICLE, WAREHOUSE)'})
+  @ApiParam({name: 'targetId', description: 'Target ID'})
+  @Get('target/:targetType/:targetId')
   @HttpCode(HttpStatus.OK)
-  async findByVehicle(@Param('vehicleId') vehicleId: string): Promise<ChecklistExecutionEntity[]> {
-    const query: QueryChecklistExecutionDto = {targetVehicleId: vehicleId};
+  async findByTarget(@Param('targetType') targetType: TargetType, @Param('targetId') targetId: string): Promise<ChecklistExecutionEntity[]> {
+    const query: QueryChecklistExecutionDto = {targetType, targetId};
     const [ items ] = await this.executionService.findAll(query);
     return items;
   }
 
   @ApiOperation({
-    summary: 'Get executions by user',
-    description: 'Get all executions performed by a specific user'
+    summary: 'Get executions by executor user',
+    description: 'Get all executions performed by a specific executor user. To find executions where a user is being evaluated, use /target/USER/:userId instead.'
   })
   @ApiResponse({
     status: 200,
-    description: 'Returns list of executions by the user',
+    description: 'Returns list of executions performed by the executor user',
     type: [ ChecklistExecutionEntity ]
   })
-  @ApiParam({name: 'userId', description: 'User ID'})
-  @Get('user/:userId')
+  @ApiParam({name: 'userId', description: 'Executor User ID'})
+  @Get('executor/:userId')
   @HttpCode(HttpStatus.OK)
-  async findByUser(@Param('userId') userId: string): Promise<ChecklistExecutionEntity[]> {
+  async findByExecutor(@Param('userId') userId: string): Promise<ChecklistExecutionEntity[]> {
     const query: QueryChecklistExecutionDto = {executorUserId: userId};
     const [ items ] = await this.executionService.findAll(query);
     return items;

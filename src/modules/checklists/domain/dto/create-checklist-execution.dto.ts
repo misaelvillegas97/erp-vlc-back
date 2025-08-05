@@ -14,6 +14,7 @@ import {
 }                                           from 'class-validator';
 import { Type }                             from 'class-transformer';
 import { ApprovalStatus }                   from '../enums/approval-status.enum';
+import { TargetType }                       from '../enums/target-type.enum';
 
 export class ChecklistAnswerDto {
   @ApiProperty({
@@ -85,15 +86,25 @@ export class CreateChecklistExecutionDto {
   })
   @IsUUID()
   @IsNotEmpty()
+  @IsOptional()
   executorUserId: string;
 
   @ApiProperty({
-    description: 'Target vehicle ID',
+    description: 'Type of target being evaluated',
+    enum: TargetType,
+    example: TargetType.VEHICLE
+  })
+  @IsEnum(TargetType)
+  @IsNotEmpty()
+  targetType: TargetType;
+
+  @ApiProperty({
+    description: 'ID of the target being evaluated (user, vehicle, warehouse, etc.)',
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @IsUUID()
   @IsNotEmpty()
-  targetVehicleId: string;
+  targetId: string;
 
   @ApiProperty({
     description: 'Execution timestamp',

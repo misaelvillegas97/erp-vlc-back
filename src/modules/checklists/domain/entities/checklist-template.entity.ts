@@ -1,6 +1,7 @@
 import { Column, Entity, Index, OneToMany } from 'typeorm';
 import { AbstractEntity }                   from '@shared/domain/entities/abstract.entity';
 import { ChecklistType }                    from '../enums/checklist-type.enum';
+import { TargetType }                       from '../enums/target-type.enum';
 import { CategoryEntity }                   from './category.entity';
 import { ChecklistExecutionEntity }         from './checklist-execution.entity';
 import { RoleEnum }                         from '@modules/roles/roles.enum';
@@ -23,8 +24,8 @@ export class ChecklistTemplateEntity extends AbstractEntity {
   @Column({default: '1.0'})
   version: string;
 
-  @Column('simple-array', {name: 'vehicle_types', nullable: true})
-  vehicleTypes: string[];
+  @Column('simple-array', {name: 'target_types', nullable: true})
+  targetTypes: TargetType[];
 
   @Column('simple-array', {name: 'user_roles', nullable: true})
   userRoles: RoleEnum[];

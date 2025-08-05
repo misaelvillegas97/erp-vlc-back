@@ -1,18 +1,21 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { InjectRepository }                                   from '@nestjs/typeorm';
-import { Repository }                                         from 'typeorm';
-import { ChecklistExecutionEntity }                           from '../domain/entities/checklist-execution.entity';
-import { ChecklistAnswerEntity }                              from '../domain/entities/checklist-answer.entity';
-import { ChecklistTemplateEntity }                            from '../domain/entities/checklist-template.entity';
-import { ChecklistGroupEntity }                               from '../domain/entities/checklist-group.entity';
-import { QuestionEntity }                                     from '../domain/entities/question.entity';
-import { IncidentEntity }                                     from '../domain/entities/incident.entity';
-import { CreateChecklistExecutionDto, ChecklistAnswerDto }    from '../domain/dto/create-checklist-execution.dto';
-import { QueryChecklistExecutionDto }                         from '../domain/dto/query-checklist-execution.dto';
-import { ExecutionStatus }                                    from '../domain/enums/execution-status.enum';
-import { ChecklistType }                                      from '../domain/enums/checklist-type.enum';
-import { ApprovalStatus }                                     from '../domain/enums/approval-status.enum';
-import { IncidentSeverity, IncidentStatus }                   from '../domain/entities/incident.entity';
+import { BadRequestException, Injectable, NotFoundException }                         from '@nestjs/common';
+import { InjectRepository }                                                           from '@nestjs/typeorm';
+import { Repository }                                                                 from 'typeorm';
+import { ChecklistExecutionEntity }                                                   from '../domain/entities/checklist-execution.entity';
+import { ChecklistAnswerEntity }                                                      from '../domain/entities/checklist-answer.entity';
+import { ChecklistTemplateEntity }                                                    from '../domain/entities/checklist-template.entity';
+import { ChecklistGroupEntity }                                                       from '../domain/entities/checklist-group.entity';
+import { QuestionEntity }                                                             from '../domain/entities/question.entity';
+import { IncidentEntity, IncidentSeverity, IncidentStatus }                           from '../domain/entities/incident.entity';
+import { ChecklistAnswerDto, CreateChecklistExecutionDto }                            from '../domain/dto/create-checklist-execution.dto';
+import { QueryChecklistExecutionDto }                                                 from '../domain/dto/query-checklist-execution.dto';
+import { ExecutionReportCategoryDto, ExecutionReportDto, ExecutionReportQuestionDto } from '../domain/dto/execution-report.dto';
+import { ExecutionStatus }                                                            from '../domain/enums/execution-status.enum';
+import { ChecklistType }                                                              from '../domain/enums/checklist-type.enum';
+import { ApprovalStatus }                                                             from '../domain/enums/approval-status.enum';
+import { TargetType }                                                                 from '../domain/enums/target-type.enum';
+import { UserEntity }                                                                 from '@modules/users/domain/entities/user.entity';
+import { UserRequest }                                                                from '@modules/users/domain/models/user-request';
 
 interface ScoreCalculationResult {
   totalScore: number;
@@ -43,10 +46,10 @@ export class ChecklistExecutionService {
   /**
    * Execute a checklist (template or group) with answers
    */
-  async executeChecklist(dto: CreateChecklistExecutionDto): Promise<ChecklistExecutionEntity> {
+  async executeChecklist(dto: CreateChecklistExecutionDto, user: UserRequest): Promise<ChecklistExecutionEntity> {
     this.validateExecutionDto(dto);
 
-    const execution = await this.createExecution(dto);
+    const execution = await this.createExecution(dto, user.id);
     const questions = await this.getQuestionsForExecution(dto);
 
     this.validateRequiredQuestions(questions, dto.answers);
@@ -81,7 +84,6 @@ export class ChecklistExecutionService {
         'template',
         'group',
         'executorUser',
-        'targetVehicle',
         'answers',
         'answers.question',
         'incident'
@@ -96,6 +98,130 @@ export class ChecklistExecutionService {
   }
 
   /**
+   * Get detailed execution report with hierarchical structure
+   */
+  async getExecutionReport(id: string): Promise<ExecutionReportDto> {
+    const execution = await this.executionRepository.findOne({
+      where: {id},
+      relations: [
+        'template',
+        'group',
+        'executorUser',
+        'answers',
+        'answers.question',
+        'answers.question.category'
+      ]
+    });
+
+    if (!execution) {
+      throw new NotFoundException(`Checklist execution with ID ${ id } not found`);
+    }
+
+    // Get all categories for this execution (either from template or group)
+    let categories: any[] = [];
+
+    if (execution.templateId) {
+      // For template executions, get categories from the template
+      const template = await this.templateRepository.findOne({
+        where: {id: execution.templateId},
+        relations: [ 'categories', 'categories.questions' ]
+      });
+      categories = template?.categories || [];
+    } else if (execution.groupId) {
+      // For group executions, get categories from all templates in the group
+      const group = await this.groupRepository.findOne({
+        where: {id: execution.groupId},
+        relations: [ 'templates', 'templates.categories', 'templates.categories.questions' ]
+      });
+      categories = group?.templates?.flatMap(template => template.categories) || [];
+    }
+
+    // Sort categories by sortOrder
+    categories.sort((a, b) => a.sortOrder - b.sortOrder);
+
+    // Create answer map for quick lookup
+    const answerMap = new Map<string, ChecklistAnswerEntity>();
+    execution.answers.forEach(answer => {
+      answerMap.set(answer.questionId, answer);
+    });
+
+    // Build hierarchical structure
+    const reportCategories: ExecutionReportCategoryDto[] = categories.map(category => {
+      // Sort questions by sortOrder
+      const sortedQuestions = [ ...(category.questions || []) ].sort((a, b) => a.sortOrder - b.sortOrder);
+
+      const questions: ExecutionReportQuestionDto[] = sortedQuestions.map(question => {
+        const answer = answerMap.get(question.id);
+
+        const questionDto: ExecutionReportQuestionDto = {
+          id: question.id,
+          title: question.title,
+          description: question.description,
+          weight: Number(question.weight),
+          required: question.required,
+          hasIntermediateApproval: question.hasIntermediateApproval,
+          intermediateValue: Number(question.intermediateValue),
+          sortOrder: question.sortOrder,
+          answer: answer ? {
+            id: answer.id,
+            questionId: answer.questionId,
+            approvalStatus: answer.approvalStatus,
+            approvalValue: Number(answer.approvalValue),
+            evidenceFile: answer.evidenceFile,
+            comment: answer.comment,
+            answerScore: answer.answerScore ? Number(answer.answerScore) : undefined,
+            maxScore: answer.maxScore ? Number(answer.maxScore) : undefined,
+            isSkipped: answer.isSkipped,
+            answeredAt: answer.answeredAt
+          } : undefined
+        };
+
+        return questionDto;
+      });
+
+      // Get category score from execution.categoryScores
+      const categoryScore = execution.categoryScores?.[category.id];
+
+      const categoryDto: ExecutionReportCategoryDto = {
+        id: category.id,
+        title: category.title,
+        description: category.description,
+        sortOrder: category.sortOrder,
+        categoryScore: categoryScore ? Number(categoryScore) : undefined,
+        questions
+      };
+
+      return categoryDto;
+    });
+
+    // Build the main report DTO
+    const reportDto: ExecutionReportDto = {
+      id: execution.id,
+      templateId: execution.templateId,
+      templateName: execution.template?.name,
+      groupId: execution.groupId,
+      groupName: execution.group?.name,
+      executorUserId: execution.executorUserId,
+      executorUserName: execution.executorUser?.firstName && execution.executorUser?.lastName
+        ? `${ execution.executorUser.firstName } ${ execution.executorUser.lastName }`
+        : execution.executorUser?.email || 'Unknown User',
+      targetType: execution.targetType,
+      targetId: execution.targetId,
+      status: execution.status,
+      completedAt: execution.completedAt,
+      totalScore: execution.totalScore ? Number(execution.totalScore) : undefined,
+      maxPossibleScore: execution.maxPossibleScore ? Number(execution.maxPossibleScore) : undefined,
+      percentageScore: execution.percentageScore ? Number(execution.percentageScore) : undefined,
+      groupScore: execution.groupScore ? Number(execution.groupScore) : undefined,
+      notes: execution.notes,
+      createdAt: execution.createdAt,
+      categories: reportCategories
+    };
+
+    return reportDto;
+  }
+
+  /**
    * Find executions with filtering and pagination
    */
   async findAll(query: QueryChecklistExecutionDto): Promise<[ ChecklistExecutionEntity[], number ]> {
@@ -103,7 +229,6 @@ export class ChecklistExecutionService {
       .leftJoinAndSelect('execution.template', 'template')
       .leftJoinAndSelect('execution.group', 'group')
       .leftJoinAndSelect('execution.executorUser', 'executorUser')
-      .leftJoinAndSelect('execution.targetVehicle', 'targetVehicle')
       .leftJoinAndSelect('execution.incident', 'incident');
 
     if (query.templateId) {
@@ -118,8 +243,12 @@ export class ChecklistExecutionService {
       queryBuilder.andWhere('execution.executorUserId = :executorUserId', {executorUserId: query.executorUserId});
     }
 
-    if (query.targetVehicleId) {
-      queryBuilder.andWhere('execution.targetVehicleId = :targetVehicleId', {targetVehicleId: query.targetVehicleId});
+    if (query.targetType) {
+      queryBuilder.andWhere('execution.targetType = :targetType', {targetType: query.targetType});
+    }
+
+    if (query.targetId) {
+      queryBuilder.andWhere('execution.targetId = :targetId', {targetId: query.targetId});
     }
 
     if (query.status) {
@@ -159,15 +288,19 @@ export class ChecklistExecutionService {
     }
   }
 
-  private async createExecution(dto: CreateChecklistExecutionDto): Promise<ChecklistExecutionEntity> {
-    const execution = new ChecklistExecutionEntity();
-    execution.templateId = dto.templateId;
-    execution.groupId = dto.groupId;
-    execution.executorUserId = dto.executorUserId;
-    execution.targetVehicleId = dto.targetVehicleId;
-    execution.executionTimestamp = new Date(dto.executionTimestamp);
-    execution.status = ExecutionStatus.IN_PROGRESS;
-    execution.notes = dto.notes;
+  private async createExecution(dto: CreateChecklistExecutionDto, userId: string): Promise<ChecklistExecutionEntity> {
+    const execution = this.executionRepository.create({
+      templateId: dto.templateId,
+      groupId: dto.groupId,
+      executorUserId: dto.executorUserId,
+      targetType: dto.targetType,
+      targetId: dto.targetId,
+      status: ExecutionStatus.PENDING,
+      createdBy: new UserEntity({id: userId}),
+      notes: dto.notes
+    });
+
+    execution.createdBy = new UserEntity({id: dto.executorUserId});
 
     return this.executionRepository.save(execution);
   }
@@ -307,24 +440,23 @@ export class ChecklistExecutionService {
 
       for (const question of categoryQuestions) {
         const answer = answerMap.get(question.id);
-        const questionScore = this.calculateQuestionScore(question, answer);
+        const questionScore: number = this.calculateQuestionScore(question, answer);
 
-        categoryScore += questionScore * question.weight;
-        categoryMaxScore += question.weight;
+        categoryScore += questionScore * +question.weight;
+        categoryMaxScore += +question.weight;
 
         // Update answer with calculated score
         if (answer) {
           answer.answerScore = questionScore;
-          answer.maxScore = question.weight;
+          answer.maxScore = +question.weight;
           await this.answerRepository.save(answer);
         }
       }
 
-      const categoryPercentage = categoryMaxScore > 0 ? (categoryScore / categoryMaxScore) * 100 : 0;
-      categoryScores[categoryId] = categoryPercentage;
+      categoryScores[categoryId] = categoryMaxScore > 0 ? (categoryScore / categoryMaxScore) * 100 : 0;
 
-      totalScore += categoryScore;
-      maxPossibleScore += categoryMaxScore;
+      totalScore += Number(categoryScore);
+      maxPossibleScore += Number(categoryMaxScore);
     }
 
     const percentageScore = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
@@ -442,8 +574,7 @@ export class ChecklistExecutionService {
         }
       }
 
-      const categoryPercentage = categoryMaxScore > 0 ? (categoryScore / categoryMaxScore) * 100 : 0;
-      categoryScores[categoryId] = categoryPercentage;
+      categoryScores[categoryId] = categoryMaxScore > 0 ? (categoryScore / categoryMaxScore) * 100 : 0;
 
       totalScore += categoryScore;
       maxPossibleScore += categoryMaxScore;
@@ -466,7 +597,7 @@ export class ChecklistExecutionService {
 
     // Use the approval value directly as the score
     // This represents the percentage of compliance for this question
-    return answer.approvalValue;
+    return Number(answer.approvalValue);
   }
 
   private async checkForIncidentCreation(execution: ChecklistExecutionEntity): Promise<void> {
@@ -522,8 +653,11 @@ export class ChecklistExecutionService {
     incident.status = IncidentStatus.OPEN;
     incident.performanceScore = actualScore;
     incident.thresholdScore = threshold;
-    incident.vehicleId = execution.targetVehicleId;
-    incident.reportedByUserId = execution.executorUserId;
+    // Set vehicleId only if the target is a vehicle
+    if (execution.targetType === TargetType.VEHICLE) {
+      incident.vehicleId = execution.targetId;
+    }
+    incident.reportedByUserId = execution.createdById;
     incident.reportedAt = new Date();
     incident.failedCategories = this.getFailedCategories(execution.categoryScores, threshold);
 

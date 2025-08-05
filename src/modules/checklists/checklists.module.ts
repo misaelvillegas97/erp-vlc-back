@@ -14,6 +14,7 @@ import { IncidentEntity }           from './domain/entities/incident.entity';
 import { ChecklistTemplateService }  from './services/checklist-template.service';
 import { ChecklistExecutionService } from './services/checklist-execution.service';
 import { ChecklistGroupService }     from './services/checklist-group.service';
+import { ChecklistExportService }    from './services/checklist-export.service';
 
 // Controllers
 import { ChecklistTemplateController }  from './controllers/checklist-template.controller';
@@ -43,6 +44,7 @@ import { IncidentController }           from './controllers/incident.controller'
     ChecklistTemplateService,
     ChecklistExecutionService,
     ChecklistGroupService,
+    ChecklistExportService,
   ],
   exports: [
     ChecklistTemplateService,

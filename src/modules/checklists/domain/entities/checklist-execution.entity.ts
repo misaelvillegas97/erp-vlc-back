@@ -5,8 +5,8 @@ import { ChecklistGroupEntity }                                              fro
 import { ChecklistAnswerEntity }                                             from './checklist-answer.entity';
 import { IncidentEntity }                                                    from './incident.entity';
 import { ExecutionStatus }                                                   from '../enums/execution-status.enum';
+import { TargetType }                                                        from '../enums/target-type.enum';
 import { UserEntity }                                                        from '@modules/users/domain/entities/user.entity';
-import { VehicleEntity }                                                     from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
 
 @Entity('checklist_execution')
 export class ChecklistExecutionEntity extends AbstractEntity {
@@ -31,12 +31,17 @@ export class ChecklistExecutionEntity extends AbstractEntity {
   @JoinColumn({name: 'executor_user_id'})
   executorUser: UserEntity;
 
-  @Column({name: 'target_vehicle_id'})
-  targetVehicleId: string;
+  @Column({
+    type: 'enum',
+    enum: TargetType,
+    name: 'target_type'
+  })
+  @Index()
+  targetType: TargetType;
 
-  @ManyToOne(() => VehicleEntity)
-  @JoinColumn({name: 'target_vehicle_id'})
-  targetVehicle: VehicleEntity;
+  @Column({name: 'target_id'})
+  @Index()
+  targetId: string;
 
   @Column({
     type: 'enum',
@@ -45,10 +50,6 @@ export class ChecklistExecutionEntity extends AbstractEntity {
   })
   @Index()
   status: ExecutionStatus;
-
-  @Column({type: 'timestamp with time zone', name: 'execution_timestamp'})
-  @Index()
-  executionTimestamp: Date;
 
   @Column({type: 'timestamp with time zone', nullable: true, name: 'completed_at'})
   completedAt: Date;

@@ -1,6 +1,7 @@
 import { ApiPropertyOptional }                      from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { ExecutionStatus }                          from '../enums/execution-status.enum';
+import { TargetType }                               from '../enums/target-type.enum';
 
 export class QueryChecklistExecutionDto {
   @ApiPropertyOptional({
@@ -28,12 +29,21 @@ export class QueryChecklistExecutionDto {
   executorUserId?: string;
 
   @ApiPropertyOptional({
-    description: 'Target vehicle ID to filter by',
+    description: 'Type of target to filter by',
+    enum: TargetType,
+    example: TargetType.VEHICLE
+  })
+  @IsEnum(TargetType)
+  @IsOptional()
+  targetType?: TargetType;
+
+  @ApiPropertyOptional({
+    description: 'Target ID to filter by (user, vehicle, warehouse, etc.)',
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @IsUUID()
   @IsOptional()
-  targetVehicleId?: string;
+  targetId?: string;
 
   @ApiPropertyOptional({
     description: 'Execution status to filter by',
