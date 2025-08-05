@@ -54,6 +54,7 @@ import { HealthModule }                    from '@modules/health/health.module';
 import { InventoryModule }                 from '@modules/inventory/inventory.module';
 import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.module';
 import { ChecklistsModule } from '@modules/checklists/checklists.module';
+import { AuditModule }                    from '@modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -144,7 +145,8 @@ import { ChecklistsModule } from '@modules/checklists/checklists.module';
     HealthModule,
     InventoryModule,
     ScrumboardModule,
-    ChecklistsModule
+    ChecklistsModule,
+    AuditModule
   ],
   controllers: [ AppController ]
 })
