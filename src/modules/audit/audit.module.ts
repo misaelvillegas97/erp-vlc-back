@@ -1,18 +1,16 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { Module }         from '@nestjs/common';
+import { TypeOrmModule }  from '@nestjs/typeorm';
 import { AuditLogEntity } from './domain/entities/audit-log.entity';
-import { AuditService } from './services/audit.service';
-import { AuditInterceptor } from '@core/interceptors/audit.interceptor';
+import { AuditService }   from './services/audit.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([AuditLogEntity])],
   providers: [
     AuditService,
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: AuditInterceptor,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: AuditInterceptor,
+    // },
   ],
   exports: [AuditService],
 })
