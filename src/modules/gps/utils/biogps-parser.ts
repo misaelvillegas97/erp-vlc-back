@@ -53,7 +53,7 @@ export class BiogpsParser {
     const innerItems = raw.items.flatMap(item => item.items);
 
     return innerItems.map(item => {
-      const timestamp = DateTime.fromFormat(item.raw_time, 'yyyy-MM-dd HH:mm:ss', {zone: 'America/Santiago'}).toUTC().toMillis();
+      const timestamp = Math.floor(DateTime.fromFormat(item.raw_time, 'yyyy-MM-dd HH:mm:ss', {zone: 'America/Santiago'}).toUTC().toMillis() / 1000);
 
       return {
         licensePlate,
