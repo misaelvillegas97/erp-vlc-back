@@ -53,7 +53,7 @@ export class AuditLogEntity {
   @Column({ name: 'geo_city', nullable: true })
   geoCity?: string;
 
-  @Column({ name: 'record_hash' })
+  @Column({name: 'record_hash', unique: true})
   recordHash: string;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
