@@ -4,6 +4,7 @@ import { AuditService }                                               from '@mod
 import { createHash }                                                 from 'crypto';
 import geoip                                                          from 'geoip-lite';
 import { v4 }                                                         from 'uuid';
+import { extractClientIp }                                            from '@shared/utils/ip.util';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -13,7 +14,8 @@ export class AuditInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const start = Date.now();
 
-    const { headers, user, ip, body } = request;
+    const {headers, user, body} = request;
+    const ip = extractClientIp(request);
     const userId = user?.id;
     const sessionId = headers['x-session-id'];
     const deviceId = headers['x-device-id'];
@@ -32,7 +34,7 @@ export class AuditInterceptor implements NestInterceptor {
     const geoCity = geo?.city;
 
     return next.handle().pipe(
-      mergeMap(async (data) => {
+      mergeMap((data) => {
         const durationMs = Date.now() - start;
         const logData = {
           userId,

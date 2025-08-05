@@ -54,7 +54,7 @@ async function bootstrap() {
     .build();
 
   if (configService.get('app.nodeEnv', {infer: true}) === 'production') {
-    app.enable('trust proxy');
+    app.enable('trust proxy', 1);
   }
 
   const document = SwaggerModule.createDocument(app, options);
