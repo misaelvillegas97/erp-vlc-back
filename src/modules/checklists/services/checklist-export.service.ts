@@ -4,7 +4,9 @@ import { ExecutionReportDto }            from '../domain/dto/execution-report.dt
 import { ApprovalStatus }                from '../domain/enums/approval-status.enum';
 import * as ExcelJS                      from 'exceljs';
 import * as puppeteer                    from 'puppeteer';
-import { existsSync }                    from 'fs';
+import { existsSync, readFileSync }      from 'fs';
+import * as Handlebars                   from 'handlebars';
+import { join }                          from 'path';
 
 @Injectable()
 export class ChecklistExportService {
@@ -37,13 +39,15 @@ export class ChecklistExportService {
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
+        scale: 0.8,
         printBackground: true,
         margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm'
-        }
+          top: '0mm',
+          right: '0mm',
+          bottom: '0mm',
+          left: '0mm'
+        },
+
       });
 
       return Buffer.from(pdfBuffer);
@@ -85,367 +89,115 @@ export class ChecklistExportService {
   }
 
   /**
-   * Generate professional HTML content for PDF
+   * Generate professional HTML content for PDF using Handlebars template
    */
   private generatePdfHtml(reportData: ExecutionReportDto): string {
-    const currentDate = new Date().toLocaleDateString('en-US', {
+    // Load the template file
+    const templatePath = join(process.cwd(), 'src', 'shared', 'checklist-report-template.html');
+    const templateSource = readFileSync(templatePath, 'utf8');
+
+    // Compile the template
+    const template = Handlebars.compile(templateSource);
+
+    // Prepare data for the template
+    const templateData = this.prepareTemplateData(reportData);
+
+    // Render the template with data
+    return template(templateData);
+  }
+
+  /**
+   * Prepare data structure for Handlebars template
+   */
+  private prepareTemplateData(reportData: ExecutionReportDto): any {
+    const currentDate = new Date().toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
 
-    const statusColor = this.getStatusColor(reportData.status);
-    const scoreColor = this.getScoreColor(reportData.percentageScore || 0);
+    // Calculate total questions
+    const totalQuestions = reportData.categories.reduce((sum, cat) => sum + cat.questions.length, 0);
 
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checklist Execution Report</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #fff;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-            font-weight: 300;
-        }
-        
-        .header .subtitle {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        .execution-info {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 30px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .info-label {
-            font-weight: 600;
-            color: #666;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-        
-        .info-value {
-            font-size: 16px;
-            color: #333;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            background-color: ${ statusColor };
-            color: white;
-        }
-        
-        .score-container {
-            text-align: center;
-            margin: 30px 0;
-        }
-        
-        .score-circle {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: conic-gradient(${ scoreColor } ${ (reportData.percentageScore || 0) * 3.6 }deg, #e9ecef 0deg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            position: relative;
-        }
-        
-        .score-circle::before {
-            content: '';
-            width: 90px;
-            height: 90px;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-        }
-        
-        .score-text {
-            font-size: 24px;
-            font-weight: 700;
-            color: ${ scoreColor };
-            z-index: 1;
-        }
-        
-        .score-label {
-            font-size: 14px;
-            color: #666;
-            font-weight: 500;
-        }
-        
-        .category {
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .category-header {
-            background: #f8f9fa;
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .category-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .category-score {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .questions-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .questions-table th {
-            background: #667eea;
-            color: white;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .questions-table td {
-            padding: 15px 12px;
-            border-bottom: 1px solid #e9ecef;
-            vertical-align: top;
-        }
-        
-        .questions-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .question-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .question-description {
-            font-size: 13px;
-            color: #666;
-            line-height: 1.4;
-        }
-        
-        .approval-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .approved { background: #d4edda; color: #155724; }
-        .not-approved { background: #f8d7da; color: #721c24; }
-        .intermediate { background: #fff3cd; color: #856404; }
-        
-        .weight-badge {
-            background: #e9ecef;
-            color: #495057;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .footer {
-            margin-top: 40px;
-            padding: 20px;
-            text-align: center;
-            color: #666;
-            font-size: 12px;
-            border-top: 1px solid #e9ecef;
-        }
-        
-        .no-answer {
-            color: #999;
-            font-style: italic;
-        }
-        
-        @media print {
-            .category {
-                break-inside: avoid;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Checklist Execution Report</h1>
-        <div class="subtitle">Generated on ${ currentDate }</div>
-    </div>
-    
-    <div class="container">
-        <div class="execution-info">
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Execution ID</div>
-                    <div class="info-value">${ reportData.id }</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Template/Group</div>
-                    <div class="info-value">${ reportData.templateName || reportData.groupName || 'N/A' }</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Executor</div>
-                    <div class="info-value">${ reportData.executorUserName }</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Target</div>
-                    <div class="info-value">${ reportData.targetType }: ${ reportData.targetId }</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Status</div>
-                    <div class="info-value">
-                        <span class="status-badge">${ reportData.status }</span>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Completed At</div>
-                    <div class="info-value">${ reportData.completedAt ? new Date(reportData.completedAt).toLocaleString() : 'Not completed' }</div>
-                </div>
-            </div>
-            ${ reportData.notes ? `
-            <div class="info-item">
-                <div class="info-label">Notes</div>
-                <div class="info-value">${ reportData.notes }</div>
-            </div>
-            ` : '' }
-        </div>
-        
-        ${ reportData.percentageScore !== undefined ? `
-        <div class="score-container">
-            <div class="score-circle">
-                <div class="score-text">${ reportData.percentageScore.toFixed(1) }%</div>
-            </div>
-            <div class="score-label">Overall Performance Score</div>
-        </div>
-        ` : '' }
-        
-        ${ reportData.categories.map(category => `
-        <div class="category">
-            <div class="category-header">
-                <div class="category-title">${ category.title }</div>
-                ${ category.description ? `<div class="category-description">${ category.description }</div>` : '' }
-                ${ category.categoryScore !== undefined ? `
-                <div class="category-score">Category Score: ${ category.categoryScore.toFixed(1) }%</div>
-                ` : '' }
-            </div>
-            
-            <table class="questions-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40%;">Question</th>
-                        <th style="width: 15%;">Weight</th>
-                        <th style="width: 15%;">Status</th>
-                        <th style="width: 10%;">Score</th>
-                        <th style="width: 20%;">Comments</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${ category.questions.map(question => `
-                    <tr>
-                        <td>
-                            <div class="question-title">${ question.title }</div>
-                            ${ question.description ? `<div class="question-description">${ question.description }</div>` : '' }
-                            ${ question.required ? '<div style="color: #dc3545; font-size: 11px; margin-top: 3px;">* Required</div>' : '' }
-                        </td>
-                        <td>
-                            <span class="weight-badge">${ question.weight }</span>
-                        </td>
-                        <td>
-                            ${ question.answer ? `
-                            <span class="approval-badge ${ question.answer.approvalStatus.toLowerCase().replace('_', '-') }">${ question.answer.approvalStatus }</span>
-                            ` : '<span class="no-answer">No answer</span>' }
-                        </td>
-                        <td>
-                            ${ question.answer && question.answer.answerScore !== undefined ?
-      `${ question.answer.answerScore.toFixed(1) }/${ question.answer.maxScore?.toFixed(1) || 'N/A' }` :
-      '<span class="no-answer">-</span>' }
-                        </td>
-                        <td>
-                            ${ question.answer && question.answer.comment ? question.answer.comment : '<span class="no-answer">No comments</span>' }
-                        </td>
-                    </tr>
-                    `).join('') }
-                </tbody>
-            </table>
-        </div>
-        `).join('') }
-        
-        <div class="footer">
-            <p>This report was automatically generated by the Checklist Management System</p>
-            <p>Report ID: ${ reportData.id } | Generated: ${ currentDate }</p>
-        </div>
-    </div>
-</body>
-</html>`;
+    // Calculate duration (placeholder - you may need to implement this based on your data)
+    const duration = 'N/D'; // This should be calculated from your execution data
+
+    // Prepare categories with enhanced data
+    const categories = reportData.categories.map(category => ({
+      ...category,
+      scoreClass: this.getScoreClass(category.categoryScore),
+      questions: category.questions.map(question => ({
+        ...question,
+        answer: question.answer ? {
+          ...question.answer,
+          statusClass: this.getStatusClass(question.answer.approvalStatus),
+          statusIcon: this.getStatusIcon(question.answer.approvalStatus),
+          percentage: question.answer.maxScore ?
+            ((question.answer.answerScore / question.answer.maxScore) * 100).toFixed(1) : '0',
+          answeredAt: question.answer.answeredAt ?
+            new Date(question.answer.answeredAt).toLocaleString('es-ES') : 'N/D'
+        } : null
+      }))
+    }));
+
+    return {
+      currentDate,
+      id: reportData.id,
+      executorUserName: reportData.executorUserName,
+      targetType: reportData.targetType,
+      targetId: reportData.targetId,
+      status: reportData.status,
+      templateName: reportData.templateName || reportData.groupName || 'N/D',
+      completedAt: reportData.completedAt ?
+        new Date(reportData.completedAt).toLocaleString('es-ES') : 'No completado',
+      notes: reportData.notes,
+      percentageScore: reportData.percentageScore?.toFixed(1),
+      duration,
+      totalQuestions,
+      categories
+    };
+  }
+
+  /**
+   * Get CSS class for score styling
+   */
+  private getScoreClass(score?: number): string {
+    if (!score) return '';
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'warning';
+    return 'danger';
+  }
+
+  /**
+   * Get CSS class for approval status
+   */
+  private getStatusClass(status: ApprovalStatus): string {
+    switch (status) {
+      case ApprovalStatus.APPROVED:
+        return 'success';
+      case ApprovalStatus.NOT_APPROVED:
+        return 'danger';
+      case ApprovalStatus.INTERMEDIATE:
+        return 'warning';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Get icon class for approval status
+   */
+  private getStatusIcon(status: ApprovalStatus): string {
+    switch (status) {
+      case ApprovalStatus.APPROVED:
+        return 'icon-check';
+      case ApprovalStatus.NOT_APPROVED:
+        return 'icon-cancel';
+      case ApprovalStatus.INTERMEDIATE:
+        return 'icon-skip';
+      default:
+        return 'icon-question';
+    }
   }
 
   /**
