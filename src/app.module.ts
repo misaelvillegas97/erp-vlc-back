@@ -53,8 +53,9 @@ import { GpsModule }                       from '@modules/gps/gps.module';
 import { HealthModule }                    from '@modules/health/health.module';
 import { InventoryModule }                 from '@modules/inventory/inventory.module';
 import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.module';
-import { ChecklistsModule } from '@modules/checklists/checklists.module';
-import { AuditModule }                    from '@modules/audit/audit.module';
+import { ChecklistsModule }                from '@modules/checklists/checklists.module';
+import { AuditModule }                     from '@modules/audit/audit.module';
+import { TracingModule }                   from '@modules/tracing/tracing.module';
 
 @Module({
   imports: [
@@ -146,7 +147,8 @@ import { AuditModule }                    from '@modules/audit/audit.module';
     InventoryModule,
     ScrumboardModule,
     ChecklistsModule,
-    AuditModule
+    AuditModule,
+    TracingModule
   ],
   controllers: [ AppController ]
 })
