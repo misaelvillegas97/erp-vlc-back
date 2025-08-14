@@ -27,6 +27,7 @@ import { StepExecutionService }   from './services/step-execution.service';
 import { SyncService }            from './services/sync.service';
 import { WasteManagementService } from './services/waste-management.service';
 import { KpiService }             from './services/kpi.service';
+import { GateEvaluationService }  from './services/gate-evaluation.service';
 
 // Controllers
 import { FlowTemplateController }    from './controllers/flow-template.controller';
@@ -79,6 +80,7 @@ import { ReportsController }         from './controllers/reports.controller';
     SyncService,
     WasteManagementService,
     KpiService,
+    GateEvaluationService,
   ],
   exports: [
     FlowTemplateService,
@@ -91,6 +93,7 @@ import { ReportsController }         from './controllers/reports.controller';
     SyncService,
     WasteManagementService,
     KpiService,
+    GateEvaluationService,
   ],
 })
 export class TracingModule {}

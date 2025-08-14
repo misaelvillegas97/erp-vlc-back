@@ -9,6 +9,9 @@ import { CreateFlowInstanceDto }                              from '../domain/dt
 import { FlowInstanceResponseDto }                            from '../domain/dto/execution/flow-instance-response.dto';
 import { FlowInstanceStatus, StepExecutionStatus }            from '../domain/enums/execution-status.enum';
 import { FlowVersionStatus }                                  from '../domain/enums/flow-version-status.enum';
+import { StepType }                                           from '../domain/enums/step-type.enum';
+import { GateEvaluationService }                              from './gate-evaluation.service';
+import { GateConfig, GateEvaluationContext }                  from '../domain/interfaces/gate-evaluation.interface';
 
 /**
  * Service for managing flow execution
@@ -25,6 +28,7 @@ export class FlowExecutionService {
     private readonly flowVersionRepository: Repository<FlowVersionEntity>,
     @InjectRepository(StepExecutionEntity)
     private readonly stepExecutionRepository: Repository<StepExecutionEntity>,
+    private readonly gateEvaluationService: GateEvaluationService,
   ) {}
 
   /**
@@ -476,5 +480,159 @@ export class FlowExecutionService {
     dto.canResume = instance.status === FlowInstanceStatus.ACTIVE;
 
     return dto;
+  }
+
+  /**
+   * Execute a gate step and create executions for the next steps
+   * @param stepExecutionId - ID of the gate step execution
+   * @param actorId - ID of the user executing the step
+   * @returns Array of next step IDs that should be executed
+   */
+  async executeGateStep(stepExecutionId: string, actorId: string): Promise<string[]> {
+    const stepExecution = await this.stepExecutionRepository.findOne({
+      where: {id: stepExecutionId},
+      relations: [ 'step', 'instance', 'instance.stepExecutions', 'instance.stepExecutions.step' ]
+    });
+
+    if (!stepExecution) {
+      throw new NotFoundException(`Step execution with ID "${ stepExecutionId }" not found`);
+    }
+
+    if (stepExecution.step.type !== StepType.GATE) {
+      throw new BadRequestException('Step is not a gate type');
+    }
+
+    if (stepExecution.status !== StepExecutionStatus.PENDING) {
+      throw new BadRequestException('Gate step is not in pending status');
+    }
+
+    // Get gate configuration from step configJson
+    const gateConfig = stepExecution.step.configJson as GateConfig;
+    if (!gateConfig || !gateConfig.conditions) {
+      throw new BadRequestException('Gate step has no valid configuration');
+    }
+
+    // Build evaluation context
+    const context = this.buildGateEvaluationContext(stepExecution);
+
+    // Evaluate gate conditions
+    const evaluationResult = this.gateEvaluationService.evaluateGateConditions(gateConfig, context);
+
+    // Mark gate step as completed
+    stepExecution.status = StepExecutionStatus.DONE;
+    stepExecution.startedAt = new Date();
+    stepExecution.finishedAt = new Date();
+    stepExecution.actorId = actorId;
+    stepExecution.completionNotes = `Gate evaluated: ${ evaluationResult.targetStepIds.length } target steps selected`;
+
+    await this.stepExecutionRepository.save(stepExecution);
+
+    // Create step executions for the next steps
+    const nextStepExecutions: StepExecutionEntity[] = [];
+    for (const targetStepId of evaluationResult.targetStepIds) {
+      const nextStepExecution = new StepExecutionEntity();
+      nextStepExecution.instanceId = stepExecution.instanceId;
+      nextStepExecution.stepId = targetStepId;
+      nextStepExecution.status = StepExecutionStatus.PENDING;
+      nextStepExecutions.push(nextStepExecution);
+    }
+
+    if (nextStepExecutions.length > 0) {
+      await this.stepExecutionRepository.save(nextStepExecutions);
+    }
+
+    return evaluationResult.targetStepIds;
+  }
+
+  /**
+   * Validate gate configuration
+   * @param gateConfig - Gate configuration to validate
+   * @returns Validation result
+   */
+  validateGateConfiguration(gateConfig: GateConfig): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!gateConfig.conditions || gateConfig.conditions.length === 0) {
+      errors.push('Gate must have at least one condition');
+    }
+
+    if (gateConfig.conditions) {
+      for (let i = 0; i < gateConfig.conditions.length; i++) {
+        const condition = gateConfig.conditions[i];
+
+        if (!condition.targetStepId) {
+          errors.push(`Condition ${ i + 1 }: Target step ID is required`);
+        }
+
+        if (!condition.logic) {
+          errors.push(`Condition ${ i + 1 }: Logic rule is required`);
+        } else {
+          const validationResult = this.gateEvaluationService.validateJsonLogicRule(condition.logic);
+          if (!validationResult.isValid) {
+            errors.push(`Condition ${ i + 1 }: ${ validationResult.error }`);
+          }
+        }
+
+        if (!condition.label) {
+          errors.push(`Condition ${ i + 1 }: Label is required`);
+        }
+      }
+    }
+
+    if (![ 'FIRST_MATCH', 'ALL_MATCH' ].includes(gateConfig.evaluationMode)) {
+      errors.push('Invalid evaluation mode. Must be FIRST_MATCH or ALL_MATCH');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Build evaluation context for gate step execution
+   * @param stepExecution - The gate step execution
+   * @returns Gate evaluation context
+   */
+  private buildGateEvaluationContext(stepExecution: StepExecutionEntity): GateEvaluationContext {
+    const instance = stepExecution.instance;
+    const completedSteps = instance.stepExecutions?.filter(se =>
+      se.status === StepExecutionStatus.DONE && se.id !== stepExecution.id
+    ) || [];
+
+    // Build previous steps data
+    const previousStepsData = completedSteps.map(se => ({
+      stepKey: se.step?.key || '',
+      fields: se.fieldValues || {},
+      wastes: (se.wasteRecords || []).map(wr => ({
+        quantity: wr.qty || 0,
+        reason: wr.reason || ''
+      })),
+      executedAt: se.finishedAt || se.createdAt,
+      executedBy: se.actorId || 'system'
+    }));
+
+    // Aggregate all field values from completed steps
+    const allFields: Record<string, any> = {};
+    for (const step of completedSteps) {
+      if (step.fieldValues) {
+        Object.assign(allFields, step.fieldValues);
+      }
+    }
+
+    // Aggregate all waste records
+    const allWastes = completedSteps.flatMap(se => se.wasteRecords || []).map(wr => ({
+      quantity: wr.qty || 0,
+      reason: wr.reason || ''
+    }));
+
+    return {
+      instanceId: instance.id,
+      instanceStartedAt: instance.startedAt,
+      fields: allFields,
+      wastes: allWastes,
+      flowContext: instance.contextData || {},
+      previousSteps: previousStepsData
+    };
   }
 }
