@@ -56,6 +56,7 @@ import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.
 import { ChecklistsModule }                from '@modules/checklists/checklists.module';
 import { AuditModule }                     from '@modules/audit/audit.module';
 import { TracingModule }                   from '@modules/tracing/tracing.module';
+import { TicketsModule }                   from '@modules/tickets/tickets.module';
 
 @Module({
   imports: [
@@ -139,6 +140,7 @@ import { TracingModule }                   from '@modules/tracing/tracing.module
     ProductsModule,
     ClientsModule,
     NotificationsModule,
+    TicketsModule,
     TypesModule,
     LogisticsModule,
     AppConfigModule,
