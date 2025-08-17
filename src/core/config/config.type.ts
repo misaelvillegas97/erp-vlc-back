@@ -7,6 +7,7 @@ import { GoogleConfig }   from '@core/auth-google/config/google-config.type';
 import { TwitterConfig }  from '@core/auth-twitter/config/twitter-config.type';
 import { FileConfig }     from '@modules/files/config/file-config.type';
 import { MailConfig }     from '@modules/mail/config/mail-config.type';
+import { WhatsappConfig } from '@modules/notifications/config/whatsapp-config.type';
 import { IProvider }      from '@core/config/interfaces/provider.interface';
 import { GpsConfig }      from '@core/config/interfaces/gps.interface';
 
@@ -23,5 +24,6 @@ export type AllConfigType = {
   google: GoogleConfig;
   gps: GpsConfig;
   mail: MailConfig;
+  whatsapp: WhatsappConfig;
   twitter: TwitterConfig;
 };

@@ -28,6 +28,7 @@ import { TypeOrmConfigService }            from '@core/database/typeorm-config.s
 import fileConfig                          from '@modules/files/config/file.config';
 import { FilesModule }                     from '@modules/files/files.module';
 import mailConfig                          from '@modules/mail/config/mail.config';
+import whatsappConfig                      from '@modules/notifications/config/whatsapp.config';
 import { MailModule }                      from '@modules/mail/mail.module';
 import { MailerModule }                    from '@modules/mailer/mailer.module';
 import { SeederModule }                    from '@modules/seeder/seeder.module';
@@ -56,6 +57,7 @@ import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.
 import { ChecklistsModule }                from '@modules/checklists/checklists.module';
 import { AuditModule }                     from '@modules/audit/audit.module';
 import { TracingModule }                   from '@modules/tracing/tracing.module';
+import { TicketsModule }                   from '@modules/tickets/tickets.module';
 
 @Module({
   imports: [
@@ -72,6 +74,7 @@ import { TracingModule }                   from '@modules/tracing/tracing.module
         authConfig,
         appConfig,
         mailConfig,
+        whatsappConfig,
         fileConfig,
         facebookConfig,
         googleConfig,
@@ -139,6 +142,7 @@ import { TracingModule }                   from '@modules/tracing/tracing.module
     ProductsModule,
     ClientsModule,
     NotificationsModule,
+    TicketsModule,
     TypesModule,
     LogisticsModule,
     AppConfigModule,
