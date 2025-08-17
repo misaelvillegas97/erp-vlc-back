@@ -28,6 +28,7 @@ import { TypeOrmConfigService }            from '@core/database/typeorm-config.s
 import fileConfig                          from '@modules/files/config/file.config';
 import { FilesModule }                     from '@modules/files/files.module';
 import mailConfig                          from '@modules/mail/config/mail.config';
+import whatsappConfig                      from '@modules/notifications/config/whatsapp.config';
 import { MailModule }                      from '@modules/mail/mail.module';
 import { MailerModule }                    from '@modules/mailer/mailer.module';
 import { SeederModule }                    from '@modules/seeder/seeder.module';
@@ -73,6 +74,7 @@ import { TicketsModule }                   from '@modules/tickets/tickets.module
         authConfig,
         appConfig,
         mailConfig,
+        whatsappConfig,
         fileConfig,
         facebookConfig,
         googleConfig,
