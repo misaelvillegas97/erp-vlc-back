@@ -45,10 +45,4 @@ import { GpsModule }                   from '../gps/gps.module';
     GpsSyncProcessor,
   ],
 })
-export class WorkersModule {
-  constructor(private readonly configService: ConfigService) {
-    const workerHost = this.configService.get<string>('workers.host', {infer: true});
-    const workerPort = this.configService.get<number>('workers.port', {infer: true});
-    console.log(`WorkersModule: Redis host: ${ workerHost }, Redis port: ${ workerPort }`);
-  }
-}
+export class WorkersModule {}

@@ -4,6 +4,7 @@ import { JobRegistryService }          from './services/job-registry.service';
 import { ConfigChangeListenerService } from './services/config-change-listener.service';
 import { ScheduledJobsController }     from './controllers/scheduled-jobs.controller';
 import { TenantModule }                from '../tenant/tenant.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 /**
  * Module for managing tenant-aware scheduled jobs using BullMQ.
@@ -12,21 +13,25 @@ import { TenantModule }                from '../tenant/tenant.module';
 @Module({
   imports: [
     // Import BullMQ queue for GPS jobs
-    BullModule.registerQueue({
+    BullModule.registerQueueAsync({
       name: 'gps-queue',
-      defaultJobOptions: {
-        removeOnComplete: 10,
-        removeOnFail: 50,
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 5000,
+      imports: [ ConfigModule ],
+      useFactory: (configService: ConfigService) => ({
+        defaultJobOptions: {
+          removeOnComplete: 10,
+          removeOnFail: 50,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
         },
-      },
-      connection: {
-        host: process.env.WORKER_HOST || 'localhost',
-        port: Number(process.env.WORKER_PORT) || 6379,
-      }
+        connection: {
+          host: configService.get<string>('workers.host', {infer: true}),
+          port: configService.get<number>('workers.port', {infer: true}),
+        }
+      }),
+      inject: [ ConfigService ],
     }),
     // Import TenantModule for configuration services
     TenantModule,
@@ -44,8 +49,4 @@ import { TenantModule }                from '../tenant/tenant.module';
     BullModule,
   ],
 })
-export class SchedulerModule {
-  constructor() {
-    console.log(`Scheduler Module: Redis host: ${ process.env.REDIS_HOST }, Redis port: ${ process.env.REDIS_PORT }`);
-  }
-}
+export class SchedulerModule {}
