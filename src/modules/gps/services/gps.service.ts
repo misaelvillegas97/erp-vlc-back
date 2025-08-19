@@ -134,6 +134,8 @@ export class GpsService {
 
     if (existingGps) return;
 
+    this.logger.log(`GPS data updated: ${ JSON.stringify(gpsData) }`);
+
     await this.saveGps(gpsData, vehicle, vehicleSession);
   }
 }

@@ -92,6 +92,7 @@ export class SessionsService {
     if (!session) throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
 
     if (session.gps.length === 0) {
+      this.logger.debug(`Fetching GPS history for session ${ session.id }`);
       const historyData = await this.fetchHistory(session);
 
       if (historyData && historyData.length > 1) {
