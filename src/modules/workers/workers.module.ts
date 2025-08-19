@@ -40,4 +40,8 @@ import { GpsModule }        from '../gps/gps.module';
     GpsSyncProcessor,
   ],
 })
-export class WorkersModule {}
+export class WorkersModule {
+  constructor() {
+    console.log(`WorkersModule: Redis host: ${ process.env.WORKER_HOST }, Redis port: ${ process.env.WORKER_PORT }`);
+  }
+}

@@ -23,6 +23,10 @@ import { TenantModule }                from '../tenant/tenant.module';
           delay: 5000,
         },
       },
+      connection: {
+        host: process.env.WORKER_HOST || 'localhost',
+        port: Number(process.env.WORKER_PORT) || 6379,
+      }
     }),
     // Import TenantModule for configuration services
     TenantModule,
@@ -42,6 +46,6 @@ import { TenantModule }                from '../tenant/tenant.module';
 })
 export class SchedulerModule {
   constructor() {
-    console.log(`Redis host: ${ process.env.REDIS_HOST || 'localhost' }, Redis port: ${ process.env.REDIS_PORT || 6379 }`);
+    console.log(`Scheduler Module: Redis host: ${ process.env.REDIS_HOST }, Redis port: ${ process.env.REDIS_PORT }`);
   }
 }
