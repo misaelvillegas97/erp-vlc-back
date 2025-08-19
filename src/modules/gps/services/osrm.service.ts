@@ -49,7 +49,7 @@ export class OsrmService implements IOsrmService {
     validationConfig?: OsrmValidationConfig
   ): Promise<OsrmRouteResponse | null> {
     this.logger.debug(typeof this.osrmApiUrl, this.osrmApiUrl);
-    if (this.osrmApiUrl === undefined) return;
+    if (!this.osrmApiUrl) return;
 
     const maxRetries = validationConfig?.maxRetries || 1;
     let attempt = 0;
