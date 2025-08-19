@@ -12,30 +12,17 @@ import { TenantModule }                from '../tenant/tenant.module';
 @Module({
   imports: [
     // Import BullMQ queue for GPS jobs
-    BullModule.registerQueueAsync({
-      useFactory: () => {
-        const redisHost = process.env.WORKER_HOST || 'localhost';
-        const redisPort = Number(process.env.WORKER_PORT) || 6379;
-
-        console.log(`Initializing GPS queue with Redis at ${ redisHost }:${ redisPort }`);
-
-        return {
-          name: 'gps-queue',
-          defaultJobOptions: {
-            removeOnComplete: 10,
-            removeOnFail: 50,
-            attempts: 3,
-            backoff: {
-              type: 'exponential',
-              delay: 5000,
-            },
-          },
-          connection: {
-            host: redisHost,
-            port: redisPort,
-          }
-        };
-      }
+    BullModule.registerQueue({
+      name: 'gps-queue',
+      defaultJobOptions: {
+        removeOnComplete: 10,
+        removeOnFail: 50,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+      },
     }),
     // Import TenantModule for configuration services
     TenantModule,
