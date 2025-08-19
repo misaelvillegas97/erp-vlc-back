@@ -14,6 +14,14 @@ class EnvironmentVariablesValidator {
   @Max(65535)
   @IsOptional()
   WORKER_PORT: number;
+
+  @IsString()
+  @IsOptional()
+  WORKER_USER: string;
+
+  @IsString()
+  @IsOptional()
+  WORKER_PASSWORD: string;
 }
 
 export default registerAs<WorkersConfig>('workers', () => {
@@ -21,8 +29,8 @@ export default registerAs<WorkersConfig>('workers', () => {
 
   return {
     host: process.env.WORKER_HOST || 'localhost',
-    port: process.env.WORKER_PORT
-      ? parseInt(process.env.WORKER_PORT, 10)
-      : 6379,
+    port: process.env.WORKER_PORT ? parseInt(process.env.WORKER_PORT, 10) : 6379,
+    user: process.env.WORKER_USER || undefined,
+    password: process.env.WORKER_PASSWORD || undefined,
   };
 });

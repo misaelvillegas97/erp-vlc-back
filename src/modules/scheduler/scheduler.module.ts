@@ -19,8 +19,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       useFactory: (configService: ConfigService) => {
         const host = configService.get<string>('workers.host', {infer: true});
         const port = configService.get('workers.port', {infer: true});
+        const username = configService.get<string>('workers.user', {infer: true});
+        const password = configService.get<string>('workers.password', {infer: true});
 
-        console.log(`Using BullMQ with host: ${ host }, port: ${ port }`);
+        console.log(`Using BullMQ with host: ${ host }, port: ${ port }, username: ${ username }`);
 
         return {
           defaultJobOptions: {
@@ -32,7 +34,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
               delay: 5000,
             },
           },
-          connection: {host, port}
+          connection: {host, port, username, password}
         };
       },
       inject: [ ConfigService ],

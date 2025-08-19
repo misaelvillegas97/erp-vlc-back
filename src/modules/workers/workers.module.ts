@@ -28,6 +28,8 @@ import { GpsModule }                   from '../gps/gps.module';
         connection: {
           host: configService.get<string>('workers.host', {infer: true}),
           port: configService.get<number>('workers.port', {infer: true}),
+          username: configService.get<string>('workers.user', {infer: true}),
+          password: configService.get<string>('workers.password', {infer: true}),
         }
       }),
       inject: [ ConfigService ],
