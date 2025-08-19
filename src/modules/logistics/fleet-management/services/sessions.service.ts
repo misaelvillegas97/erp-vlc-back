@@ -250,6 +250,9 @@ export class SessionsService {
         session.endTime
       );
 
+      // Maintain compatibility by emitting events
+      provider.emitGpsEvents(historyData);
+
       // Process GPS history data if available and has more than 1 record
       if (historyData && historyData.length > 1) {
         this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
@@ -258,7 +261,7 @@ export class SessionsService {
         // await this.clearSessionGpsData(session.id);
 
         // Save the new GPS history data (more complete route)
-        await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
+        // await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
 
         // Generate route polygon using OSRM Match service
         try {
@@ -295,9 +298,6 @@ export class SessionsService {
         } catch (error) {
           this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
         }
-
-        // Maintain compatibility by emitting events
-        provider.emitGpsEvents(historyData);
       } else if (historyData && historyData.length <= 1) {
         this.logger.log(`Skipping GPS history replacement for session ${ session.id } - insufficient data (${ historyData.length } records). Keeping existing history.`);
 
