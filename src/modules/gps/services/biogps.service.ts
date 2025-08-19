@@ -9,6 +9,8 @@ import { AppConfigService }                 from '@modules/config/app-config.ser
 import { GPSProviderEnum }                  from '@modules/gps/domain/enums/provider.enum';
 import { IGpsProvider }                     from '../domain/interfaces/gps-provider.interface';
 import { VehicleDiscovery }                 from '@modules/gps/domain/interfaces/vehicle-discovery.interface';
+import { InjectQueue }                      from '@nestjs/bullmq';
+import { Queue }                            from 'bullmq';
 
 @Injectable()
 export class BiogpsService implements IGpsProvider {
@@ -18,6 +20,7 @@ export class BiogpsService implements IGpsProvider {
     private readonly cs: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: AppConfigService,
+    @InjectQueue('gps') private readonly gpsQueue: Queue,
   ) {
     this.logger.log('BiogpsService initialized');
   }
@@ -178,7 +181,10 @@ export class BiogpsService implements IGpsProvider {
    * Emit events for each GPS
    */
   emitGpsEvents(gpsData: GenericGPS[]): void {
-    gpsData.forEach(gps => this.eventEmitter.emit('gps.updated', gps));
+    gpsData.forEach(gps => {
+      void this.gpsQueue.add('gps.updated', gps);
+      // this.eventEmitter.emit('gps.updated', gps);
+    });
   }
 
   emitVehicleDiscovery(vehicleDiscovery: VehicleDiscovery): void {
