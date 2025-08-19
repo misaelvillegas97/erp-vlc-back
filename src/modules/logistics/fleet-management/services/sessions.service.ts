@@ -18,18 +18,18 @@ import { OsrmService }                                                         f
 import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
 import { GenericGPS }                                                          from '@modules/gps/domain/interfaces/generic-gps.interface';
 import { OsrmRoutePoint }                                                      from '@modules/gps/domain/interfaces/osrm.interface';
+import { InjectQueue }                                                         from '@nestjs/bullmq';
+import { Queue }                                                               from 'bullmq';
 
 @Injectable()
 export class SessionsService {
   private readonly logger = new Logger(SessionsService.name);
 
   constructor(
-    @InjectRepository(VehicleSessionEntity)
-    private readonly sessionRepository: Repository<VehicleSessionEntity>,
-    @InjectRepository(VehicleSessionLocationEntity)
-    private readonly locationRepository: Repository<VehicleSessionLocationEntity>,
-    @InjectRepository(VehicleSessionRouteEntity)
-    private readonly routeRepository: Repository<VehicleSessionRouteEntity>,
+    @InjectRepository(VehicleSessionEntity) private readonly sessionRepository: Repository<VehicleSessionEntity>,
+    @InjectRepository(VehicleSessionLocationEntity) private readonly locationRepository: Repository<VehicleSessionLocationEntity>,
+    @InjectRepository(VehicleSessionRouteEntity) private readonly routeRepository: Repository<VehicleSessionRouteEntity>,
+    @InjectQueue('gps') private readonly gpsQueue: Queue,
     private readonly vehiclesService: VehiclesService,
     private readonly driversService: DriversService,
     private readonly filesService: FilesService,
@@ -176,43 +176,65 @@ export class SessionsService {
     return this.findById(savedSession.id);
   }
 
-  private async fetchHistory(session: VehicleSessionEntity): Promise<any[] | null> {
-    try {
-      // Get the GPS provider for this vehicle
-      const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
+  async findAll(query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
 
-      // Get the GPS history for the session
-      const historyData = await provider.getOneHistory(
-        historyConfig.metadata.endpoint,
-        historyConfig.metadata.apiKey,
-        session.vehicle.licensePlate,
-        session.vehicle.gpsProvider.providerId,
-        session.startTime,
-        session.endTime
+    const qb = this.sessionRepository.createQueryBuilder('session');
+
+
+    // Add relations
+    qb.leftJoinAndSelect('session.vehicle', 'vehicle');
+    qb.leftJoinAndSelect('session.driver', 'driver');
+    qb.leftJoinAndSelect('session.gps', 'gps');
+
+    if (query.includeDetails) {
+      qb.leftJoinAndSelect('session.locations', 'locations');
+    }
+
+    // Add filters
+    if (query.userId) qb.where('session.driverId = :userId', {userId: query.userId});
+    if (query.vehicleId) qb.andWhere('session.vehicleId = :vehicleId', {vehicleId: query.vehicleId});
+    if (query.driverId) qb.andWhere('session.driverId = :driverId', {driverId: query.driverId});
+    if (query.status) qb.andWhere('session.status = :status', {status: query.status});
+    if (query.startDateFrom && query.startDateTo) qb.andWhere('session.startTime BETWEEN :startDateFrom AND :startDateTo', {
+      startDateFrom: new Date(query.startDateFrom),
+      startDateTo: new Date(query.startDateTo)
+    });
+    else if (query.startDateFrom) qb.andWhere('session.startTime >= :startDateFrom', {startDateFrom: new Date(query.startDateFrom)});
+
+    if (query.search)
+      qb.andWhere(
+        '(vehicle.licensePlate ILIKE :search OR ' +
+        'driver.firstName ILIKE :search OR ' +
+        'driver.lastName ILIKE :search OR ' +
+        'session.purpose ILIKE :search OR ' +
+        'session.observations ILIKE :search)',
+        {search: `%${ query.search }%`}
       );
 
-      // Maintain compatibility by emitting events
-      provider.emitGpsEvents(historyData);
+    // Get total count
+    let total = await qb.getCount();
 
-      if (historyData && historyData.length > 0) {
-        this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
+    // Add ordering
+    qb.orderBy('session.startTime', 'DESC');
 
-        // Clear existing GPS data for the session. TODO: Check if this is necessary and if it affects performance
-        // await this.clearSessionGpsData(session.id);
+    // Add pagination
+    qb.take(limit);
+    qb.skip((page - 1) * limit);
 
-        // Save the new GPS history data (more complete route)
-        // await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
+    // Cache the query for better performance
+    qb.cache(30000);
 
-        return historyData;
-      } else {
-        this.logger.log(`No GPS history data available for session ${ session.id }`);
-        return null;
-      }
-    } catch (error) {
-      // Don't interrupt the main flow if there's an error retrieving GPS history
-      this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
-      return null;
+    // Get results
+    const [ items, count ] = await qb.getManyAndCount();
+
+    // If count is different from total (due to pagination), update total
+    if (count !== 0 && total > count) {
+      total = count;
     }
+
+    return new PaginationDto({total, page, limit, items});
   }
 
   private async generatePolygon(session: VehicleSessionEntity, historyData: any[]): Promise<void> {
@@ -269,65 +291,43 @@ export class SessionsService {
     return JSON.stringify(matchings);
   }
 
-  async findAll(query: QuerySessionDto): Promise<PaginationDto<VehicleSessionEntity>> {
-    const page = query.page || 1;
-    const limit = query.limit || 10;
+  private async fetchHistory(session: VehicleSessionEntity): Promise<any[] | null> {
+    try {
+      // Get the GPS provider for this vehicle
+      const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
 
-    const qb = this.sessionRepository.createQueryBuilder('session');
-
-
-    // Add relations
-    qb.leftJoinAndSelect('session.vehicle', 'vehicle');
-    qb.leftJoinAndSelect('session.driver', 'driver');
-    qb.leftJoinAndSelect('session.gps', 'gps');
-
-    if (query.includeDetails) {
-      qb.leftJoinAndSelect('session.locations', 'locations');
-    }
-
-    // Add filters
-    if (query.userId) qb.where('session.driverId = :userId', {userId: query.userId});
-    if (query.vehicleId) qb.andWhere('session.vehicleId = :vehicleId', {vehicleId: query.vehicleId});
-    if (query.driverId) qb.andWhere('session.driverId = :driverId', {driverId: query.driverId});
-    if (query.status) qb.andWhere('session.status = :status', {status: query.status});
-    if (query.startDateFrom && query.startDateTo) qb.andWhere('session.startTime BETWEEN :startDateFrom AND :startDateTo', {
-        startDateFrom: new Date(query.startDateFrom),
-        startDateTo: new Date(query.startDateTo)
-      });
-    else if (query.startDateFrom) qb.andWhere('session.startTime >= :startDateFrom', {startDateFrom: new Date(query.startDateFrom)});
-
-    if (query.search)
-      qb.andWhere(
-        '(vehicle.licensePlate ILIKE :search OR ' +
-        'driver.firstName ILIKE :search OR ' +
-        'driver.lastName ILIKE :search OR ' +
-        'session.purpose ILIKE :search OR ' +
-        'session.observations ILIKE :search)',
-        {search: `%${ query.search }%`}
+      // Get the GPS history for the session
+      const historyData = await provider.getOneHistory(
+        historyConfig.metadata.endpoint,
+        historyConfig.metadata.apiKey,
+        session.vehicle.licensePlate,
+        session.vehicle.gpsProvider.providerId,
+        session.startTime,
+        session.endTime
       );
 
-    // Get total count
-    let total = await qb.getCount();
+      // Maintain compatibility by emitting events
+      historyData.forEach(gps => this.gpsQueue.add('gps.updated', {gps, vehicle: session.vehicle, session}));
 
-    // Add ordering
-    qb.orderBy('session.startTime', 'DESC');
+      if (historyData && historyData.length > 0) {
+        this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
 
-    // Add pagination
-    qb.take(limit);
-    qb.skip((page - 1) * limit);
+        // Clear existing GPS data for the session. TODO: Check if this is necessary and if it affects performance
+        // await this.clearSessionGpsData(session.id);
 
-    // Cache the query for better performance
-    qb.cache(30000);
+        // Save the new GPS history data (more complete route)
+        // await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
 
-    // Get results
-    const [ items, count ] = await qb.getManyAndCount();
-
-    // If count is different from total (due to pagination), update total
-    if (count !== 0 && total > count) {
-      total = count;
+        return historyData;
+      } else {
+        this.logger.log(`No GPS history data available for session ${ session.id }`);
+        return null;
+      }
+    } catch (error) {
+      // Don't interrupt the main flow if there's an error retrieving GPS history
+      this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
+      return null;
     }
-
-    return new PaginationDto({total, page, limit, items});
   }
 
   async findAllActive(includeDetails: boolean = false): Promise<VehicleSessionEntity[]> {
