@@ -1,37 +1,19 @@
-import {
-  AfterLoad,
-  Column,
-  CreateDateColumn,
-  DeleteDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  OneToOne,
-  PrimaryColumn,
-  UpdateDateColumn,
-}                       from 'typeorm';
-import { RoleEntity }   from '@modules/roles/domain/entities/role.entity';
-import { StatusEntity } from '@modules/statuses/domain/entities/status.entity';
-import { FileEntity }   from '@modules/files/domain/entities/file.entity';
+import { AfterLoad, Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, } from 'typeorm';
+import { RoleEntity }                                                                    from '@modules/roles/domain/entities/role.entity';
+import { StatusEntity }                                                                  from '@modules/statuses/domain/entities/status.entity';
+import { FileEntity }                                                                    from '@modules/files/domain/entities/file.entity';
 
 import { Exclude, Expose }                        from 'class-transformer';
 import { ApiProperty }                            from '@nestjs/swagger';
-import { v4 }                                     from 'uuid';
-import { EntityRelationalHelper }                 from '@shared/utils/relational-entity-helper';
 import { AuthProvidersEnum }                      from '@core/auth/auth-providers.enum';
 import { RoleUserEntity }                         from '@modules/roles/domain/entities/role-user.entity';
 import { DriverLicenseEntity, DriverLicenseType } from './driver-license.entity';
 import { VehicleSessionEntity }                   from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
 import { DateTime }                               from 'luxon';
+import { TenantAbstractEntity }                   from '@shared/domain/entities/tenantAbstractEntity';
 
 @Entity('user')
-export class UserEntity extends EntityRelationalHelper {
-  @ApiProperty({type: Number,})
-  @PrimaryColumn()
-  id: string = v4();
-
+export class UserEntity extends TenantAbstractEntity {
   @ApiProperty({type: String, example: 'john.doe@example.com',})
   @Column({type: String, unique: true, nullable: true})
   @Expose({groups: [ 'me', 'admin' ]})
@@ -80,18 +62,6 @@ export class UserEntity extends EntityRelationalHelper {
   @ApiProperty({type: () => StatusEntity,})
   @ManyToOne(() => StatusEntity, {eager: true,})
   status?: StatusEntity;
-
-  @ApiProperty()
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @ApiProperty()
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @ApiProperty()
-  @DeleteDateColumn()
-  deletedAt: Date;
 
   @ApiProperty({type: String, required: false})
   @Column({type: String, nullable: true})

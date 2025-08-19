@@ -1,7 +1,7 @@
-import { Module }                      from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule }               from '@nestjs/typeorm';
-import { ThrottlerModule }             from '@nestjs/throttler';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { ConfigModule, ConfigService }            from '@nestjs/config';
+import { TypeOrmModule }                          from '@nestjs/typeorm';
+import { ThrottlerModule }                        from '@nestjs/throttler';
 
 import { I18nModule }                    from 'nestjs-i18n/dist/i18n.module';
 import { HeaderResolver }                from 'nestjs-i18n';
@@ -56,6 +56,12 @@ import { ScrumboardModule }                from '@modules/scrumboard/scrumboard.
 import { ChecklistsModule }                from '@modules/checklists/checklists.module';
 import { AuditModule }                     from '@modules/audit/audit.module';
 import { TracingModule }                   from '@modules/tracing/tracing.module';
+import { TenantModule }                    from '@modules/tenant/tenant.module';
+import { TenantMiddleware }                from '@modules/tenant/middleware/tenant.middleware';
+import { SchedulerModule }                 from '@modules/scheduler/scheduler.module';
+import { WorkersModule }                   from '@modules/workers/workers.module';
+import { FeatureFlagsModule }              from '@modules/feature-flags/feature-flags.module';
+import { AdminModule }                     from '@modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -148,8 +154,28 @@ import { TracingModule }                   from '@modules/tracing/tracing.module
     ScrumboardModule,
     ChecklistsModule,
     AuditModule,
-    TracingModule
+    TracingModule,
+    TenantModule,
+    SchedulerModule,
+    WorkersModule,
+    FeatureFlagsModule,
+    AdminModule
   ],
   controllers: [ AppController ]
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /**
+   * Configure middleware for the application.
+   * Registers TenantMiddleware to extract tenant context from requests.
+   */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(TenantMiddleware)
+      .exclude(
+        '/public/(.*)',  // Exclude static files
+        '/health',       // Exclude health check endpoints
+        '/favicon.ico'   // Exclude favicon
+      )
+      .forRoutes('*');  // Apply to all other routes
+  }
+}

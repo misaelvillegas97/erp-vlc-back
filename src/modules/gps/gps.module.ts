@@ -10,9 +10,11 @@ import { RunnerService }                from '@modules/gps/schedulers/runner.ser
 import { GpsProviderFactoryService }    from '@modules/gps/services/gps-provider-factory.service';
 import { VehicleGpsProviderEntity }     from '@modules/logistics/fleet-management/domain/entities/vehicle-gps-provider.entity';
 import { GpsController }                from '@modules/gps/controllers/gps.controller';
+import { GpsIntegrationsController }    from '@modules/gps/controllers/gps-integrations.controller';
 import { GpsService }                   from '@modules/gps/services/gps.service';
 import { GpsEntity }                    from '@modules/gps/domain/entities/gps.entity';
 import { LogisticsModule }              from '@modules/logistics/logistics.module';
+import { TenantModule }                 from '@modules/tenant/tenant.module';
 
 @Global()
 @Module({
@@ -22,9 +24,13 @@ import { LogisticsModule }              from '@modules/logistics/logistics.modul
       GpsEntity,
       VehicleGpsProviderEntity
     ]),
-    forwardRef(() => LogisticsModule)
+    forwardRef(() => LogisticsModule),
+    TenantModule,
   ],
-  controllers: [ GpsController ],
+  controllers: [
+    GpsController,
+    GpsIntegrationsController,
+  ],
   providers: [
     RunnerService,
     BiogpsService,
