@@ -17,7 +17,7 @@ import { GpsService }                                                          f
 import { OsrmService }                                                         from '@modules/gps/services/osrm.service';
 import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
 import { GenericGPS }                                                          from '@modules/gps/domain/interfaces/generic-gps.interface';
-import { OsrmRoutePoint, OsrmValidationConfig }                                from '@modules/gps/domain/interfaces/osrm.interface';
+import { OsrmRoutePoint }                                                      from '@modules/gps/domain/interfaces/osrm.interface';
 
 @Injectable()
 export class SessionsService {
@@ -102,75 +102,6 @@ export class SessionsService {
     }
 
     this.logger.log(`Retrieved session ${ session.id }, Route details loaded: ${ !!session.routeDetails }`);
-
-    // Generate route polygon if missing (for sessions created before OSRM integration)
-    if (!session.routeDistance && session.status === VehicleSessionStatus.COMPLETED && session.endTime) {
-      try {
-        this.logger.log(`Generating missing route polygon for session ${ session.id }`);
-
-        // Generate route polygon using OSRM Match service
-        // Timestamp: Convert "1753735234000" → "2025-04-28T12:27:14.000Z"
-        const osrmPoints: OsrmRoutePoint[] = session.gps.map(point => ({
-          latitude: point.latitude,
-          longitude: point.longitude,
-          timestamp: point.timestamp
-        }));
-
-        // Configure Match service options for better GPS point matching
-        const matchOptions = {
-          tidy: true,           // Allow input track modification for better matching quality on noisy tracks
-          gaps: 'split' as const, // Split track based on timestamp gaps
-          geometries: 'geojson' as const,
-          overview: 'full' as const,
-          steps: false,
-          annotations: false
-        };
-
-        // Calculate expected values from session data instead of GPS points
-        const expectedDistance = session.finalOdometer && session.initialOdometer
-          ? (session.finalOdometer - session.initialOdometer) * 1000 // Convert km to meters
-          : 0;
-
-        const expectedDuration = session.endTime && session.startTime
-          ? (session.endTime.getTime() - session.startTime.getTime()) / 1000 // Convert ms to seconds
-          : 0;
-
-        // Configure validation to ensure OSRM results are reasonable using session odometer data
-        const validationConfig: OsrmValidationConfig = {
-          enableValidation: expectedDistance > 0 && expectedDuration > 0, // Only validate if we have session data
-          distanceTolerancePercent: 0.5,  // Allow 50% difference in distance
-          durationTolerancePercent: 1,  // Allow 60% difference in duration (more tolerance for traffic/routing differences)
-          maxRetries: 3,                  // Retry up to 3 times if validation fails
-          expectedDistance: expectedDistance > 0 ? expectedDistance : undefined,
-          expectedDuration: expectedDuration > 0 ? expectedDuration : undefined
-        };
-
-        this.logger.debug(`Session validation data - Expected distance: ${ expectedDistance }m, Expected duration: ${ expectedDuration }s`);
-
-        const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions, validationConfig);
-        if (routeData) {
-          // Save detailed route data to separate entity
-          await this.saveRouteDetails(session.id, routeData);
-
-          // Update session with lightweight route metadata
-          await this.sessionRepository.update(session.id, {
-            routeDistance: routeData.distance,
-            routeDuration: routeData.duration,
-            routeCoordinateCount: routeData.geometry?.coordinates?.length || 0
-          });
-
-          // Update the session object with metadata
-          session.routeDistance = routeData.distance;
-          session.routeDuration = routeData.duration;
-          session.routeCoordinateCount = routeData.geometry?.coordinates?.length || 0;
-
-          this.logger.log(`Successfully generated and saved route data for session ${ session.id }`);
-        }
-      } catch (error) {
-        // Don't interrupt the main flow if there's an error generating the route
-        this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
-      }
-    }
 
     return session;
   }
