@@ -40,4 +40,8 @@ import { TenantModule }                from '../tenant/tenant.module';
     BullModule,
   ],
 })
-export class SchedulerModule {}
+export class SchedulerModule {
+  constructor() {
+    console.log(`Redis host: ${ process.env.REDIS_HOST || 'localhost' }, Redis port: ${ process.env.REDIS_PORT || 6379 }`);
+  }
+}
