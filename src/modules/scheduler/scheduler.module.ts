@@ -16,21 +16,25 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     BullModule.registerQueueAsync({
       name: 'gps-queue',
       imports: [ ConfigModule ],
-      useFactory: (configService: ConfigService) => ({
-        defaultJobOptions: {
-          removeOnComplete: 10,
-          removeOnFail: 50,
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 5000,
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('workers.host', {infer: true});
+        const port = configService.get('workers.port', {infer: true});
+
+        console.log(`Using BullMQ with host: ${ host }, port: ${ port }`);
+
+        return {
+          defaultJobOptions: {
+            removeOnComplete: 10,
+            removeOnFail: 50,
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 5000,
+            },
           },
-        },
-        connection: {
-          host: configService.get<string>('workers.host', {infer: true}),
-          port: configService.get<number>('workers.port', {infer: true}),
-        }
-      }),
+          connection: {host, port}
+        };
+      },
       inject: [ ConfigService ],
     }),
     // Import TenantModule for configuration services
