@@ -215,6 +215,8 @@ export class SessionsService {
   }
 
   private async generatePolygon(session: VehicleSessionEntity, historyData: any[]): Promise<void> {
+    if (!this.osrmService.isEnabled()) return;
+
     if (!historyData || historyData.length <= 1) {
       this.logger.log(`Skipping GPS history replacement for session ${ session.id } - insufficient data (${ historyData?.length || 0 } records). Keeping existing history.`);
       return;

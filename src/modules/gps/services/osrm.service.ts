@@ -32,6 +32,10 @@ export class OsrmService implements IOsrmService {
     this.osrmApiUrl = this.configService.get('gps.osrm.apiUrl', {infer: true});
   }
 
+  isEnabled = (): boolean => {
+    return this.osrmApiUrl !== undefined;
+  };
+
   /**
    * Generate route polygon from GPS history points using map matching
    * @param points Array of GPS points with latitude, longitude and optional timestamp
