@@ -21,6 +21,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         const port = configService.get('workers.port', {infer: true});
         const username = configService.get<string>('workers.user', {infer: true});
         const password = configService.get<string>('workers.password', {infer: true});
+        const isProduction = configService.get('app.nodeEnv', {infer: true}) === 'production';
 
         console.log(`Using BullMQ with host: ${ host }, port: ${ port }, username: ${ username }`);
 
@@ -34,7 +35,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
               delay: 5000,
             },
           },
-          connection: {host, port, username, password}
+          connection: {host, port, username, password, family: isProduction ? 0 : undefined}
         };
       },
       inject: [ ConfigService ],

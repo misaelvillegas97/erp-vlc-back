@@ -26,6 +26,7 @@ import { GpsModule }                   from '../gps/gps.module';
           },
         },
         connection: {
+          family: configService.get('app.nodeEnv', {infer: true}) === 'production' ? 0 : undefined,
           host: configService.get<string>('workers.host', {infer: true}),
           port: configService.get<number>('workers.port', {infer: true}),
           username: configService.get<string>('workers.user', {infer: true}),
