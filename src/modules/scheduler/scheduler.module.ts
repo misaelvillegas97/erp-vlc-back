@@ -23,6 +23,10 @@ import { TenantModule }                from '../tenant/tenant.module';
           delay: 5000,
         },
       },
+      connection: {
+        host: process.env.WORKER_HOST || 'localhost',
+        port: Number(process.env.WORKER_PORT) || 6379,
+      }
     }),
     // Import TenantModule for configuration services
     TenantModule,

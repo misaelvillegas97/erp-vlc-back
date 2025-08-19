@@ -22,6 +22,10 @@ import { GpsModule }        from '../gps/gps.module';
           delay: 5000,
         },
       },
+      connection: {
+        host: process.env.WORKER_HOST || 'localhost',
+        port: Number(process.env.WORKER_PORT) || 6379,
+      }
     }),
     // Import tenant services for context management
     TenantModule,
