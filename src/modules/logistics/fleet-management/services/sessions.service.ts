@@ -91,6 +91,12 @@ export class SessionsService {
 
     if (!session) throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
 
+    if (session.gps.length === 0) {
+      await this.fetchHistoryAndPolygon(session);
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
     this.logger.log(`Retrieved session ${ session.id }, Route details loaded: ${ !!session.routeDetails }`);
 
     // Generate route polygon if missing (for sessions created before OSRM integration)
@@ -224,6 +230,12 @@ export class SessionsService {
     await this.vehiclesService.updateOdometer(session.vehicleId, finishSessionDto.finalOdometer);
 
     // Retrieve GPS history for the session
+    await this.fetchHistoryAndPolygon(session);
+
+    return this.findById(savedSession.id);
+  }
+
+  private async fetchHistoryAndPolygon(session: VehicleSessionEntity) {
     try {
       // Get the GPS provider for this vehicle
       const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
@@ -296,8 +308,6 @@ export class SessionsService {
       // Don't interrupt the main flow if there's an error retrieving GPS history
       this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
     }
-
-    return this.findById(savedSession.id);
   }
 
   /**

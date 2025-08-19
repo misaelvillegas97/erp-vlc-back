@@ -93,7 +93,7 @@ export class TenantMiddleware implements NestMiddleware {
     if (subdomain) {
       const tenantId = await this.mapSubdomainToTenantId(subdomain);
       if (tenantId) {
-        this.logger.debug(`Tenant ID mapped from subdomain ${ subdomain }: ${ tenantId }`);
+        this.logger.debug(`Tenant ID mapped from subdomain ${ subdomain } → ${ tenantId }`);
         return tenantId;
       }
     }
