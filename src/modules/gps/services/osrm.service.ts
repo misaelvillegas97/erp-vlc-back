@@ -33,7 +33,7 @@ export class OsrmService implements IOsrmService {
   }
 
   isEnabled = (): boolean => {
-    return this.osrmApiUrl !== undefined;
+    return !!this.osrmApiUrl;
   };
 
   /**
