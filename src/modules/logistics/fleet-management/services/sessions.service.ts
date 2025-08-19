@@ -92,7 +92,11 @@ export class SessionsService {
     if (!session) throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
 
     if (session.gps.length === 0) {
-      await this.fetchHistoryAndPolygon(session);
+      const historyData = await this.fetchHistory(session);
+
+      if (historyData && historyData.length > 1) {
+        await this.generatePolygon(session, historyData);
+      }
 
       await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -230,12 +234,17 @@ export class SessionsService {
     await this.vehiclesService.updateOdometer(session.vehicleId, finishSessionDto.finalOdometer);
 
     // Retrieve GPS history for the session
-    await this.fetchHistoryAndPolygon(session);
+    const historyData = await this.fetchHistory(session);
+
+    // Generate polygon if history data is available
+    if (historyData && historyData.length > 1) {
+      await this.generatePolygon(session, historyData);
+    }
 
     return this.findById(savedSession.id);
   }
 
-  private async fetchHistoryAndPolygon(session: VehicleSessionEntity) {
+  private async fetchHistory(session: VehicleSessionEntity): Promise<any[] | null> {
     try {
       // Get the GPS provider for this vehicle
       const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
@@ -253,8 +262,7 @@ export class SessionsService {
       // Maintain compatibility by emitting events
       provider.emitGpsEvents(historyData);
 
-      // Process GPS history data if available and has more than 1 record
-      if (historyData && historyData.length > 1) {
+      if (historyData && historyData.length > 0) {
         this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
 
         // Clear existing GPS data for the session. TODO: Check if this is necessary and if it affects performance
@@ -263,50 +271,58 @@ export class SessionsService {
         // Save the new GPS history data (more complete route)
         // await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
 
-        // Generate route polygon using OSRM Match service
-        try {
-          const osrmPoints: OsrmRoutePoint[] = historyData.map(point => ({
-            latitude: point.currentLocation.lat,
-            longitude: point.currentLocation.lng,
-            timestamp: +point.currentLocation.timestamp
-          }));
-
-          // Configure Match service options for better GPS point matching
-          const matchOptions = {
-            tidy: true,           // Allow input track modification for better matching quality on noisy tracks
-            gaps: 'split' as const, // Split track based on timestamp gaps
-            geometries: 'geojson' as const,
-            overview: 'full' as const,
-            steps: false,
-            annotations: false
-          };
-
-          const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions);
-          if (routeData) {
-            // Save detailed route data to separate entity
-            await this.saveRouteDetails(session.id, routeData);
-
-            // Update session with lightweight route metadata
-            await this.sessionRepository.update(session.id, {
-              routeDistance: routeData.distance,
-              routeDuration: routeData.duration,
-              routeCoordinateCount: routeData.geometry?.coordinates?.length || 0
-            });
-
-            this.logger.log(`Successfully generated and saved route data for session ${ session.id }`);
-          }
-        } catch (error) {
-          this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
-        }
-      } else if (historyData && historyData.length <= 1) {
-        this.logger.log(`Skipping GPS history replacement for session ${ session.id } - insufficient data (${ historyData.length } records). Keeping existing history.`);
-
-        // Still emit events for compatibility, but don't replace existing data
-        provider.emitGpsEvents(historyData);
+        return historyData;
+      } else {
+        this.logger.log(`No GPS history data available for session ${ session.id }`);
+        return null;
       }
     } catch (error) {
       // Don't interrupt the main flow if there's an error retrieving GPS history
       this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
+      return null;
+    }
+  }
+
+  private async generatePolygon(session: VehicleSessionEntity, historyData: any[]): Promise<void> {
+    if (!historyData || historyData.length <= 1) {
+      this.logger.log(`Skipping GPS history replacement for session ${ session.id } - insufficient data (${ historyData?.length || 0 } records). Keeping existing history.`);
+      return;
+    }
+
+    try {
+      // Generate route polygon using OSRM Match service
+      const osrmPoints: OsrmRoutePoint[] = historyData.map(point => ({
+        latitude: point.currentLocation.lat,
+        longitude: point.currentLocation.lng,
+        timestamp: +point.currentLocation.timestamp
+      }));
+
+      // Configure Match service options for better GPS point matching
+      const matchOptions = {
+        tidy: true,           // Allow input track modification for better matching quality on noisy tracks
+        gaps: 'split' as const, // Split track based on timestamp gaps
+        geometries: 'geojson' as const,
+        overview: 'full' as const,
+        steps: false,
+        annotations: false
+      };
+
+      const routeData = await this.osrmService.generateRouteFromPoints(osrmPoints, matchOptions);
+      if (routeData) {
+        // Save detailed route data to separate entity
+        await this.saveRouteDetails(session.id, routeData);
+
+        // Update session with lightweight route metadata
+        await this.sessionRepository.update(session.id, {
+          routeDistance: routeData.distance,
+          routeDuration: routeData.duration,
+          routeCoordinateCount: routeData.geometry?.coordinates?.length || 0
+        });
+
+        this.logger.log(`Successfully generated and saved route data for session ${ session.id }`);
+      }
+    } catch (error) {
+      this.logger.error(`Error generating route polygon for session ${ session.id }: ${ error.message }`, error.stack);
     }
   }
 
