@@ -60,6 +60,7 @@ import { TenantModule }                    from '@modules/tenant/tenant.module';
 import { TenantMiddleware }                from '@modules/tenant/middleware/tenant.middleware';
 import { SchedulerModule }                 from '@modules/scheduler/scheduler.module';
 import { WorkersModule }                   from '@modules/workers/workers.module';
+import workersConfig                       from '@modules/workers/config/workers.config';
 import { FeatureFlagsModule }              from '@modules/feature-flags/feature-flags.module';
 import { AdminModule }                     from '@modules/admin/admin.module';
 
@@ -87,6 +88,7 @@ import { AdminModule }                     from '@modules/admin/admin.module';
         cencoConfig,
         comercioConfig,
         gpsConfig,
+        workersConfig,
       ],
       envFilePath: [ '.env' ],
     }),

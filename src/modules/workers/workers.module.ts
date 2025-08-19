@@ -1,8 +1,9 @@
-import { Module }           from '@nestjs/common';
-import { BullModule }       from '@nestjs/bullmq';
-import { GpsSyncProcessor } from './processors/gps-sync.processor';
-import { TenantModule }     from '../tenant/tenant.module';
-import { GpsModule }        from '../gps/gps.module';
+import { Module }                      from '@nestjs/common';
+import { BullModule }                  from '@nestjs/bullmq';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { GpsSyncProcessor }            from './processors/gps-sync.processor';
+import { TenantModule }                from '../tenant/tenant.module';
+import { GpsModule }                   from '../gps/gps.module';
 
 /**
  * Module for managing tenant-aware workers and job processors.
@@ -11,21 +12,25 @@ import { GpsModule }        from '../gps/gps.module';
 @Module({
   imports: [
     // Import BullMQ for job processing
-    BullModule.registerQueue({
+    BullModule.registerQueueAsync({
       name: 'gps-queue',
-      defaultJobOptions: {
-        removeOnComplete: 10,
-        removeOnFail: 50,
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 5000,
+      imports: [ ConfigModule ],
+      useFactory: (configService: ConfigService) => ({
+        defaultJobOptions: {
+          removeOnComplete: 10,
+          removeOnFail: 50,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
         },
-      },
-      connection: {
-        host: process.env.WORKER_HOST || 'localhost',
-        port: Number(process.env.WORKER_PORT) || 6379,
-      }
+        connection: {
+          host: configService.get<string>('workers.host', {infer: true}),
+          port: configService.get<number>('workers.port', {infer: true}),
+        }
+      }),
+      inject: [ ConfigService ],
     }),
     // Import tenant services for context management
     TenantModule,
@@ -41,7 +46,9 @@ import { GpsModule }        from '../gps/gps.module';
   ],
 })
 export class WorkersModule {
-  constructor() {
-    console.log(`WorkersModule: Redis host: ${ process.env.WORKER_HOST }, Redis port: ${ process.env.WORKER_PORT }`);
+  constructor(private readonly configService: ConfigService) {
+    const workerHost = this.configService.get<string>('workers.host', {infer: true});
+    const workerPort = this.configService.get<number>('workers.port', {infer: true});
+    console.log(`WorkersModule: Redis host: ${ workerHost }, Redis port: ${ workerPort }`);
   }
 }
