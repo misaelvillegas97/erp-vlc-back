@@ -14,7 +14,7 @@ export class GpsProcessor extends WorkerHost {
   }
 
   async process(job: Job<GenericGPS>) {
-    this.logger.debug(`Processing job ${ job.id }`);
+    this.logger.debug(`Processing job ${ job.id }, name: ${ job.name }`);
 
     if (job.name === 'gps.updated') return await this.gpsService.saveGps(job.data);
   }
