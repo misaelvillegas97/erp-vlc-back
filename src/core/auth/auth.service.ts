@@ -67,6 +67,7 @@ export class AuthService {
       id: user.id,
       role: user.role,
       sessionId: session.id,
+      tenantId: user.tenantId,
       hash,
     });
 
@@ -79,6 +80,7 @@ export class AuthService {
       token,
       tokenExpires: +tokenExpires,
       user,
+      tenant: user.tenant,
     };
   }
 
@@ -145,6 +147,7 @@ export class AuthService {
       id: user.id,
       role: user.role,
       sessionId: session.id,
+      tenantId: user.tenantId,
       hash,
     });
 
@@ -154,6 +157,7 @@ export class AuthService {
       token: jwtToken,
       tokenExpires: +tokenExpires,
       user,
+      tenant: user.tenant,
     };
   }
 
@@ -393,6 +397,7 @@ export class AuthService {
         id: user.role.id,
       },
       sessionId: session.id,
+      tenantId: user.tenantId,
       hash,
     });
 
@@ -401,7 +406,8 @@ export class AuthService {
       tokenExpires: +tokenExpires,
       refreshToken,
       refreshTokenExpires: +refreshTokenExpires,
-      user
+      user,
+      tenant: user.tenant,
     };
   }
 
@@ -436,6 +442,7 @@ export class AuthService {
     role: User['role'];
     sessionId: Session['id'];
     hash: Session['hash'];
+    tenantId?: User['tenant']['id'];
   }) {
     const tokenExpiresIn = this.configService.getOrThrow<AllConfigType>('auth.expires', {infer: true});
     const refreshTokenExpiresIn = this.configService.getOrThrow<AllConfigType>('auth.refreshExpires', {infer: true});
@@ -449,6 +456,7 @@ export class AuthService {
           id: data.id,
           role: data.role,
           sessionId: data.sessionId,
+          tenantId: data.tenantId,
         },
         {
           secret: this.configService.getOrThrow<AllConfigType>('auth.secret', {infer: true}),
@@ -459,6 +467,7 @@ export class AuthService {
         {
           sessionId: data.sessionId,
           hash: data.hash,
+          tenantId: data.tenantId,
         },
         {
           secret: this.configService.getOrThrow<AllConfigType>('auth.refreshSecret', {infer: true}),

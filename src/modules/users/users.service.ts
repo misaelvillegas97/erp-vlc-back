@@ -148,7 +148,7 @@ export class UsersService {
       }
     }
 
-    return this.usersRepository.update(id, {
+    return this.usersRepository.updateUser(id, {
       ...updateUserDto,
       email: updateUserDto.email?.toLowerCase(),
       password: updateUserDto.password
@@ -224,7 +224,7 @@ export class UsersService {
   }
 
   async remove(id: User['id']): Promise<void> {
-    await this.usersRepository.remove(id);
+    await this.usersRepository.removeUser(id);
   }
 
   private async hashPassword(password: string): Promise<string> {

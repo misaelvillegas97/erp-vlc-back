@@ -8,6 +8,7 @@ import { Status }               from '../../statuses/domain/status';
 import { RoleUserEntity }       from '@modules/roles/domain/entities/role-user.entity';
 import { DriverLicenseEntity }  from '@modules/users/domain/entities/driver-license.entity';
 import { VehicleSessionEntity } from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
+import { TenantEntity }         from '@modules/tenant/domain/entities/tenant.entity';
 
 export class User {
   @ApiProperty({type: String})
@@ -83,4 +84,10 @@ export class User {
 
   @ApiProperty({type: () => VehicleSessionEntity})
   vehicleSession?: VehicleSessionEntity | null;
+
+  @ApiProperty({type: String})
+  tenantId?: string;
+
+  @ApiProperty({type: () => TenantEntity})
+  tenant?: TenantEntity;
 }

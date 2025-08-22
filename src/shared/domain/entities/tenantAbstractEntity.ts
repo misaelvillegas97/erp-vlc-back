@@ -11,7 +11,7 @@ export abstract class TenantAbstractEntity extends AbstractEntity {
   tenantId: string;
 
   // We'll add the relation once the TenantEntity is implemented
-  @ManyToOne(() => TenantEntity)
+  @ManyToOne(() => TenantEntity, {eager: true})
   @JoinColumn({name: 'tenant_id'})
   tenant: TenantEntity;
 }

@@ -60,6 +60,7 @@ export class AuthController {
         token: login.token,
         tokenExpires: login.tokenExpires,
         user: AuthUserMapper.map(login.user),
+        tenant: login.tenant,
       });
   }
 
@@ -135,7 +136,8 @@ export class AuthController {
       .send({
         token: refreshData.token,
         tokenExpires: refreshData.tokenExpires,
-        user: AuthUserMapper.map(refreshData.user)
+        user: AuthUserMapper.map(refreshData.user),
+        tenant: refreshData.tenant,
       });
   }
 

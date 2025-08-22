@@ -1,7 +1,7 @@
 import { Injectable }       from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { EntityManager, FindOptionsWhere, Repository } from 'typeorm';
 
 import { NullableType }               from '@shared/utils/types/nullable.type';
 import { IPaginationOptions }         from '@shared/utils/types/pagination-options';
@@ -10,6 +10,8 @@ import { UserEntity }                 from '../entities/user.entity';
 import { UserMapper }                 from '../mappers/user.mapper';
 import { User }                       from '../user';
 import bcrypt                         from 'bcryptjs';
+import { TenantRepository }           from '@shared/repositories/tenant.repository';
+import { TenantService }              from '@modules/tenant/services/tenant.service';
 
 export interface FindManyWithPagination {
   filterOptions?: FilterUserDto | null,
@@ -18,15 +20,19 @@ export interface FindManyWithPagination {
 };
 
 @Injectable()
-export class UserRepository {
+export class UserRepository extends TenantRepository<UserEntity> {
   constructor(
     @InjectRepository(UserEntity) private readonly usersRepository: Repository<UserEntity>,
-  ) {}
+    entityManager: EntityManager,
+    tenantService: TenantService,
+  ) {
+    super(UserEntity, entityManager, tenantService);
+  }
 
-  async create(data: User): Promise<User> {
+  async createUser(data: User): Promise<User> {
     const persistenceModel = UserMapper.toPersistence(data);
-    const newEntity = await this.usersRepository.save(
-      this.usersRepository.create(persistenceModel),
+    const newEntity = await this.save(
+      this.create(persistenceModel),
     );
     return UserMapper.toDomain(newEntity);
   }
@@ -37,7 +43,7 @@ export class UserRepository {
       where.role = filterOptions.roles.map((role) => ({id: role.id}));
     }
 
-    const entities = await this.usersRepository.find({
+    const entities = await this.find({
       skip: (paginationOptions.page - 1) * paginationOptions.limit,
       take: paginationOptions.limit,
       where: where,
@@ -49,7 +55,7 @@ export class UserRepository {
 
   async findManyByQuery(query: string): Promise<User[]> {
     // find users by query, for example, David Misael Villegas Sandoval matches David Misael in firstName, and Villegas Sandoval in lastname, or david.misa97@gmail.com in email
-    const qb = this.usersRepository.createQueryBuilder('user');
+    const qb = this.createQueryBuilder('user');
 
     qb.leftJoinAndSelect('user.role', 'role');
     qb.leftJoinAndSelect('user.roles', 'roles');
@@ -65,7 +71,7 @@ export class UserRepository {
   }
 
   async findById(id: User['id']): Promise<NullableType<User>> {
-    const entity = await this.usersRepository.findOne({where: {id}});
+    const entity = await this.findOne({where: {id}});
 
     return entity ? UserMapper.toDomain(entity) : null;
   }
@@ -73,7 +79,7 @@ export class UserRepository {
   async findByEmail(email: User['email']): Promise<NullableType<User>> {
     if (!email) return null;
 
-    const entity = await this.usersRepository.findOne({
+    const entity = await this.findOne({
       where: {email},
     });
 
@@ -89,15 +95,15 @@ export class UserRepository {
   }): Promise<NullableType<User>> {
     if (!socialId || !provider) return null;
 
-    const entity = await this.usersRepository.findOne({
+    const entity = await this.findOne({
       where: {socialId, provider},
     });
 
     return entity ? UserMapper.toDomain(entity) : null;
   }
 
-  async update(id: User['id'], payload: Partial<User>): Promise<User> {
-    const entity = await this.usersRepository.findOne({
+  async updateUser(id: User['id'], payload: Partial<User>): Promise<User> {
+    const entity = await this.findOne({
       where: {id},
     });
 
@@ -105,8 +111,8 @@ export class UserRepository {
       throw new Error('User not found');
     }
 
-    const updatedEntity = await this.usersRepository.save(
-      this.usersRepository.create(
+    const updatedEntity = await this.save(
+      this.create(
         UserMapper.toPersistence({
           ...UserMapper.toDomain(entity),
           ...payload,
@@ -118,7 +124,7 @@ export class UserRepository {
   }
 
   async updatePassword(id: User['id'], newPassword: string): Promise<User> {
-    const entity = await this.usersRepository.findOne({
+    const entity = await this.findOne({
       where: {id},
     });
 
@@ -128,12 +134,12 @@ export class UserRepository {
 
     entity.password = await bcrypt.hash(newPassword, 10);
 
-    const updatedEntity = await this.usersRepository.save(entity);
+    const updatedEntity = await this.save(entity);
 
     return UserMapper.toDomain(updatedEntity);
   }
 
-  async remove(id: User['id']): Promise<void> {
-    await this.usersRepository.softDelete(id);
+  async removeUser(id: User['id']): Promise<void> {
+    await this.delete(id);
   }
 }

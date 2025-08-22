@@ -63,9 +63,11 @@ import { WorkersModule }                   from '@modules/workers/workers.module
 import workersConfig                       from '@modules/workers/config/workers.config';
 import { FeatureFlagsModule }              from '@modules/feature-flags/feature-flags.module';
 import { AdminModule }                     from '@modules/admin/admin.module';
+import { BullModule }                      from '@nestjs/bullmq';
 
 @Module({
   imports: [
+    AuthModule,
     ServeStaticModule.forRoot({
       rootPath: path.join(__dirname, '..', 'public'),
       serveRoot: '/public',
@@ -97,6 +99,28 @@ import { AdminModule }                     from '@modules/admin/admin.module';
       dataSourceFactory: async (options: DataSourceOptions) => {
         return new DataSource(options).initialize();
       },
+    }),
+    BullModule.forRootAsync({
+      imports: [ ConfigModule ],
+      useFactory: (configService: ConfigService) => ({
+        defaultJobOptions: {
+          removeOnComplete: 10,
+          removeOnFail: 50,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+        },
+        connection: {
+          family: configService.get('app.nodeEnv', {infer: true}) === 'production' ? 0 : undefined,
+          host: configService.get<string>('workers.host', {infer: true}),
+          port: configService.get<number>('workers.port', {infer: true}),
+          username: configService.get<string>('workers.user', {infer: true}),
+          password: configService.get<string>('workers.password', {infer: true}),
+        }
+      }),
+      inject: [ ConfigService ],
     }),
     I18nModule.forRootAsync({
       useFactory: (configService: ConfigService<AllConfigType>) => ({
@@ -130,7 +154,6 @@ import { AdminModule }                     from '@modules/admin/admin.module';
     ScheduleModule.forRoot(),
     UsersModule,
     FilesModule,
-    AuthModule,
     AuthFacebookModule,
     AuthGoogleModule,
     AuthTwitterModule,

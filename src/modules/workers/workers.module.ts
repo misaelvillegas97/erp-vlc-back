@@ -1,9 +1,8 @@
-import { Module }                      from '@nestjs/common';
-import { BullModule }                  from '@nestjs/bullmq';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { GpsSyncProcessor }            from './processors/gps-sync.processor';
-import { TenantModule }                from '../tenant/tenant.module';
-import { GpsModule }                   from '../gps/gps.module';
+import { Module }           from '@nestjs/common';
+import { BullModule }       from '@nestjs/bullmq';
+import { GpsSyncProcessor } from './processors/gps-sync.processor';
+import { TenantModule }     from '../tenant/tenant.module';
+import { GpsModule }        from '../gps/gps.module';
 
 /**
  * Module for managing tenant-aware workers and job processors.
@@ -12,29 +11,7 @@ import { GpsModule }                   from '../gps/gps.module';
 @Module({
   imports: [
     // Import BullMQ for job processing
-    BullModule.registerQueueAsync({
-      name: 'gps-queue',
-      imports: [ ConfigModule ],
-      useFactory: (configService: ConfigService) => ({
-        defaultJobOptions: {
-          removeOnComplete: 10,
-          removeOnFail: 50,
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 5000,
-          },
-        },
-        connection: {
-          family: configService.get('app.nodeEnv', {infer: true}) === 'production' ? 0 : undefined,
-          host: configService.get<string>('workers.host', {infer: true}),
-          port: configService.get<number>('workers.port', {infer: true}),
-          username: configService.get<string>('workers.user', {infer: true}),
-          password: configService.get<string>('workers.password', {infer: true}),
-        }
-      }),
-      inject: [ ConfigService ],
-    }),
+    BullModule.registerQueueAsync({name: 'gps-queue'}),
     // Import tenant services for context management
     TenantModule,
     // Import GPS services for provider factory

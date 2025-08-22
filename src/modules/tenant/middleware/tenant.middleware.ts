@@ -1,7 +1,11 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response }    from 'express';
+import { JwtService }                         from '@nestjs/jwt';
+import { ConfigService }                      from '@nestjs/config';
 import { TenantService }                      from '../services/tenant.service';
 import { TenantRepository }                   from '../repositories/tenant.repository';
+import { AllConfigType }                      from '@core/config/config.type';
+import { JwtPayloadType }                     from '@core/auth/strategies/types/jwt-payload.type';
 
 /**
  * Cache for subdomain to tenant ID mapping
@@ -24,6 +28,8 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(
     private readonly tenantService: TenantService,
     private readonly tenantRepository: TenantRepository,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
   use(req: Request, res: Response, next: NextFunction): void {
@@ -35,8 +41,6 @@ export class TenantMiddleware implements NestMiddleware {
 
         // Extract tenant ID from various sources
         const tenantId = await this.extractTenantId(req);
-
-        console.log(`Tenant ID extracted: ${ tenantId }`);
 
         if (tenantId) {
           // Load tenant information from database and set full context
@@ -88,7 +92,14 @@ export class TenantMiddleware implements NestMiddleware {
       return companyIdHeader;
     }
 
-    // Method 3: Extract from subdomain and lookup tenant ID
+    // Method 3: Extract from JWT token
+    const tokenTenantId = await this.extractTenantFromToken(req);
+    if (tokenTenantId) {
+      this.logger.debug(`Tenant ID found in JWT token: ${ tokenTenantId }`);
+      return tokenTenantId;
+    }
+
+    // Method 4: Extract from subdomain and lookup tenant ID
     const subdomain = this.extractSubdomain(req);
     if (subdomain) {
       const tenantId = await this.mapSubdomainToTenantId(subdomain);
@@ -96,13 +107,6 @@ export class TenantMiddleware implements NestMiddleware {
         this.logger.debug(`Tenant ID mapped from subdomain ${ subdomain } → ${ tenantId }`);
         return tenantId;
       }
-    }
-
-    // Method 4: Extract from JWT token
-    const tokenTenantId = this.extractTenantFromToken(req);
-    if (tokenTenantId) {
-      this.logger.debug(`Tenant ID found in JWT token: ${ tokenTenantId }`);
-      return tokenTenantId;
     }
 
     this.logger.debug('No tenant ID found in request');
@@ -183,24 +187,29 @@ export class TenantMiddleware implements NestMiddleware {
    * @param req The incoming request
    * @returns The tenant ID or null if not found
    */
-  private extractTenantFromToken(req: Request): string | null {
-    // TODO: Implement JWT token parsing to extract tenant ID
-    // This would typically involve:
-    // 1. Getting the Authorization header
-    // 2. Decoding the JWT token
-    // 3. Extracting the tenant ID from the payload
+  private async extractTenantFromToken(req: Request): Promise<string | null> {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+      }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      if (!token) {
+        return null;
+      }
+
+      // Decode and verify the JWT token
+      const decoded = await this.jwtService.verifyAsync<JwtPayloadType>(token, {
+        secret: this.configService.getOrThrow<AllConfigType>('auth.secret', {infer: true}),
+      });
+
+      // Extract tenant ID from the decoded payload
+      return decoded.tenantId || null;
+    } catch (error) {
+      this.logger.debug(`Failed to extract tenant ID from JWT token: ${ error }`);
       return null;
     }
-
-    // For now, return null - implement JWT parsing when needed
-    // const token = authHeader.substring(7);
-    // const decoded = jwt.decode(token);
-    // return decoded?.tenantId || null;
-
-    return null;
   }
 
 }

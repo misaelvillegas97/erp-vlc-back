@@ -1,4 +1,4 @@
-import { Module }                 from '@nestjs/common';
+import { Global, Module }         from '@nestjs/common';
 import { TypeOrmModule }          from '@nestjs/typeorm';
 import { TenantEntity }           from './domain/entities/tenant.entity';
 import { TenantSettingsEntity }   from './domain/entities/tenant-settings.entity';
@@ -9,17 +9,20 @@ import { TenantMiddleware }       from './middleware/tenant.middleware';
 import { TenantSubscriber }       from './subscribers/tenant.subscriber';
 import { TenantController }       from './controllers/tenant.controller';
 import { TenantConfigController } from './controllers/tenant-config.controller';
+import { JwtModule }              from '@nestjs/jwt';
 
 /**
  * Module for managing tenant-related functionality.
  * Provides tenant context management, hierarchical configuration, and database operations.
  */
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       TenantEntity,
       TenantSettingsEntity,
     ]),
+    JwtModule
   ],
   controllers: [
     TenantController,
@@ -38,6 +41,7 @@ import { TenantConfigController } from './controllers/tenant-config.controller';
     TenantConfigService,
     TenantMiddleware,
     TypeOrmModule,
+    JwtModule
   ],
 })
 export class TenantModule {}

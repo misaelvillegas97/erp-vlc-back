@@ -45,7 +45,7 @@ export class BiogpsService implements IGpsProvider {
       }
 
       // Parse the raw data to GenericGPS format
-      const gpsData = BiogpsParser.toGeneric(response.data);
+      const gpsData = BiogpsParser.toGenericFromGroup(response.data);
 
       this.logger.debug(`Fetched and parsed ${ gpsData.length } GPS records`);
       return gpsData;
@@ -137,7 +137,7 @@ export class BiogpsService implements IGpsProvider {
       this.logger.debug(`Fetched GPS history in ${ (fetchEndTime - fetchStartTime) }ms`);
 
       // Parse the raw data to GenericGPS format
-      const gpsData = BiogpsParser.fromHistoryToGeneric(response.data, licensePlate);
+      const gpsData = BiogpsParser.toGenericFromHistory(response.data, licensePlate);
 
       this.logger.debug(`Fetched and parsed ${ gpsData.length } GPS records`);
       return gpsData;
@@ -158,7 +158,7 @@ export class BiogpsService implements IGpsProvider {
       }
 
       // Parse the raw data to GenericGPS format
-      const gpsData = BiogpsParser.toGeneric(response.data);
+      const gpsData = BiogpsParser.toGenericFromGroup(response.data);
 
       const vehiclesLicensePlates = gpsData.map(gps => ({
         providerId: gps.vehicleId,

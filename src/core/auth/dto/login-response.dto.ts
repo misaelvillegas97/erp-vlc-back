@@ -1,6 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { User }        from '@modules/users/domain/user';
-import { Exclude }     from 'class-transformer';
+import { ApiProperty }  from '@nestjs/swagger';
+import { User }         from '@modules/users/domain/user';
+import { Exclude }      from 'class-transformer';
+import { TenantEntity } from '@modules/tenant/domain/entities/tenant.entity';
 
 export class LoginResponseDto {
   @ApiProperty()
@@ -21,4 +22,9 @@ export class LoginResponseDto {
     type: () => User,
   })
   user: User;
+
+  @ApiProperty({
+    type: () => TenantEntity,
+  })
+  tenant?: TenantEntity;
 }

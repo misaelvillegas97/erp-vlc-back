@@ -14,5 +14,6 @@ export interface GenericGPS {
   speed?: number;
   totalDistance?: number;
   referenceId?: string;
+  timestamp?: string;
   provider?: string;
 }

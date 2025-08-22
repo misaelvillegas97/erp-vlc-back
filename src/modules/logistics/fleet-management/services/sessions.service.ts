@@ -20,6 +20,8 @@ import { GenericGPS }                                                          f
 import { OsrmRoutePoint }                                                      from '@modules/gps/domain/interfaces/osrm.interface';
 import { InjectQueue }                                                         from '@nestjs/bullmq';
 import { Queue }                                                               from 'bullmq';
+import { buildCleanPathFromGeneric, GpsPoint }                                 from '@modules/gps/utils/gps.utils';
+import { GenericGpsMapper }                                                    from '@modules/gps/domain/mappers/generic-gps.mapper';
 
 @Injectable()
 export class SessionsService {
@@ -78,7 +80,7 @@ export class SessionsService {
     return session;
   }
 
-  async findById(id: string, userId?: string): Promise<VehicleSessionEntity> {
+  async findById(id: string, userId?: string, filter: boolean = true): Promise<VehicleSessionEntity & { filter?: GpsPoint[] }> {
     const whereCondition: any = {id};
 
     if (userId) whereCondition.driverId = userId;
@@ -104,7 +106,14 @@ export class SessionsService {
 
     this.logger.log(`Retrieved session ${ session.id }, Route details loaded: ${ !!session.routeDetails }`);
 
-    return session;
+    // @ts-ignore
+    return {
+      ...session,
+      filter: filter ? buildCleanPathFromGeneric(GenericGpsMapper.fromEntityAll(session.gps), {
+        kalman: {q: 0.5, r: 16, maxDt: 3},
+        rdpEpsMeters: 8
+      }) : undefined
+    };
   }
 
   async finishSession(id: string, finishSessionDto: FinishSessionDto): Promise<VehicleSessionEntity> {
@@ -296,6 +305,8 @@ export class SessionsService {
       // Get the GPS provider for this vehicle
       const {provider, historyConfig} = await this.gpsProviderFactoryService.getProviderForVehicle(session.vehicleId);
 
+      if (!provider || !historyConfig) return null;
+
       // Get the GPS history for the session
       const historyData = await provider.getOneHistory(
         historyConfig.metadata.endpoint,
@@ -306,17 +317,13 @@ export class SessionsService {
         session.endTime
       );
 
-      // Maintain compatibility by emitting events
-      historyData.forEach(gps => this.gpsQueue.add('gps.updated', {gps, vehicle: session.vehicle, session}));
-
       if (historyData && historyData.length > 0) {
         this.logger.log(`Retrieved ${ historyData.length } GPS history records for session ${ session.id }`);
 
         // Clear existing GPS data for the session. TODO: Check if this is necessary and if it affects performance
-        // await this.clearSessionGpsData(session.id);
+        await this.clearSessionGpsData(session.id);
 
-        // Save the new GPS history data (more complete route)
-        // await this.saveGpsHistoryData(session.id, historyData, session.vehicle, session);
+        historyData.forEach(gps => this.gpsQueue.add('gps.updated', {gps, vehicle: session.vehicle, session}));
 
         return historyData;
       } else {
@@ -324,7 +331,6 @@ export class SessionsService {
         return null;
       }
     } catch (error) {
-      // Don't interrupt the main flow if there's an error retrieving GPS history
       this.logger.error(`Error retrieving GPS history for session ${ session.id }: ${ error.message }`, error.stack);
       return null;
     }
@@ -578,6 +584,22 @@ export class SessionsService {
 
       // Update vehicle status
       await this.vehiclesService.updateStatus(session.vehicleId, VehicleStatus.AVAILABLE);
+    }
+  }
+
+  private async clearSessionGpsData(id: string) {
+    const session = await this.sessionRepository.findOne({
+      where: {id},
+      relations: [ 'gps' ]
+    });
+
+    if (session && session.gps && session.gps.length > 0) {
+      this.logger.log(`Clearing GPS data for session ${ id }`);
+      await this.sessionRepository
+        .createQueryBuilder()
+        .relation(VehicleSessionEntity, 'gps')
+        .of(session)
+        .remove(session.gps);
     }
   }
 }

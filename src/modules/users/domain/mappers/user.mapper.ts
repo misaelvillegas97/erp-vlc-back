@@ -29,6 +29,9 @@ export class UserMapper {
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
 
+    domainEntity.tenantId = raw.tenantId;
+    domainEntity.tenant = raw.tenant;
+
     if (raw.photo) domainEntity.photo = FileMapper.toDomain(raw.photo);
 
     return domainEntity;

@@ -16,7 +16,6 @@ import { GpsEntity }                    from '@modules/gps/domain/entities/gps.e
 import { LogisticsModule }              from '@modules/logistics/logistics.module';
 import { TenantModule }                 from '@modules/tenant/tenant.module';
 import { BullModule }                   from '@nestjs/bullmq';
-import { ConfigModule, ConfigService }  from '@nestjs/config';
 import { GpsProcessor }                 from '@modules/gps/processors/gps.processor';
 
 @Global()
@@ -29,31 +28,7 @@ import { GpsProcessor }                 from '@modules/gps/processors/gps.proces
     ]),
     forwardRef(() => LogisticsModule),
     TenantModule,
-    BullModule.registerQueueAsync({
-      name: 'gps',
-      imports: [ ConfigModule ],
-      useFactory: (configService: ConfigService) => {
-        const host = configService.get<string>('workers.host', {infer: true});
-        const port = configService.get('workers.port', {infer: true});
-        const username = configService.get<string>('workers.user', {infer: true});
-        const password = configService.get<string>('workers.password', {infer: true});
-        const isProduction = configService.get('app.nodeEnv', {infer: true}) === 'production';
-
-        return {
-          defaultJobOptions: {
-            removeOnComplete: 10,
-            removeOnFail: 50,
-            attempts: 3,
-            backoff: {
-              type: 'exponential',
-              delay: 5000,
-            },
-          },
-          connection: {host, port, username, password, family: isProduction ? 0 : undefined}
-        };
-      },
-      inject: [ ConfigService ],
-    })
+    BullModule.registerQueueAsync({name: 'gps'})
   ],
   controllers: [
     GpsController,
