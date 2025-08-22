@@ -39,11 +39,7 @@ export class GpsService {
       });
 
       // Save the entity to the database
-
-      const gps = await this.gpsRepository.save(gpsEntity);
-      this.logger.debug(`Saving GPS data: ${ JSON.stringify(gps) }`);
-
-      return gps;
+      return await this.gpsRepository.save(gpsEntity);
     } catch (error) {
       this.logger.error(`Error saving GPS data: ${ error.message }`, error.stack);
       throw error;

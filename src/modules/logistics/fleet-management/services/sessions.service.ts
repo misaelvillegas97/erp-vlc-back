@@ -109,10 +109,16 @@ export class SessionsService {
     // @ts-ignore
     return {
       ...session,
-      filter: filter ? buildCleanPathFromGeneric(GenericGpsMapper.fromEntityAll(session.gps), {
-        kalman: {q: 0.5, r: 16, maxDt: 3},
-        rdpEpsMeters: 8
-      }) : undefined
+      filter: filter
+        ? buildCleanPathFromGeneric(
+          GenericGpsMapper.fromEntityAll(session.gps),
+          {
+            gate: {vmax: 35, amax: 3, xtMax: 15},
+            rdp: {eps: 8, turnDeg: 22},
+            kalman: {q: 0.5, r: 16, maxDt: 3}
+          }
+        )
+        : undefined
     };
   }
 

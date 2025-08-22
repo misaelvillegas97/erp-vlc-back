@@ -1,6 +1,11 @@
 import { GPSProviderEnum }                                                from '@modules/gps/domain/enums/provider.enum';
 import { GenericGPS }                                                     from '@modules/gps/domain/interfaces/generic-gps.interface';
-import { BiogpsRawGroup, BiogpsRawHistory, BiogpsRawItem }                from '@modules/gps/domain/interfaces/biogps-raw.interface';
+import {
+  BiogpsRawGroup,
+  BiogpsRawHistory,
+  BiogpsRawHistoryItemLocation,
+  BiogpsRawItem
+}                                                                         from '@modules/gps/domain/interfaces/biogps-raw.interface';
 import { buildCleanPathFromGeneric, GpsPoint, parseGpsTimeToUnixSeconds } from '@modules/gps/utils/gps.utils';
 
 function asNum(n: unknown): number | null {
@@ -94,17 +99,19 @@ export class BiogpsParser {
 
   /** HISTORY → GenericGPS[] */
   static toGenericFromHistory(history: BiogpsRawHistory, licensePlate: string): GenericGPS[] {
-    return history.items
-      .map((it: any) => {
+    const innerItems = history.items.flatMap(item => item.items);
+
+    return innerItems
+      .map((it: BiogpsRawHistoryItemLocation) => {
         const lat = asNum(it?.latitude);
         const lng = asNum(it?.longitude);
         if (!isValidCoord(lat, lng)) return null;
 
         const ts = parseGpsTimeToUnixSeconds(it?.raw_time) ?? 0;
         const speed = asNum(it?.speed) ?? undefined;
-        const totalDistance = asNum(it?.distance ?? it?.total_distance) ?? undefined;
+        const totalDistance = asNum(it?.distance) ?? undefined;
 
-        const referenceId = String(it?.id ?? it?.reference_id ?? '');
+        const referenceId = String(it?.id);
 
         return <GenericGPS> {
           licensePlate,
