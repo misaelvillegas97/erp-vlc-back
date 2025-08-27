@@ -22,6 +22,8 @@ export class GpsService {
    */
   async saveGps(gpsData: GenericGPS, vehicle?: VehicleEntity, session?: VehicleSessionEntity): Promise<GpsEntity> {
     try {
+      // TODO: Add validator if exists referenceId, timestamp, lat and lng
+
       // Create a new GPS entity from the generic GPS data
       const gpsEntity = this.gpsRepository.create({
         licensePlate: gpsData.licensePlate,
@@ -31,6 +33,7 @@ export class GpsService {
         timestamp: gpsData.currentLocation.timestamp,
         lastLocations: gpsData.lastLocations,
         speed: gpsData.speed,
+        course: gpsData.course,
         totalDistance: gpsData.totalDistance,
         vehicle: vehicle || null,
         vehicleSession: session || null,

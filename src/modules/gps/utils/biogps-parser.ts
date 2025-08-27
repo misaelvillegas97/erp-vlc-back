@@ -89,6 +89,7 @@ export class BiogpsParser {
           currentLocation: {lat, lng, timestamp: ts},
           lastLocations: last,
           speed,
+          course: asNum(item.course),
           totalDistance,
           referenceId: item.device_data?.traccar?.latestPosition_id.toString(),
           provider: GPSProviderEnum.BIOGPS,
@@ -119,6 +120,7 @@ export class BiogpsParser {
           currentLocation: {lat, lng, timestamp: ts},
           lastLocations: [], // historial llega sin lastLocations
           speed,
+          course: asNum(it?.course),
           totalDistance,
           referenceId,
           provider: GPSProviderEnum.BIOGPS,

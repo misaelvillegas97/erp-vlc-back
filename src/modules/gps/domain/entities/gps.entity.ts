@@ -27,6 +27,9 @@ export class GpsEntity extends AbstractEntity {
   @Column({type: 'float', nullable: true})
   speed: number;
 
+  @Column({nullable: true})
+  course: number;
+
   @Column({type: 'float', nullable: true, name: 'total_distance'})
   totalDistance: number;
 

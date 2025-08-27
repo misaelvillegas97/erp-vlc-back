@@ -12,6 +12,7 @@ export interface GenericGPS {
     lng: number;
   }>;
   speed?: number;
+  course?: number;
   totalDistance?: number;
   referenceId?: string;
   timestamp?: string;

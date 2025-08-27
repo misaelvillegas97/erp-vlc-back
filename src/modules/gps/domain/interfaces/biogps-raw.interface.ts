@@ -5,6 +5,7 @@ export interface BiogpsRawItem {
   lat: number;
   lng: number;
   timestamp: number;
+  course: number;
   speed: number;
   tail: Array<{ lat: string; lng: string }>;
   total_distance?: number;
