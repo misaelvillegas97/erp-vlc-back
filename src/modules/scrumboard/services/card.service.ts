@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository }              from '@nestjs/typeorm';
-import { In, Repository }                from 'typeorm';
+import { DataSource, Repository }        from 'typeorm';
 
 import { UserEntity }    from '@modules/users/domain/entities/user.entity';
 import { CardEntity }    from '../entities/card.entity';
@@ -8,7 +8,6 @@ import { CreateCardDto } from '../dtos/create-card.dto';
 import { UpdateCardDto } from '../dtos/update-card.dto';
 import { LabelEntity }   from '../entities/label.entity';
 import { BoardEntity }   from '../entities/board.entity';
-import { ListEntity }    from '@modules/scrumboard/entities/list.entity';
 
 @Injectable()
 export class CardService {
@@ -18,43 +17,43 @@ export class CardService {
     @InjectRepository(LabelEntity)
     private readonly labelRepository: Repository<LabelEntity>,
     @InjectRepository(BoardEntity)
-    private readonly boardRepository: Repository<BoardEntity>
+    private readonly boardRepository: Repository<BoardEntity>,
+    private readonly dataSource: DataSource
   ) {}
 
-  async create(createCardDto: CreateCardDto, user: UserEntity) {
-    // Create the card
-    const card = this.cardRepository.create({
-      ...createCardDto,
-      boardId: createCardDto.boardId,
-      listId: createCardDto.listId,
-      createdBy: new UserEntity({id: user.id}),
-      assignees: createCardDto.assignees?.map(userId => new UserEntity({id: userId})),
-      labels: createCardDto.labels?.map(labelId => new LabelEntity({id: labelId})),
-    } as Partial<CardEntity>);
+  async create(createCardDto: CreateCardDto, user: UserEntity): Promise<CardEntity> {
+    return this.dataSource.transaction(async manager => {
+      // Create the card with proper relationships
+      const card = this.cardRepository.create({
+        ...createCardDto,
+        createdById: user.id,
+        assignees: createCardDto.assignees?.map(userId => ({id: userId} as UserEntity)),
+        labels: createCardDto.labels?.map(labelId => ({id: labelId} as LabelEntity)),
+      });
 
-    // Save the card
-    const savedCard = await this.cardRepository.save(card);
+      // Save the card in transaction
+      const savedCard = await manager.save(CardEntity, card);
 
-    // Add labels if provided
-    if (createCardDto.labels && createCardDto.labels.length > 0) {
-      const labels = await this.labelRepository.findBy({id: In(createCardDto.labels)});
-      savedCard.labels = labels;
-      await this.cardRepository.save(savedCard);
-    }
+      // Update the board's lastActivity in the same transaction
+      await manager.update(BoardEntity, createCardDto.boardId, {
+        lastActivity: new Date()
+      });
 
-    // Update the board's lastActivity
-    await this.boardRepository.update(createCardDto.boardId, {
-      lastActivity: new Date()
+      // Return the created card with relations
+      return manager.findOne(CardEntity, {
+        where: {id: savedCard.id},
+        relations: [ 'board', 'labels', 'assignees', 'createdBy', 'createdBy.roles' ],
+      });
     });
-
-    return this.findOne(savedCard.id);
   }
 
-  async findAll() {
-    return this.cardRepository.find();
+  async findAll(): Promise<CardEntity[]> {
+    return this.cardRepository.find({
+      relations: [ 'board', 'labels', 'assignees', 'createdBy' ],
+    });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<CardEntity> {
     const card = await this.cardRepository.findOne({
       where: {id},
       relations: [ 'board', 'labels', 'assignees', 'createdBy', 'createdBy.roles' ],
@@ -67,64 +66,90 @@ export class CardService {
     return card;
   }
 
-  async update(id: string, updateCardDto: UpdateCardDto) {
-    // Find the card
-    const card = await this.findOne(id);
+  async update(id: string, updateCardDto: UpdateCardDto): Promise<CardEntity> {
+    return this.dataSource.transaction(async manager => {
+      // Find the card first to get boardId
+      const existingCard = await manager.findOne(CardEntity, {
+        where: {id},
+        select: [ 'id', 'boardId' ]
+      });
 
-    // Filter out undefined and null fields
-    const filteredDto: Partial<UpdateCardDto> = Object.keys(updateCardDto).reduce((acc, key) => {
-      if (updateCardDto[key] !== undefined && updateCardDto[key] !== null) {
-        acc[key] = updateCardDto[key];
+      if (!existingCard) {
+        throw new NotFoundException(`Card with ID ${ id } not found`);
       }
-      return acc;
-    }, {});
 
-    console.log('Updating card with ID:', id, 'with data:', filteredDto);
+      // Filter out undefined and null fields
+      const filteredDto: Partial<UpdateCardDto> = Object.keys(updateCardDto).reduce((acc, key) => {
+        if (updateCardDto[key] !== undefined && updateCardDto[key] !== null) {
+          acc[key] = updateCardDto[key];
+        }
+        return acc;
+      }, {});
 
-    const {labels, assignees, listId, ...updateFields} = filteredDto;
+      const {labels, assignees, ...updateFields} = filteredDto;
 
-    // Update basic fields
-    if (Object.keys(updateFields).length > 0) {
-      await this.cardRepository.save({...card, ...updateFields});
-    }
+      // Update scalar fields only (no relationships) using update for performance
+      if (Object.keys(updateFields).length > 0) {
+        await manager.update(CardEntity, id, updateFields);
+      }
 
-    // Update listId if provided
-    if (listId) {
-      card.list = new ListEntity({id: listId});
-      await this.cardRepository.save(card);
-    }
+      // Update many-to-many relationships if provided
+      if (labels !== undefined || assignees !== undefined) {
+        // Get the current card entity with relationships for updating
+        const cardEntity = await manager.findOne(CardEntity, {
+          where: {id},
+          relations: [ 'labels', 'assignees' ]
+        });
 
-    // Update labels if provided
-    if (labels) {
-      card.labels = await this.labelRepository.findBy({id: In(labels)});
-      await this.cardRepository.save(card);
-    }
+        if (!cardEntity) {
+          throw new NotFoundException(`Card with ID ${ id } not found`);
+        }
 
-    // Update assignees if provided
-    if (assignees) {
-      card.assignees = assignees.map(userId => ({id: userId} as UserEntity));
-      await this.cardRepository.save(card);
-    }
+        // Update relationships if provided
+        if (labels !== undefined) {
+          cardEntity.labels = labels.map(labelId => ({id: labelId} as LabelEntity));
+        }
 
-    // Update the board's lastActivity
-    await this.boardRepository.update(card.boardId, {
-      lastActivity: new Date()
+        if (assignees !== undefined) {
+          cardEntity.assignees = assignees.map(userId => ({id: userId} as UserEntity));
+        }
+
+        // Save the entity with updated relationships
+        await manager.save(CardEntity, cardEntity);
+      }
+
+      // Update the board's lastActivity in the same transaction
+      await manager.update(BoardEntity, existingCard.boardId, {
+        lastActivity: new Date()
+      });
+
+      // Return the updated card with relations
+      return manager.findOne(CardEntity, {
+        where: {id},
+        relations: [ 'board', 'labels', 'assignees', 'createdBy', 'createdBy.roles' ],
+      });
     });
-
-    // Return the updated card
-    return this.findOne(id);
   }
 
-  async remove(id: string) {
-    // Find the card
-    const card = await this.findOne(id);
+  async remove(id: string): Promise<{ deleted: boolean; card: CardEntity }> {
+    return this.dataSource.transaction(async manager => {
+      // Find the card with minimal relations for return value
+      const card = await manager.findOne(CardEntity, {
+        where: {id},
+        relations: [ 'board', 'labels', 'assignees', 'createdBy' ],
+      });
 
-    // Delete the card
-    await this.cardRepository.remove(card);
+      if (!card) {
+        throw new NotFoundException(`Card with ID ${ id } not found`);
+      }
 
-    return {
-      deleted: true,
-      card
-    };
+      // Delete the card
+      await manager.remove(CardEntity, card);
+
+      return {
+        deleted: true,
+        card,
+      };
+    });
   }
 }
