@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { InjectDataSource, InjectRepository }                                  from '@nestjs/typeorm';
-import { Between, DataSource, Repository }                                     from 'typeorm';
+import { InjectRepository }                                                    from '@nestjs/typeorm';
+import { Between, Repository }                                                 from 'typeorm';
 import { VehicleSessionEntity, VehicleSessionStatus }                          from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                                        from '../domain/entities/vehicle-session-location.entity';
 import { VehicleSessionRouteEntity }                                           from '../domain/entities/vehicle-session-route.entity';
@@ -31,7 +31,6 @@ export class SessionsService {
     @InjectRepository(VehicleSessionLocationEntity) private readonly locationRepository: Repository<VehicleSessionLocationEntity>,
     @InjectRepository(VehicleSessionRouteEntity) private readonly routeRepository: Repository<VehicleSessionRouteEntity>,
     @InjectQueue('gps') private readonly gpsQueue: Queue,
-    @InjectDataSource() private readonly dataSource: DataSource,
     private readonly vehiclesService: VehiclesService,
     private readonly driversService: DriversService,
     private readonly filesService: FilesService,
