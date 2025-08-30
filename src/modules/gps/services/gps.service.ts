@@ -33,7 +33,7 @@ export class GpsService {
         timestamp: gpsData.currentLocation.timestamp,
         lastLocations: gpsData.lastLocations,
         speed: gpsData.speed,
-        course: gpsData.course,
+        course: gpsData.course ? BigNumber(gpsData.course).integerValue().toNumber() : null,
         totalDistance: gpsData.totalDistance,
         vehicle: vehicle || null,
         vehicleSession: session || null,
