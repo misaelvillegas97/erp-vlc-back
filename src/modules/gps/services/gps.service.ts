@@ -6,6 +6,7 @@ import { GenericGPS }                                 from '@modules/gps/domain/
 import { OnEvent }                                    from '@nestjs/event-emitter';
 import { VehicleEntity }                              from '@modules/logistics/fleet-management/domain/entities/vehicle.entity';
 import { VehicleSessionEntity, VehicleSessionStatus } from '@modules/logistics/fleet-management/domain/entities/vehicle-session.entity';
+import { BigNumber }                                  from 'bignumber.js';
 
 @Injectable()
 export class GpsService {
