@@ -22,7 +22,10 @@ export class GpsService {
    */
   async saveGps(gpsData: GenericGPS, vehicle?: VehicleEntity, session?: VehicleSessionEntity): Promise<GpsEntity> {
     try {
-      // TODO: Add validator if exists referenceId, timestamp, lat and lng
+      if (!session) {
+        this.logger.warn(`No vehicle session found for vehicle ${ gpsData.licensePlate }`);
+        return;
+      }
 
       // Create a new GPS entity from the generic GPS data
       const gpsEntity = this.gpsRepository.create({

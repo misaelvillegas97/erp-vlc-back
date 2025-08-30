@@ -20,6 +20,12 @@ export class GpsProcessor extends WorkerHost {
 
     const {gps, vehicle, session} = job.data;
 
-    if (job.name === 'gps.updated') return await this.gpsService.saveGps(gps, vehicle, session);
+    if (job.name === 'gps.updated') {
+      if (!session) {
+        this.logger.warn(`GPS updated job ${ job.id } without session`, gps);
+      }
+
+      return await this.gpsService.saveGps(gps, vehicle, session);
+    }
   }
 }

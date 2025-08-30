@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { InjectRepository }                                                    from '@nestjs/typeorm';
-import { Between, Repository }                                                 from 'typeorm';
+import { InjectDataSource, InjectRepository }                                  from '@nestjs/typeorm';
+import { Between, DataSource, Repository }                                     from 'typeorm';
 import { VehicleSessionEntity, VehicleSessionStatus }                          from '../domain/entities/vehicle-session.entity';
 import { VehicleSessionLocationEntity }                                        from '../domain/entities/vehicle-session-location.entity';
 import { VehicleSessionRouteEntity }                                           from '../domain/entities/vehicle-session-route.entity';
@@ -16,7 +16,6 @@ import { GpsProviderFactoryService }                                           f
 import { GpsService }                                                          from '@modules/gps/services/gps.service';
 import { OsrmService }                                                         from '@modules/gps/services/osrm.service';
 import { PaginationDto }                                                       from '@shared/utils/dto/pagination.dto';
-import { GenericGPS }                                                          from '@modules/gps/domain/interfaces/generic-gps.interface';
 import { OsrmRoutePoint }                                                      from '@modules/gps/domain/interfaces/osrm.interface';
 import { InjectQueue }                                                         from '@nestjs/bullmq';
 import { Queue }                                                               from 'bullmq';
@@ -32,6 +31,7 @@ export class SessionsService {
     @InjectRepository(VehicleSessionLocationEntity) private readonly locationRepository: Repository<VehicleSessionLocationEntity>,
     @InjectRepository(VehicleSessionRouteEntity) private readonly routeRepository: Repository<VehicleSessionRouteEntity>,
     @InjectQueue('gps') private readonly gpsQueue: Queue,
+    @InjectDataSource() private readonly dataSource: DataSource,
     private readonly vehiclesService: VehiclesService,
     private readonly driversService: DriversService,
     private readonly filesService: FilesService,
@@ -39,46 +39,6 @@ export class SessionsService {
     private readonly gpsService: GpsService,
     private readonly osrmService: OsrmService,
   ) {}
-
-  /**
-   * Get route details for a session
-   * @param sessionId Session ID
-   * @returns Promise with route details or null
-   */
-  async getRouteDetails(sessionId: string): Promise<VehicleSessionRouteEntity | null> {
-    return this.routeRepository.findOne({
-      where: {sessionId}
-    });
-  }
-
-  /**
-   * Find session by ID with optional route details loading
-   * @param id Session ID
-   * @param userId Optional user ID for filtering
-   * @param includeRouteDetails Whether to load detailed route data
-   * @returns Promise with session entity
-   */
-  async findByIdWithRouteDetails(id: string, userId?: string, includeRouteDetails = false): Promise<VehicleSessionEntity> {
-    const whereCondition: any = {id};
-    if (userId) whereCondition.driverId = userId;
-
-    const relations = [ 'vehicle', 'driver', 'locations', 'gps', 'vehicle.gpsProvider' ];
-    if (includeRouteDetails) {
-      relations.push('routeDetails');
-    }
-
-    const session = await this.sessionRepository.findOne({
-      where: {...whereCondition},
-      relations,
-      order: {gps: {timestamp: 'ASC'}}
-    });
-
-    if (!session) {
-      throw new NotFoundException(`Vehicle session with ID ${ id } not found`);
-    }
-
-    return session;
-  }
 
   async findById(id: string, userId?: string, filter: boolean = true): Promise<VehicleSessionEntity & { filter?: GpsPoint[] }> {
     const whereCondition: any = {id};
@@ -355,20 +315,6 @@ export class SessionsService {
     });
   }
 
-  /**
-   * Decompress route matchings data from JSON string
-   * @param compressedData Compressed JSON string
-   * @returns Array of OSRM matchings
-   */
-  private decompressMatchings(compressedData: string): any[] {
-    try {
-      return JSON.parse(compressedData);
-    } catch (error) {
-      this.logger.error(`Error decompressing matchings data: ${ error.message }`);
-      return [];
-    }
-  }
-
   async findByVehicleId(vehicleId: string): Promise<VehicleSessionEntity[]> {
     return this.sessionRepository.find({
       where: {vehicleId},
@@ -488,26 +434,6 @@ export class SessionsService {
     return this.routeRepository.save(routeEntity);
   }
 
-  /**
-   * Save GPS history data for a session
-   */
-  private async saveGpsHistoryData(
-    sessionId: string,
-    historyData: GenericGPS[],
-    vehicle: VehicleEntity,
-    session: VehicleSessionEntity
-  ): Promise<void> {
-    try {
-      for (const gpsRecord of historyData) {
-        await this.gpsService.saveGps(gpsRecord, vehicle, session);
-      }
-      this.logger.log(`Saved ${ historyData.length } GPS history records for session ${ sessionId }`);
-    } catch (error) {
-      this.logger.error(`Error saving GPS history for session ${ sessionId }: ${ error.message }`, error.stack);
-      throw error;
-    }
-  }
-
   async cancelSession(id: string): Promise<VehicleSessionEntity> {
     // Get session
     const session = await this.findById(id);
@@ -601,11 +527,13 @@ export class SessionsService {
 
     if (session && session.gps && session.gps.length > 0) {
       this.logger.log(`Clearing GPS data for session ${ id }`);
-      await this.sessionRepository
-        .createQueryBuilder()
-        .relation(VehicleSessionEntity, 'gps')
-        .of(session)
-        .remove(session.gps);
+      try {
+        await this.gpsService.deleteBySessionId(id);
+        this.logger.log(`Successfully deleted GPS records for session ${ id }`);
+      } catch (error) {
+        this.logger.error(`Error deleting GPS records for session ${ id }: ${ error.message }`, error.stack);
+        throw error;
+      }
     }
   }
 }
