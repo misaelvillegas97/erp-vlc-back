@@ -180,4 +180,32 @@ export class AuthController {
   ): Promise<void> {
     return this.service.overridePassword(changePasswordDto.userId, changePasswordDto.password);
   }
+
+
+  // Endpoints for mobile app authentication (no cookies and no refresh token required)
+  @Post('mobile/email/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({type: LoginResponseDto})
+  public async mobileLogin(@Body() loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
+    return this.service.validateLogin(loginDto);
+  }
+
+  @Post('mobile/refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({type: RefreshResponseDto})
+  public async mobileRefresh(@Req() request: Request): Promise<RefreshResponseDto> {
+    return this.service.refreshToken({
+      sessionId: request.user.sessionId,
+      hash: request.user.hash,
+    });
+  }
+
+  @Post('mobile/logout')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public async logoutMobile(@Req() request: Request): Promise<void> {
+    await this.service.logout({
+      sessionId: request.user.sessionId,
+    });
+  }
 }
