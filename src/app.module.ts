@@ -64,6 +64,7 @@ import workersConfig                       from '@modules/workers/config/workers
 import { FeatureFlagsModule }              from '@modules/feature-flags/feature-flags.module';
 import { AdminModule }                     from '@modules/admin/admin.module';
 import { BullModule }                      from '@nestjs/bullmq';
+import { ProceduresModule }                from '@modules/procedures/procedures.module';
 
 @Module({
   imports: [
@@ -184,6 +185,7 @@ import { BullModule }                      from '@nestjs/bullmq';
     SchedulerModule,
     WorkersModule,
     FeatureFlagsModule,
+    ProceduresModule,
     AdminModule
   ],
   controllers: [ AppController ]
