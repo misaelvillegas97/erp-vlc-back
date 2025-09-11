@@ -103,3 +103,10 @@ export enum LegalReferenceCategory {
   ELECTRONIC_SIGNATURE = 'ELECTRONIC_SIGNATURE', // Ley 19.799
   DATA_PROTECTION = 'DATA_PROTECTION' // Ley 19.628
 }
+
+export enum ProcedureCategory {
+  INTERNAL_REGULATION = 'INTERNAL_REGULATION',    // Reglamento Interno
+  HEALTH_SAFETY = 'HEALTH_SAFETY',                // SSO - Seguridad y Salud
+  OPERATIONAL = 'OPERATIONAL',                     // Operacional
+  QUALITY = 'QUALITY'                              // Calidad
+}

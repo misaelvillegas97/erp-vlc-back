@@ -1,7 +1,7 @@
 import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { Transform, Type }                                                                from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional }                                               from '@nestjs/swagger';
-import { LegalReferenceCategory, ProcedurePriority }                                      from '../domain/enums';
+import { LegalReferenceCategory, ProcedureCategory, ProcedurePriority }                   from '../domain/enums';
 import { FileDto }                                                                        from '@modules/files/dto/file.dto';
 import { RoleEnum }                                                                       from '@modules/roles/roles.enum';
 
@@ -51,6 +51,14 @@ export class CreateProcedureDto {
     message: 'La prioridad debe ser una de: LOW, MEDIUM, HIGH, CRITICAL'
   })
   priority?: ProcedurePriority;
+
+  @ApiProperty({
+    description: 'Category of the procedure',
+    enum: ProcedureCategory,
+    example: ProcedureCategory.HEALTH_SAFETY
+  })
+  @IsEnum(ProcedureCategory)
+  category: ProcedureCategory;
 
   @ApiPropertyOptional({
     description: 'Department or area this procedure belongs to',

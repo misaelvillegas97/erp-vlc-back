@@ -1,7 +1,7 @@
-import { Column, Entity, OneToMany }                                  from 'typeorm';
-import { TenantAbstractEntity }                                       from '@shared/domain/entities/tenantAbstractEntity';
-import { LegalReferenceCategory, ProcedurePriority, ProcedureStatus } from '../enums';
-import { ProcedureVersionEntity }                                     from './procedure-version.entity';
+import { Column, Entity, OneToMany }                                                     from 'typeorm';
+import { TenantAbstractEntity }                                                          from '@shared/domain/entities/tenantAbstractEntity';
+import { LegalReferenceCategory, ProcedureCategory, ProcedurePriority, ProcedureStatus } from '../enums';
+import { ProcedureVersionEntity }                                                        from './procedure-version.entity';
 
 /**
  * Main procedure entity that contains the basic information
@@ -66,6 +66,14 @@ export class ProcedureEntity extends TenantAbstractEntity {
    */
   @Column({name: 'author_id', type: 'uuid'})
   authorId: string;
+
+  @Column({
+    name: 'category',
+    type: 'enum',
+    enum: ProcedureCategory,
+    default: ProcedureCategory.HEALTH_SAFETY
+  })
+  category: ProcedureCategory;
 
   /**
    * Primary legal references categories
