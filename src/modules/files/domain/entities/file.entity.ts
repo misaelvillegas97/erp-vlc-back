@@ -28,34 +28,41 @@ export class FileEntity extends EntityRelationalHelper {
   @Column()
   @Transform(
     ({value}) => {
-      if ((fileConfig() as FileConfig).driver === FileDriver.LOCAL) {
-        return (appConfig() as AppConfig).backendDomain + value;
-      } else if (
-        [ FileDriver.S3_PRESIGNED, FileDriver.S3 ].includes(
-          (fileConfig() as FileConfig).driver,
-        )
-      ) {
-        const s3 = new S3Client({
-          region: (fileConfig() as FileConfig).awsS3Region ?? '',
-          credentials: {
-            accessKeyId: (fileConfig() as FileConfig).accessKeyId ?? '',
-            secretAccessKey: (fileConfig() as FileConfig).secretAccessKey ?? '',
-          },
-        });
+      if (value) {
+        if ((fileConfig() as FileConfig).driver === FileDriver.LOCAL) {
+          return (appConfig() as AppConfig).backendDomain + value;
+        } else if (
+          [ FileDriver.S3_PRESIGNED, FileDriver.S3 ].includes(
+            (fileConfig() as FileConfig).driver,
+          )
+        ) {
+          const s3 = new S3Client({
+            region: (fileConfig() as FileConfig).awsS3Region ?? '',
+            credentials: {
+              accessKeyId: (fileConfig() as FileConfig).accessKeyId ?? '',
+              secretAccessKey: (fileConfig() as FileConfig).secretAccessKey ?? '',
+            },
+          });
 
-        const command = new GetObjectCommand({
-          Bucket: (fileConfig() as FileConfig).awsDefaultS3Bucket ?? '',
-          Key: value,
-        });
+          const command = new GetObjectCommand({
+            Bucket: (fileConfig() as FileConfig).awsDefaultS3Bucket ?? '',
+            Key: value,
+          });
 
-        return getSignedUrl(s3, command, {expiresIn: 3600});
-      }
+          return getSignedUrl(s3, command, {expiresIn: 3600});
+        }
 
-      return value;
+        return value;
+      } else return undefined;
     },
     {
       toPlainOnly: true,
     },
   )
   path: string;
+
+  constructor(partial?: Partial<FileEntity>) {
+    super();
+    Object.assign(this, partial);
+  }
 }

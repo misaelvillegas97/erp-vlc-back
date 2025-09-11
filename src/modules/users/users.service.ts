@@ -92,7 +92,7 @@ export class UsersService {
       provider: createUserDto.provider || AuthProvidersEnum.email,
     } as User;
 
-    const createdUser = await this.usersRepository.create(user);
+    const createdUser = await this.usersRepository.createUser(user);
 
     return createdUser;
   }

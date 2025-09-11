@@ -74,9 +74,7 @@ export class ProceduresService {
 
     const savedProcedure = await this.procedureRepository.save(procedure);
 
-    const content = new FileEntity();
-    content.id = createProcedureDto.content.id;
-    content.path = createProcedureDto.content.path;
+    const content = new FileEntity({id: createProcedureDto.content.id});
 
     // Create first version with content reference structure
     const version = this.versionRepository.create({
@@ -235,6 +233,7 @@ export class ProceduresService {
     const procedure = await this.findProcedureById(id, tenantId);
 
     const currentVersion = await this.versionRepository.findOne({
+      relations: [ 'content' ],
       where: {procedureId: id, isCurrent: true, tenantId}
     });
 
@@ -242,7 +241,12 @@ export class ProceduresService {
       throw new NotFoundException('No se encontró la versión actual del procedimiento');
     }
 
-    return Object.assign(procedure, {currentVersionDetails: currentVersion});
+    return Object.assign(procedure, {
+      currentVersionDetails: {
+        ...currentVersion,
+        content: FileMapper.toDomain(currentVersion.content) as FileEntity
+      } as ProcedureVersionEntity
+    });
   }
 
 
